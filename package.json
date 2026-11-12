@@ -1,0 +1,22 @@
+{
+  "name": "scf-analytics-platform",
+  "private": true,
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@12.19.0+sha512.87327b6619853205834e4be59ba3a231e303d9f5e435912ede3312b7539b79af890942f6513b05a4690745666888045c09b33fc420c2cd2d3bd95c01ba21dbeb",
+  "engines": {
+    "node": ">=24.19.0"
+  },
+  "scripts": {
+    "lint": "biome check . && pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck && tsc --noEmit -p tools/spdx && tsc --noEmit -p tools/coverage && tsc --noEmit -p tools/demo-seed && tsc --noEmit -p tools/support && tsc --noEmit -p ops/status && tsc --noEmit -p tools/mcp && tsc --noEmit -p tools/forge && tsc --noEmit -p tools/adoption-report && tsc --noEmit -p services/mcp && tsc --noEmit -p tools/usagemap-op && tsc --noEmit -p tools/pin-action",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.6",
+    "@types/node": "24.19.2",
+    "@vitest/coverage-v8": "5.1.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

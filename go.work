@@ -1,0 +1,18 @@
+go 1.27
+
+use (
+	./tools/stellar-scf
+	./tools/ap-listener
+	./packages/edge-otel/conformance
+	./collector/processor/scfsanitizeprocessor
+	./collector/tests
+	./db/tests
+	./ops
+	./packages/pathnorm
+	./services/engine-proxy
+	./services/gateway
+	./services/health-controller
+	./services/metrics-writer
+	./services/onchain-reader
+	./services/onchain-reader/integration
+)
