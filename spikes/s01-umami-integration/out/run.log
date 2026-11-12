@@ -1,0 +1,594 @@
+
+=================== 0. start stack ===================
+umami image: ghcr.io/umami-software/umami@sha256:b64f40400d77bcadd39cf5c62a1e368c99524ca442024f96e1133355a19a5dbc
+postgres: PostgreSQL 18.6 on x86_64-pc-linux-musl,
+day D=2026-11-11 (events), D1=2026-11-12
+
+=================== 6. provisioning (admin identity) ===================
+POST /api/auth/login {"username":"admin","password":"<redacted>"}
+  -> HTTP 200 {"token":"<redacted>","user":{"id":"41e2b680-648e-4b09-bcd7-3e2b10c06264","username":"admin","role":"admin","createdAt":"2026-11-12T15:38:41.810Z","isAdmin":true,"passwordChangeRequired":true,"teams":[]}}
+  default admin works over the API; passwordChangeRequired=true
+GET /api/me 
+  -> HTTP 200 {"token":"<redacted>","shareToken":null,"user":{"id":"41e2b680-648e-4b09-bcd7-3e2b10c06264","username":"admin","role":"admin","createdAt":"2026-11-12T15:38:41.810Z","twoFactorRequired":false,"isAdmin":true},"authType":"session","twoFactorSetupPending":false,"passwordChangeRequired":true}
+POST /api/me/password {"currentPassword":"<redacted>","newPassword":"<redacted>"}
+  -> HTTP 200 {"id":"41e2b680-648e-4b09-bcd7-3e2b10c06264","username":"admin","role":"admin","createdAt":"2026-11-12T15:38:41.810Z","token":"<redacted>"}
+  old admin token after password change:
+GET /api/me 
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+POST /api/auth/login {"username":"admin","password":"<redacted>"}
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"incorrect-username-password","status":401}}
+POST /api/auth/login {"username":"admin","password":"<redacted>"}
+  -> HTTP 200 {"token":"<redacted>","user":{"id":"41e2b680-648e-4b09-bcd7-3e2b10c06264","username":"admin","role":"admin","createdAt":"2026-11-12T15:38:41.810Z","isAdmin":true,"passwordChangeRequired":false,"teams":[]}}
+  passwordChangeRequired=false
+POST /api/users {"username":"scf-t-aaaa","password":"<redacted>","role":"view-only"}
+  -> HTTP 200 {"id":"614596d9-40a1-4619-90ab-e754cb7fa899","username":"scf-t-aaaa","role":"view-only"}
+POST /api/users {"username":"scf-t-cccc","password":"<redacted>","role":"user"}
+  -> HTTP 200 {"id":"57e99ffb-6d6b-426a-9a83-7cb140a07cba","username":"scf-t-cccc","role":"user"}
+POST /api/teams {"name":"scf-t-aaaa"}
+  -> HTTP 200 [{"id":"9629f9ea-f348-4c27-808a-0540a7c500a1","name":"scf-t-aaaa","accessCode":"team_<redacted>","logoUrl":null,"twoFactorRequired":false,"createdAt":"2026-11-12T15:39:07.024Z","updatedAt":"2026-11-12T15:39:07.024Z","deletedAt":null},{"id":"083150ce-86a5-4b86-a694-3307316757e8","teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1","userId":"41e2b680-648e-4b09-bcd7-3e2b10c06264","role":"team-owner","createdAt":"2026-11-12T15:39:07.024Z","updatedAt":"2026-11-12T15:39:07.024Z"}]
+POST /api/teams {"name":"scf-t-bbbb"}
+  -> HTTP 200 [{"id":"9633fdeb-b823-4f4a-8aef-e1b89f789dff","name":"scf-t-bbbb","accessCode":"team_<redacted>","logoUrl":null,"twoFactorRequired":false,"createdAt":"2026-11-12T15:39:07.065Z","updatedAt":"2026-11-12T15:39:07.065Z","deletedAt":null},{"id":"84f2cdf9-a1c0-43b6-b347-4f019668e5b8","teamId":"9633fdeb-b823-4f4a-8aef-e1b89f789dff","userId":"41e2b680-648e-4b09-bcd7-3e2b10c06264","role":"team-owner","createdAt":"2026-11-12T15:39:07.065Z","updatedAt":"2026-11-12T15:39:07.065Z"}]
+POST /api/teams/9629f9ea-f348-4c27-808a-0540a7c500a1/users {"userId":"614596d9-40a1-4619-90ab-e754cb7fa899","role":"team-view-only"}
+  -> HTTP 200 {"id":"8677bcd7-d88e-4b8f-ad5d-77ee576a0838","teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1","userId":"614596d9-40a1-4619-90ab-e754cb7fa899","role":"team-view-only","createdAt":"2026-11-12T15:39:07.116Z","updatedAt":"2026-11-12T15:39:07.116Z"}
+POST /api/teams/9629f9ea-f348-4c27-808a-0540a7c500a1/users {"userId":"57e99ffb-6d6b-426a-9a83-7cb140a07cba","role":"team-view-only"}
+  -> HTTP 200 {"id":"4b3c5dd8-13c9-4072-bdad-94ee641633ed","teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1","userId":"57e99ffb-6d6b-426a-9a83-7cb140a07cba","role":"team-view-only","createdAt":"2026-11-12T15:39:07.170Z","updatedAt":"2026-11-12T15:39:07.170Z"}
+GET /api/teams/9629f9ea-f348-4c27-808a-0540a7c500a1/users 
+  -> HTTP 200 {"data":[{"id":"083150ce-86a5-4b86-a694-3307316757e8","teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1","userId":"41e2b680-648e-4b09-bcd7-3e2b10c06264","role":"team-owner","createdAt":"2026-11-12T15:39:07.024Z","updatedAt":"2026-11-12T15:39:07.024Z","user":{"id":"41e2b680-648e-4b09-bcd7-3e2b10c06264","username":"admin"}},{"id":"8677bcd7-d88e-4b8f-ad5d-77ee576a0838","teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1","userId":"614596d9-40a1-4619-90ab-e754cb7fa899","role":"team-view-only","createdAt":"2026-11-12T15:39:07.116Z","updatedAt":"2026-11-12T15:39:07.116Z","user":{"id":"614596d9-40a1-4619-90a
+POST /api/websites {"id":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41","name":"site-m","domain":"app.example.org","teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1"}
+  -> HTTP 200 {"id":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41","name":"site-m","domain":"app.example.org","resetAt":null,"userId":null,"teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1","createdBy":"41e2b680-648e-4b09-bcd7-3e2b10c06264","createdAt":"2026-11-12T15:39:07.311Z","updatedAt":"2026-11-12T15:39:07.311Z","deletedAt":null,"recorderEnabled":false,"replayConfig":null,"shareId":null}
+POST /api/websites {"id":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a42","name":"site-m/twin","domain":"app.example.org","teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1"}
+  -> HTTP 200 {"id":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a42","name":"site-m/twin","domain":"app.example.org","resetAt":null,"userId":null,"teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1","createdBy":"41e2b680-648e-4b09-bcd7-3e2b10c06264","createdAt":"2026-11-12T15:39:07.359Z","updatedAt":"2026-11-12T15:39:07.359Z","deletedAt":null,"recorderEnabled":false,"replayConfig":null,"shareId":null}
+POST /api/websites {"id":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a43","name":"lab","domain":"app.example.org","teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1"}
+  -> HTTP 200 {"id":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a43","name":"lab","domain":"app.example.org","resetAt":null,"userId":null,"teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1","createdBy":"41e2b680-648e-4b09-bcd7-3e2b10c06264","createdAt":"2026-11-12T15:39:07.416Z","updatedAt":"2026-11-12T15:39:07.416Z","deletedAt":null,"recorderEnabled":false,"replayConfig":null,"shareId":null}
+POST /api/websites {"id":"6f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41","name":"site-b","domain":"b.example.org","teamId":"9633fdeb-b823-4f4a-8aef-e1b89f789dff"}
+  -> HTTP 200 {"id":"6f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41","name":"site-b","domain":"b.example.org","resetAt":null,"userId":null,"teamId":"9633fdeb-b823-4f4a-8aef-e1b89f789dff","createdBy":"41e2b680-648e-4b09-bcd7-3e2b10c06264","createdAt":"2026-11-12T15:39:07.463Z","updatedAt":"2026-11-12T15:39:07.463Z","deletedAt":null,"recorderEnabled":false,"replayConfig":null,"shareId":null}
+POST /api/websites {"id":"6f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41","name":"dup","domain":"b.example.org","teamId":"9633fdeb-b823-4f4a-8aef-e1b89f789dff"}
+  -> HTTP 400 {"error":{"message":"ID already in use.","code":"bad-request","status":400}}
+POST /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41 {"name":"site-m","domain":"app.example.org"}
+  -> HTTP 200 {"id":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41","name":"site-m","domain":"app.example.org","resetAt":null,"userId":null,"teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1","createdBy":"41e2b680-648e-4b09-bcd7-3e2b10c06264","createdAt":"2026-11-12T15:39:07.311Z","updatedAt":"2026-11-12T15:39:07.568Z","deletedAt":null,"recorderEnabled":false,"replayConfig":null,"shareId":null}
+GET /api/admin/websites?page=1&pageSize=10 
+  -> HTTP 200 {"data":[{"id":"6f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41","name":"site-b","domain":"b.example.org","resetAt":null,"userId":null,"teamId":"9633fdeb-b823-4f4a-8aef-e1b89f789dff","createdBy":"41e2b680-648e-4b09-bcd7-3e2b10c06264","createdAt":"2026-11-12T15:39:07.463Z","updatedAt":"2026-11-12T15:39:07.463Z","deletedAt":null,"recorderEnabled":false,"replayConfig":null,"user":null,"team":{"id":"9633fdeb-b823-4f4a-8aef-e1b89f789dff","name":"scf-t-bbbb","accessCode":"team_<redacted>","logoUrl":null,"twoFactorRequired":false,"createdAt":"2026-11-12T15:39:07.065Z","updatedAt":"2026-11-12T15:39:07.065Z
+  admin/websites count=4 ids=["6f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41","5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a43","5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a42","5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41"]
+POST /api/auth/login {"username":"scf-t-aaaa","password":"<redacted>"}
+  -> HTTP 200 {"token":"<redacted>","user":{"id":"614596d9-40a1-4619-90ab-e754cb7fa899","username":"scf-t-aaaa","role":"view-only","createdAt":"2026-11-12T15:39:06.859Z","isAdmin":false,"passwordChangeRequired":false,"teams":[{"id":"9629f9ea-f348-4c27-808a-0540a7c500a1","name":"scf-t-aaaa","logoUrl":null}]}}
+POST /api/me/api-keys {"name":"scf-control-plane"}
+  -> HTTP 200 {"id":"787af8fe-6cbc-4407-944d-d14a56b63dec","name":"scf-control-plane","keyPrefix":"umami_jl2mwyoB","createdAt":"2026-11-12T15:39:07.788Z","key":"umami_<redacted>"}
+  api key response fields: ["createdAt","id","key","keyPrefix","name"]; key prefix: umami_
+GET /api/me/api-keys 
+  -> HTTP 200 [{"id":"787af8fe-6cbc-4407-944d-d14a56b63dec","name":"scf-control-plane","keyPrefix":"umami_jl2mwyoB","lastUsedAt":null,"createdAt":"2026-11-12T15:39:07.788Z"}]
+  -- read with the API key (own team): stats on M, L
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC 
+  -> HTTP 200 {"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  -- isolation: API key on another team's website, on admin/user/key-management paths, website creation
+GET /api/websites/6f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC 
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+GET /api/websites/6f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41 
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+GET /api/websites 
+  -> HTTP 200 {"data":[],"count":0,"page":1,"pageSize":20,"orderBy":"name"}
+  websites visible to tenant key: []
+GET /api/teams/9633fdeb-b823-4f4a-8aef-e1b89f789dff/websites 
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+POST /api/websites {"name":"x","domain":"x.example.org"}
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+POST /api/websites {"name":"x","domain":"x.example.org","teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1"}
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+POST /api/websites {"name":"x","domain":"x.example.org"}
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+POST /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41 {"name":"hacked"}
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+DELETE /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41 
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+POST /api/me/api-keys {"name":"via-key"}
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+GET /api/admin/websites 
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+  -- comparison: global role 'user' + team-view-only (as in wire-formats §j.2 P2)
+POST /api/auth/login {"username":"scf-t-cccc","password":"<redacted>"}
+  -> HTTP 200 {"token":"<redacted>","user":{"id":"57e99ffb-6d6b-426a-9a83-7cb140a07cba","username":"scf-t-cccc","role":"user","createdAt":"2026-11-12T15:39:06.964Z","isAdmin":false,"passwordChangeRequired":false,"teams":[{"id":"9629f9ea-f348-4c27-808a-0540a7c500a1","name":"scf-t-aaaa","logoUrl":null}]}}
+POST /api/websites {"name":"personal","domain":"p.example.org"}
+  -> HTTP 200 {"id":"47889b00-bd9c-4f3f-b161-6edb5ed70bc0","name":"personal","domain":"p.example.org","resetAt":null,"userId":"57e99ffb-6d6b-426a-9a83-7cb140a07cba","teamId":null,"createdBy":"57e99ffb-6d6b-426a-9a83-7cb140a07cba","createdAt":"2026-11-12T15:39:08.443Z","updatedAt":"2026-11-12T15:39:08.443Z","deletedAt":null,"recorderEnabled":false,"replayConfig":null,"shareId":null}
+POST /api/teams {"name":"own-team"}
+  -> HTTP 200 [{"id":"585181c3-9951-42dd-bca8-d77676d065f1","name":"own-team","accessCode":"team_<redacted>","logoUrl":null,"twoFactorRequired":false,"createdAt":"2026-11-12T15:39:08.490Z","updatedAt":"2026-11-12T15:39:08.490Z","deletedAt":null},{"id":"a5febfc7-79e4-40a3-895b-9369dfd89428","teamId":"585181c3-9951-42dd-bca8-d77676d065f1","userId":"57e99ffb-6d6b-426a-9a83-7cb140a07cba","role":"team-owner","createdAt":"2026-11-12T15:39:08.491Z","updatedAt":"2026-11-12T15:39:08.491Z"}]
+POST /api/websites {"name":"x","domain":"x.example.org","teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1"}
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+
+=================== 1. surrogate + country ===================
+send surr=2001:db8:5c1f:9a2e:77d0:13ab:e4c2:b9f cc=DE ts=1794387600 tag=v url=/a name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"6b0aa785-3229-51b3-a7f9-1abac53a0892","visitId":"421b1a14-f5f5-5bb6-896d-b5800a3f4b73"}
+send surr=2001:db8:5c1f:9a2e:77d0:13ab:e4c2:b9f cc=DE ts=1794388200 tag=v url=/b name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"6b0aa785-3229-51b3-a7f9-1abac53a0892","visitId":"421b1a14-f5f5-5bb6-896d-b5800a3f4b73"}
+  same surrogate+UA, same hour, no token: same session=yes same visit=yes
+send surr=2001:db8:5c1f:9a2e:77d0:13ab:e4c2:b9f cc=DE ts=1794416400 tag=v url=/c name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"6b0aa785-3229-51b3-a7f9-1abac53a0892","visitId":"adcb914d-d20f-5b26-b8c7-6995f7b958b6"}
+  same surrogate+UA, later hour same day: same session=yes same visit=no
+send surr=2001:db8:aaaa:bbbb:cccc:dddd:eeee:1 cc=FR ts=1794387900 tag=v url=/a name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"9abfd0f7-d40a-5478-952d-4dbe23508600","visitId":"97cc8e74-4766-56f5-8f59-5514d367f84c"}
+  other surrogate: new session=yes
+send surr=2001:db8:1234:5678:9abc:def0:1111:2222 cc=US ts=1794387960 tag=s url=/a name=- cache=no extra={} ua=Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 …
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"284cb115-9e2c-5aed-8a0e-c219fb67d93c","visitId":"25fd3676-6efc-5227-93d3-70b8e2d92baa"}
+send surr=2001:db8:5c1f:9a2e:77d0:13ab:e4c2:b9f cc=DE ts=1794388020 tag=v url=/a name=- cache=no extra={} ua=Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 …
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"1b7422b2-6c8d-53fc-9945-2af7574cae15","visitId":"01378ffa-9cc3-5d5c-81fc-d0e5c5e841d6"}
+  same surrogate, other UA: new session=yes
+send surr=2001:db8:5c1f:9a2e:77d0:13ab:e4c2:b9f cc=DE ts=1794442200 tag=v url=/a name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"7f5b8665-560d-5006-b178-98b204f96969","visitId":"cae490f0-4b78-50de-9a88-262abf1bcc6b"}
+  same surrogate+UA, next UTC day (SALT_ROTATION=day): new session=yes
+send surr=2001:db8:0:0:0:0:0:99 cc=XX ts=1794388800 tag=v url=/xx-sentinel name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"04b1a07f-b2de-5127-970c-abc06cf64720","visitId":"ff1e0e50-1c43-504d-b006-7b53d7f12ff2"}
+send surr=2001:db8:5c1f:9a2e:77d0:13ab:e4c2:b9f cc=FR ts=1794388860 tag=v url=/country-change name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"6b0aa785-3229-51b3-a7f9-1abac53a0892","visitId":"421b1a14-f5f5-5bb6-896d-b5800a3f4b73"}
+  same session, later event with another country: country is a session attribute set by the first event (see table)
+  -- local / private / invalid surrogates with cf-ipcountry: DE
+  local case 1 = 10.1.2.3
+send surr=10.1.2.3 cc=DE ts=1794389400 tag=v url=/local/1 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"32adbee5-10e0-53af-be06-8a7a166a73b0","visitId":"2e3b2e2c-4073-559e-a0b9-9dfff969fac3"}
+  local case 2 = 127.0.0.1
+send surr=127.0.0.1 cc=DE ts=1794389400 tag=v url=/local/2 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"4496b3cb-cf74-5335-b6d2-1fb631cacbbd","visitId":"0b0e52d2-435f-5926-bd1f-84a90bd22f61"}
+  local case 3 = ::1
+send surr=::1 cc=DE ts=1794389400 tag=v url=/local/3 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"5c0793b7-241c-5a45-8941-561f153d87f1","visitId":"37f03ec3-c8ab-53ca-b5e0-c235c29763c0"}
+  local case 4 = fd00::1
+send surr=fd00::1 cc=DE ts=1794389400 tag=v url=/local/4 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"5aa91a09-065d-5f55-b5d3-42025a2b0146","visitId":"0c75376c-cfb1-54d0-bfb1-49ba7d5a0c6a"}
+  local case 5 = fd12:3456::abcd
+send surr=fd12:3456::abcd cc=DE ts=1794389400 tag=v url=/local/5 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"1518aa79-b681-5306-af4b-f984cc80b8d3","visitId":"754c8a97-4e48-57d6-850a-bd935c19482b"}
+  local case 6 = 100.64.1.1
+send surr=100.64.1.1 cc=DE ts=1794389400 tag=v url=/local/6 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"9f1a664e-4d3f-5697-9c0a-25b823bbdcec","visitId":"2666ff1e-a200-5c1b-9ffb-22c57db7e9b4"}
+  local case 7 = not-an-ip
+send surr=not-an-ip cc=DE ts=1794389400 tag=v url=/local/7 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"d15d52e1-ac45-5386-8508-ce8c4df7c7ec","visitId":"e81fd909-dd77-5e8a-bf39-20a91beff659"}
+  -- no country header, valid surrogate (bundled GeoLite DB present -> lookup of 2001:db8::/32)
+send surr=2001:db8:0:0:0:0:0:77 cc=- ts=1794390000 tag=v url=/nocountry name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"34793a8d-f5d5-5a50-9241-fcef202a61af","visitId":"033ef8a8-d7dc-589f-a5a6-4e7d544695a2"}
+  -- umami-nogeo (GEOLITE_DB_PATH points at a missing file)
+send surr=2001:db8:0:0:0:0:0:78 cc=DE ts=1794390060 tag=v url=/nogeo-with-country name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"898ff6b9-7e2b-5984-87ca-65e80aedeeed","visitId":"bbdd9691-5806-53ab-80ae-3ecfc0048309"}
+send surr=2001:db8:0:0:0:0:0:79 cc=- ts=1794390120 tag=v url=/nogeo-without-country name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 500 {"error":{"message":"Server error","code":"server-error","status":500}}
+send surr=10.9.9.9 cc=- ts=1794390180 tag=v url=/nogeo-local-without-country name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"057a7e49-17e4-5069-bfe8-bef0ba937cae","visitId":"250900fa-a14b-5772-89db-fa863b6f0c9a"}
+umami-nogeo-1  |   code: 'ENOENT',
+umami-nogeo-1  |   path: '/nonexistent/GeoLite2-City.mmdb',
+umami-nogeo-1  |   name: 'Error',
+umami-nogeo-1  |   message: "ENOENT: no such file or directory, stat '/nonexistent/GeoLite2-City.mmdb'",
+umami-nogeo-1  |   stack: "Error: ENOENT: no such file or directory, stat '/nonexistent/GeoLite2-City.mmdb'"
+  -- payload.ip (we never send it): it overrides the header and disables cf-ipcountry
+send surr=2001:db8:5c1f:9a2e:77d0:13ab:e4c2:b9f cc=DE ts=1794390600 tag=v url=/payload-ip-doc name=- cache=no extra={"ip":"2001:db8::9"} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"869a664b-00e7-5e79-9e3f-15c3d2059118","visitId":"dac40a04-71e2-5bad-ad4c-dd1fb12a1dde"}
+send surr=2001:db8:5c1f:9a2e:77d0:13ab:e4c2:b9f cc=DE ts=1794390660 tag=v url=/payload-ip-public name=- cache=no extra={"ip":"8.8.8.8"} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"ff91b36a-30b3-5695-8028-11938dcaee47","visitId":"7c0e0a8a-8432-5506-bf26-404c2376a16a"}
+  -- no surrogate header at all (two different 'visitors', same UA)
+send surr=- cc=DE ts=1794390900 tag=v url=/noheader-1 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"4b288a2a-2c1f-510b-9b52-f6677d769f34","visitId":"d1065f43-2576-5751-8e9d-2efb40b10854"}
+send surr=- cc=FR ts=1794390960 tag=v url=/noheader-2 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"4b288a2a-2c1f-510b-9b52-f6677d769f34","visitId":"d1065f43-2576-5751-8e9d-2efb40b10854"}
+  no header: same session for both=yes
+SQL> select e.url_path, e.tag, s.country, s.region, s.city, s.browser, s.os, s.device, left(e.session_id::text,8) sid, left(e.visit_id::text,8) vid, e.created_at
+     from website_event e join session s using (session_id) where e.website_id='5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a43' order by e.created_at, e.url_path
+           url_path           | tag | country | region | city | browser |     os     | device |   sid    |   vid    |       created_at       
+------------------------------+-----+---------+--------+------+---------+------------+--------+----------+----------+------------------------
+ /a                           | v   | DE      |        |      | chrome  | Windows 10 | laptop | 6b0aa785 | 421b1a14 | 2026-11-11 09:00:00+00
+ /a                           | v   | FR      |        |      | chrome  | Windows 10 | laptop | 9abfd0f7 | 97cc8e74 | 2026-11-11 09:05:00+00
+ /a                           | s   | US      |        |      | ios     | iOS        | mobile | 284cb115 | 25fd3676 | 2026-11-11 09:06:00+00
+ /a                           | v   | DE      |        |      | ios     | iOS        | mobile | 1b7422b2 | 01378ffa | 2026-11-11 09:07:00+00
+ /b                           | v   | DE      |        |      | chrome  | Windows 10 | laptop | 6b0aa785 | 421b1a14 | 2026-11-11 09:10:00+00
+ /xx-sentinel                 | v   | XX      |        |      | chrome  | Windows 10 | laptop | 04b1a07f | ff1e0e50 | 2026-11-11 09:20:00+00
+ /country-change              | v   | DE      |        |      | chrome  | Windows 10 | laptop | 6b0aa785 | 421b1a14 | 2026-11-11 09:21:00+00
+ /local/1                     | v   |         |        |      | chrome  | Windows 10 | laptop | 32adbee5 | 2e3b2e2c | 2026-11-11 09:30:00+00
+ /local/2                     | v   |         |        |      | chrome  | Windows 10 | laptop | 4496b3cb | 0b0e52d2 | 2026-11-11 09:30:00+00
+ /local/3                     | v   |         |        |      | chrome  | Windows 10 | laptop | 5c0793b7 | 37f03ec3 | 2026-11-11 09:30:00+00
+ /local/4                     | v   |         |        |      | chrome  | Windows 10 | laptop | 5aa91a09 | 0c75376c | 2026-11-11 09:30:00+00
+ /local/5                     | v   | DE      |        |      | chrome  | Windows 10 | laptop | 1518aa79 | 754c8a97 | 2026-11-11 09:30:00+00
+ /local/6                     | v   | DE      |        |      | chrome  | Windows 10 | laptop | 9f1a664e | 2666ff1e | 2026-11-11 09:30:00+00
+ /local/7                     | v   |         |        |      | chrome  | Windows 10 | laptop | d15d52e1 | e81fd909 | 2026-11-11 09:30:00+00
+ /nocountry                   | v   |         |        |      | chrome  | Windows 10 | laptop | 34793a8d | 033ef8a8 | 2026-11-11 09:40:00+00
+ /nogeo-with-country          | v   | DE      |        |      | chrome  | Windows 10 | laptop | 898ff6b9 | bbdd9691 | 2026-11-11 09:41:00+00
+ /nogeo-local-without-country | v   |         |        |      | chrome  | Windows 10 | laptop | 057a7e49 | 250900fa | 2026-11-11 09:43:00+00
+ /payload-ip-doc              | v   |         |        |      | chrome  | Windows 10 | laptop | 869a664b | dac40a04 | 2026-11-11 09:50:00+00
+ /payload-ip-public           | v   | US      |        |      | chrome  | Windows 10 | laptop | ff91b36a | 7c0e0a8a | 2026-11-11 09:51:00+00
+ /noheader-1                  | v   |         |        |      | chrome  | Windows 10 | laptop | 4b288a2a | d1065f43 | 2026-11-11 09:55:00+00
+ /noheader-2                  | v   |         |        |      | chrome  | Windows 10 | laptop | 4b288a2a | d1065f43 | 2026-11-11 09:56:00+00
+ /c                           | v   | DE      |        |      | chrome  | Windows 10 | laptop | 6b0aa785 | adcb914d | 2026-11-11 17:00:00+00
+ /a                           | v   | DE      |        |      | chrome  | Windows 10 | laptop | 7f5b8665 | cae490f0 | 2026-11-12 00:10:00+00
+(23 rows)
+
+
+=================== 5. bot drop ===================
+send surr=2001:db8::b07 cc=DE ts=1794391200 tag=v url=/bot name=- cache=no extra={} ua=Mozilla/5.0 (compatible; Googlebot/2.1; …
+  -> HTTP 200 {"beep":"boop"}
+send surr=2001:db8::b07 cc=DE ts=1794391200 tag=v url=/bot name=- cache=no extra={} ua=curl/8.5.0…
+  -> HTTP 200 {"beep":"boop"}
+send surr=2001:db8::b07 cc=DE ts=1794391200 tag=v url=/bot name=- cache=no extra={} ua=Mozilla/5.0 (X11; Linux x86_64) Headless…
+  -> HTTP 200 {"beep":"boop"}
+send surr=2001:db8::b07 cc=DE ts=1794391200 tag=v url=/notbot name=- cache=no extra={"userAgent":"Googlebot/2.1"} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"beep":"boop"}
+  website_event rows before=23 after=23
+  synthetic UA templates (C-36 / wire-formats §c.3) as parsed by Umami:
+send surr=2001:db8::c01 cc=DE ts=1794391260 tag=v url=/ua-chrome-win name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"3a8ad790-4d3b-500d-b5ec-79d573951ac1","visitId":"f4a7f565-2303-512d-bf1c-1310353bb82f"}
+send surr=2001:db8::c02 cc=DE ts=1794391260 tag=v url=/ua-safari-ios name=- cache=no extra={"screen":"390x844"} ua=Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 …
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"fb401841-99a2-562c-a369-22077e07e447","visitId":"af1ef926-3a5d-58f6-8482-5dc8b53c00a0"}
+send surr=2001:db8::c03 cc=DE ts=1794391260 tag=v url=/ua-unknown name=- cache=no extra={} ua=Mozilla/5.0 (X11; Linux x86_64) Gecko/20…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"8055175e-8a7c-59ff-bf95-67eaa797ffaa","visitId":"ae119be3-2b4b-5b61-af3a-1abcc2b564bc"}
+  further candidate templates (bare/unknown strings are bots for isbot):
+send surr=2001:db8::c11 cc=DE ts=1794391320 tag=v url=/ua-probe-1 name=- cache=no extra={} ua=Mozilla/5.0…
+  -> HTTP 200 {"beep":"boop"}
+  probe 1 = Mozilla/5.0
+send surr=2001:db8::c12 cc=DE ts=1794391320 tag=v url=/ua-probe-2 name=- cache=no extra={} ua=Mozilla/5.0 (Unknown)…
+  -> HTTP 200 {"beep":"boop"}
+  probe 2 = Mozilla/5.0 (Unknown)
+send surr=2001:db8::c13 cc=DE ts=1794391320 tag=v url=/ua-probe-3 name=- cache=no extra={} ua=Mozilla/5.0 (Macintosh; Intel Mac OS X 1…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"c17defce-f9d6-502d-8b73-c9c6b786d070","visitId":"07c06858-e22d-5316-b5f3-5d96c790c544"}
+  probe 3 = Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15
+send surr=2001:db8::c14 cc=DE ts=1794391320 tag=v url=/ua-probe-4 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"b833ae96-9437-5157-85a6-2e8f62eb8dbf","visitId":"ee388151-8354-5af3-82a9-3dcc43699c84"}
+  probe 4 = Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0
+send surr=2001:db8::c15 cc=DE ts=1794391320 tag=v url=/ua-probe-5 name=- cache=no extra={} ua=Mozilla/5.0 (Linux; Android 10; K) Apple…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"5ae3fe32-8130-568d-91ac-df1b717d5b24","visitId":"48ae1a0d-579b-5d23-b6e9-59f40e290ced"}
+  probe 5 = Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36
+send surr=2001:db8::c16 cc=DE ts=1794391320 tag=v url=/ua-probe-6 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"29b1646d-0163-596a-b669-9f3ca102e65b","visitId":"85cc0902-a262-5e5f-8050-645577ba426f"}
+  probe 6 = Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0
+SQL> select e.url_path, s.browser, s.os, s.device, s.screen from website_event e join session s using (session_id) where e.url_path like '/ua-%' order by 1
+    url_path    |    browser    |     os     | device |  screen  
+----------------+---------------+------------+--------+----------
+ /ua-chrome-win | chrome        | Windows 10 | laptop | 1536x864
+ /ua-probe-3    | safari        | Mac OS     | laptop | 1536x864
+ /ua-probe-4    | firefox       | Windows 10 | laptop | 1536x864
+ /ua-probe-5    | chrome        | Android OS | mobile | 1536x864
+ /ua-probe-6    | edge-chromium | Windows 10 | laptop | 1536x864
+ /ua-safari-ios | ios           | iOS        | mobile | 390x844
+ /ua-unknown    | firefox       | Linux      | laptop | 1536x864
+(7 rows)
+
+
+=================== 3. visit continuity / cache token ===================
+  A: no token, 10:55 and 11:05
+send surr=2001:db8:c0:0:0:0:0:1 cc=DE ts=1794394500 tag=v url=/3a-1 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"b7bf61e4-e647-5324-bb68-39becd5eb761","visitId":"6d9219b7-35c3-58cb-a812-68c3931badcc"}
+send surr=2001:db8:c0:0:0:0:0:1 cc=DE ts=1794395100 tag=v url=/3a-2 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"b7bf61e4-e647-5324-bb68-39becd5eb761","visitId":"a9c9b726-de44-58c1-8d09-63d955cfb721"}
+  A: same visit=no
+  B: token replayed, 10:55 -> 11:05 -> 13:30 (2h25 gap) -> 23:59
+send surr=2001:db8:c0:0:0:0:0:2 cc=DE ts=1794394500 tag=v url=/3b-1 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"e43aa28c-6682-5ba8-81d9-dc2a726ab517","visitId":"b6afbbad-58f9-5bd4-b970-a674e2f696ba"}
+  token payload: {"websiteId":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a43","sessionId":"e43aa28c-6682-5ba8-81d9-dc2a726ab517","visitId":"b6afbbad-58f9-5bd4-b970-a674e2f696ba","iat":1794497951,"type":"cache"}
+send surr=2001:db8:c0:0:0:0:0:2 cc=DE ts=1794395100 tag=v url=/3b-2 name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"e43aa28c-6682-5ba8-81d9-dc2a726ab517","visitId":"b6afbbad-58f9-5bd4-b970-a674e2f696ba"}
+  B: same visit across the hour=yes; token payload now: {"websiteId":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a43","sessionId":"e43aa28c-6682-5ba8-81d9-dc2a726ab517","visitId":"b6afbbad-58f9-5bd4-b970-a674e2f696ba","iat":1794497951,"type":"cache"}
+send surr=2001:db8:c0:0:0:0:0:2 cc=DE ts=1794403800 tag=v url=/3b-3 name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"e43aa28c-6682-5ba8-81d9-dc2a726ab517","visitId":"b6afbbad-58f9-5bd4-b970-a674e2f696ba"}
+  B: same visit after a 2h25 gap=yes
+send surr=2001:db8:c0:0:0:0:0:2 cc=DE ts=1794441540 tag=v url=/3b-4 name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"e43aa28c-6682-5ba8-81d9-dc2a726ab517","visitId":"b6afbbad-58f9-5bd4-b970-a674e2f696ba"}
+  B: first token replayed again 13h later, same visit=yes
+  B': out of order (spool backlog): 11:20 first, then 11:10 with its token
+send surr=2001:db8:c0:0:0:0:0:4 cc=DE ts=1794396000 tag=v url=/3b2-1 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"eaeb8897-6817-50d6-b3ac-1faf1a4b0938","visitId":"6cc007fa-3cde-5c99-ba10-af92e398cc5d"}
+send surr=2001:db8:c0:0:0:0:0:4 cc=DE ts=1794394200 tag=v url=/3b2-0 name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"eaeb8897-6817-50d6-b3ac-1faf1a4b0938","visitId":"6cc007fa-3cde-5c99-ba10-af92e398cc5d"}
+  B': earlier-stamped event with token joins visit=yes
+  C: token of C2 replayed for another surrogate C3 on the same website
+send surr=2001:db8:c0:0:0:0:0:3 cc=DE ts=1794395160 tag=v url=/3c name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"5c4f3a86-9d05-52b7-8e01-f37157870fe4","visitId":"b514850e-d6ce-5f18-9271-f8e14dab5407"}
+  C: visit=new visit session=own session; session row exists: 1
+  D: token of website L replayed on website B
+send surr=2001:db8:c0:0:0:0:0:2 cc=DE ts=1794395220 tag=v url=/3d name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"84ec2331-5ccc-5328-a69e-a65b8a84b343","visitId":"cc46edd6-8a43-560d-a228-db4ced83febc"}
+  D: visit reused=no
+  E: tampered token (signature broken)
+send surr=2001:db8:c0:0:0:0:0:2 cc=DE ts=1794395280 tag=v url=/3e name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"e43aa28c-6682-5ba8-81d9-dc2a726ab517","visitId":"d373aabd-f17a-543c-a37e-13acb5e413f1"}
+  E: visit=hour-bucket visit (token ignored)
+  F: token across the UTC day boundary (salt rotates): 23:55 D -> 00:05 D+1
+send surr=2001:db8:c0:0:0:0:0:1 cc=DE ts=1794441300 tag=v url=/3f-1 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"b7bf61e4-e647-5324-bb68-39becd5eb761","visitId":"4add0e64-615a-5cb5-9c3b-90b9bc7123bf"}
+send surr=2001:db8:c0:0:0:0:0:1 cc=DE ts=1794441900 tag=v url=/3f-2 name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"e9b9b561-70c6-5df8-bbd2-5b4185905009","visitId":"dd0d144f-916a-56f3-9ced-12337880ac56"}
+  F: same session=no same visit=no
+  G: is the 30-min rule applied, and from when? Tokens forged with the spike's APP_SECRET carrying a random visitId R
+send surr=2001:db8:c0::5 cc=DE ts=- tag=v url=/3g-0 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"e06c6abf-65e9-538f-8a98-6272bfdb3f05","visitId":"639a6117-04c1-5796-bdb5-b31e77e2207d"}
+send surr=2001:db8:c0::5 cc=DE ts=- tag=v url=/3g-1 name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"e06c6abf-65e9-538f-8a98-6272bfdb3f05","visitId":"00000000-0000-4000-8000-0000000000aa"}
+  G1 no timestamp, iat 1 min old:  visit=R (token visit kept)
+send surr=2001:db8:c0::5 cc=DE ts=- tag=v url=/3g-2 name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"e06c6abf-65e9-538f-8a98-6272bfdb3f05","visitId":"639a6117-04c1-5796-bdb5-b31e77e2207d"}
+  G2 no timestamp, iat 31 min old: visit=NEW hour-bucket visit (== first event's: yes)
+  G2 returned token iat reset to now: {"websiteId":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a43","sessionId":"e06c6abf-65e9-538f-8a98-6272bfdb3f05","visitId":"639a6117-04c1-5796-bdb5-b31e77e2207d","iat":1794497952,"type":"cache"}
+send surr=2001:db8:c0::5 cc=DE ts=1794497952 tag=v url=/3g-3 name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"e06c6abf-65e9-538f-8a98-6272bfdb3f05","visitId":"00000000-0000-4000-8000-0000000000aa"}
+  G3 WITH timestamp, iat 24 h old: visit=R (kept: no expiry on the timestamped path)
+  H: token of a deleted website (website existence check is skipped when a valid token is present)
+POST /api/websites {"id":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a49","name":"z","domain":"z.example.org","teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1"}
+  -> HTTP 200 {"id":"5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a49","name":"z","domain":"z.example.org","resetAt":null,"userId":null,"teamId":"9629f9ea-f348-4c27-808a-0540a7c500a1","createdBy":"41e2b680-648e-4b09-bcd7-3e2b10c06264","createdAt":"2026-11-12T15:39:12.217Z","updatedAt":"2026-11-12T15:39:12.217Z","deletedAt":null,"recorderEnabled":false,"replayConfig":null,"shareId":null}
+send surr=2001:db8:c0::9 cc=DE ts=1794394800 tag=v url=/3h-1 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"c1adb5b9-3ad0-5df4-9424-e395d4ae523e","visitId":"0ff85f73-2915-59e6-950b-8c9e06e63255"}
+DELETE /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a49 
+  -> HTTP 200 {"ok":true}
+send surr=2001:db8:c0::9 cc=DE ts=1794394860 tag=v url=/3h-2 name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 400 {"error":{"message":"Website not found.","code":"bad-request","status":400}}
+send surr=2001:db8:c0::9 cc=DE ts=1794394920 tag=v url=/3h-3 name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"c1adb5b9-3ad0-5df4-9424-e395d4ae523e","visitId":"0ff85f73-2915-59e6-950b-8c9e06e63255"}
+  H: rows stored for the deleted website: 1
+SQL> select e.url_path, left(e.session_id::text,8) sid, left(e.visit_id::text,8) vid, e.created_at from website_event e where e.url_path like '/3%' order by e.url_path
+ url_path |   sid    |   vid    |         created_at         
+----------+----------+----------+----------------------------
+ /3a-1    | b7bf61e4 | 6d9219b7 | 2026-11-11 10:55:00+00
+ /3a-2    | b7bf61e4 | a9c9b726 | 2026-11-11 11:05:00+00
+ /3b-1    | e43aa28c | b6afbbad | 2026-11-11 10:55:00+00
+ /3b-2    | e43aa28c | b6afbbad | 2026-11-11 11:05:00+00
+ /3b-3    | e43aa28c | b6afbbad | 2026-11-11 13:30:00+00
+ /3b-4    | e43aa28c | b6afbbad | 2026-11-11 23:59:00+00
+ /3b2-0   | eaeb8897 | 6cc007fa | 2026-11-11 10:50:00+00
+ /3b2-1   | eaeb8897 | 6cc007fa | 2026-11-11 11:20:00+00
+ /3c      | 5c4f3a86 | b514850e | 2026-11-11 11:06:00+00
+ /3d      | 84ec2331 | cc46edd6 | 2026-11-11 11:07:00+00
+ /3e      | e43aa28c | d373aabd | 2026-11-11 11:08:00+00
+ /3f-1    | b7bf61e4 | 4add0e64 | 2026-11-11 23:55:00+00
+ /3f-2    | e9b9b561 | dd0d144f | 2026-11-12 00:05:00+00
+ /3g-0    | e06c6abf | 639a6117 | 2026-11-12 15:39:11.971+00
+ /3g-1    | e06c6abf | 00000000 | 2026-11-12 15:39:12.039+00
+ /3g-2    | e06c6abf | 639a6117 | 2026-11-12 15:39:12.101+00
+ /3g-3    | e06c6abf | 00000000 | 2026-11-12 15:39:12+00
+ /3h-3    | c1adb5b9 | 0ff85f73 | 2026-11-11 11:02:00+00
+(18 rows)
+
+SQL> select website_id, left(session_id::text,8) sid from website_event where url_path='/3d'
+              website_id              |   sid    
+--------------------------------------+----------
+ 6f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41 | 84ec2331
+(1 row)
+
+SQL> select left(session_id::text,8) sid, count(*) from session where website_id='5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a43' and session_id in (select session_id from website_event where url_path like '/3c%') group by 1
+   sid    | count 
+----------+-------
+ 5c4f3a86 |     1
+(1 row)
+
+
+=================== 4. metrics dataset on website M (and twin T) ===================
+send surr=2001:db8:a1::1 cc=DE ts=1794398400 tag=v url=/ name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"993885e6-5649-5479-ae13-387fb02205c3","visitId":"c5802ee5-fc6a-5c36-933d-0b9eaf2930a9"}
+send surr=2001:db8:a2::1 cc=FR ts=1794398400 tag=v url=/ name=- cache=no extra={"referrer":"https://news.ycombinator.com/","screen":"390x844"} ua=Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 …
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"25024487-5da5-578c-92fb-505f98f640f5","visitId":"adc3e4c8-4ceb-5405-ab43-37c6998e82d9"}
+send surr=2001:db8:a2::1 cc=FR ts=1794398520 tag=v url=/pricing name=- cache=yes extra={"screen":"390x844"} ua=Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 …
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"25024487-5da5-578c-92fb-505f98f640f5","visitId":"adc3e4c8-4ceb-5405-ab43-37c6998e82d9"}
+send surr=2001:db8:a2::1 cc=FR ts=1794398700 tag=v url=/docs name=- cache=yes extra={"screen":"390x844"} ua=Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 …
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"25024487-5da5-578c-92fb-505f98f640f5","visitId":"adc3e4c8-4ceb-5405-ab43-37c6998e82d9"}
+send surr=2001:db8:a3::1 cc=US ts=1794399000 tag=v url=/ name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"1f55ea52-11e6-53de-8807-f385f9d1eb4e","visitId":"93eec471-4af1-5e75-bdaf-c907ef27fc91"}
+send surr=2001:db8:a3::1 cc=US ts=1794399060 tag=v url=/ name=wallet_selected cache=yes extra={"data":{"wallet_id":"freighter"}} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"1f55ea52-11e6-53de-8807-f385f9d1eb4e","visitId":"93eec471-4af1-5e75-bdaf-c907ef27fc91"}
+send surr=2001:db8:a4::1 cc=DE ts=1794399600 tag=s url=/ name=- cache=no extra={} ua=Mozilla/5.0 (X11; Linux x86_64) Gecko/20…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"7fbb892b-b9d2-542e-a033-ccde413aa59a","visitId":"2ad0b3bb-8e49-515d-a70a-bdae7e048b23"}
+send surr=2001:db8:a5::1 cc=DE ts=1794400200 tag=v url=/ name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"f2f9b47c-8125-5acb-ae00-4c6ee8b2cdf0","visitId":"16617293-b01a-557e-9f48-48cdc2c1628d"}
+send surr=2001:db8:a5::1 cc=DE ts=1794400260 tag=s url=/pricing name=- cache=yes extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"f2f9b47c-8125-5acb-ae00-4c6ee8b2cdf0","visitId":"16617293-b01a-557e-9f48-48cdc2c1628d"}
+send surr=2001:db8:a6::1 cc=DE ts=1794400800 tag=v url=/ name=modal_opened cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"f9fd795d-9a66-546a-8426-2b2c2c434ef1","visitId":"27064a44-ff4e-570f-9a26-886b0b3730d5"}
+send surr=2001:db8:f119:d935::1 cc=DE ts=1794401460 tag=v url=/ name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"fdd1c37e-f12c-5422-bedd-568fb4d4c5e4","visitId":"f557504c-d7e8-5063-ba37-6590a62ec80a"}
+send surr=2001:db8:78cd:a722::2 cc=DE ts=1794401520 tag=v url=/ name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"2a439681-177b-578b-84df-e4ee62b79bef","visitId":"47770f54-750d-5f45-80df-14fbec38efb7"}
+send surr=2001:db8:111b:4272::3 cc=DE ts=1794401580 tag=s url=/ name=- cache=no extra={} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"4d6a2594-afb8-563a-acdd-e2c2109ff588","visitId":"66a46fbf-fe51-5ee0-9a5e-a9ce17ba815f"}
+SQL> select left(session_id::text,8) sid, left(visit_id::text,8) vid, event_type, coalesce(event_name,'') ev, url_path, tag, created_at from website_event where website_id='5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41' and url_path not like '/3%' order by created_at
+   sid    |   vid    | event_type |       ev        | url_path | tag |       created_at       
+----------+----------+------------+-----------------+----------+-----+------------------------
+ 993885e6 | c5802ee5 |          1 |                 | /        | v   | 2026-11-11 12:00:00+00
+ 25024487 | adc3e4c8 |          1 |                 | /        | v   | 2026-11-11 12:00:00+00
+ 25024487 | adc3e4c8 |          1 |                 | /pricing | v   | 2026-11-11 12:02:00+00
+ 25024487 | adc3e4c8 |          1 |                 | /docs    | v   | 2026-11-11 12:05:00+00
+ 1f55ea52 | 93eec471 |          1 |                 | /        | v   | 2026-11-11 12:10:00+00
+ 1f55ea52 | 93eec471 |          2 | wallet_selected | /        | v   | 2026-11-11 12:11:00+00
+ 7fbb892b | 2ad0b3bb |          1 |                 | /        | s   | 2026-11-11 12:20:00+00
+ f2f9b47c | 16617293 |          1 |                 | /        | v   | 2026-11-11 12:30:00+00
+ f2f9b47c | 16617293 |          1 |                 | /pricing | s   | 2026-11-11 12:31:00+00
+ f9fd795d | 27064a44 |          2 | modal_opened    | /        | v   | 2026-11-11 12:40:00+00
+(10 rows)
+
+
+=================== 2+4. stats API with and without the tag filter (read with the tenant API key) ===================
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC 
+  -> HTTP 200 {"pageviews":8,"visitors":5,"visits":5,"bounces":2,"totaltime":360,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  M stats [unfiltered] => {"pageviews":8,"visitors":5,"visits":5,"bounces":2,"totaltime":360}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC&tag=v 
+  -> HTTP 200 {"pageviews":6,"visitors":4,"visits":4,"bounces":2,"totaltime":300,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  M stats [&tag=v] => {"pageviews":6,"visitors":4,"visits":4,"bounces":2,"totaltime":300}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC&tag=s 
+  -> HTTP 200 {"pageviews":2,"visitors":2,"visits":2,"bounces":2,"totaltime":0,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  M stats [&tag=s] => {"pageviews":2,"visitors":2,"visits":2,"bounces":2,"totaltime":0}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC&tag=eq.v 
+  -> HTTP 200 {"pageviews":6,"visitors":4,"visits":4,"bounces":2,"totaltime":300,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  M stats [&tag=eq.v] => {"pageviews":6,"visitors":4,"visits":4,"bounces":2,"totaltime":300}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC&tag=v,s 
+  -> HTTP 200 {"pageviews":8,"visitors":5,"visits":5,"bounces":2,"totaltime":360,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  M stats [&tag=v,s] => {"pageviews":8,"visitors":5,"visits":5,"bounces":2,"totaltime":360}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC&tag=eq.v,s 
+  -> HTTP 200 {"pageviews":8,"visitors":5,"visits":5,"bounces":2,"totaltime":360,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  M stats [&tag=eq.v,s] => {"pageviews":8,"visitors":5,"visits":5,"bounces":2,"totaltime":360}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC&tag=neq.s 
+  -> HTTP 200 {"pageviews":6,"visitors":4,"visits":4,"bounces":2,"totaltime":300,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  M stats [&tag=neq.s] => {"pageviews":6,"visitors":4,"visits":4,"bounces":2,"totaltime":300}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC&tag=c.v 
+  -> HTTP 200 {"pageviews":6,"visitors":4,"visits":4,"bounces":2,"totaltime":300,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  M stats [&tag=c.v] => {"pageviews":6,"visitors":4,"visits":4,"bounces":2,"totaltime":300}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC&tag=x 
+  -> HTTP 200 {"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  M stats [&tag=x] => {"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a42/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC 
+  -> HTTP 200 {"pageviews":3,"visitors":3,"visits":3,"bounces":3,"totaltime":0,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  T stats [unfiltered] => {"pageviews":3,"visitors":3,"visits":3,"bounces":3,"totaltime":0}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a42/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC&tag=v 
+  -> HTTP 200 {"pageviews":2,"visitors":2,"visits":2,"bounces":2,"totaltime":0,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  T stats [&tag=v] => {"pageviews":2,"visitors":2,"visits":2,"bounces":2,"totaltime":0}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/pageviews?startAt=1794355200000&endAt=1794441599999&timezone=UTC&unit=hour 
+  -> HTTP 200 {"pageviews":[{"x":"2026-11-11T12:00:00Z","y":8}],"sessions":[{"x":"2026-11-11T12:00:00Z","y":5}]}
+  M pageviews [unfiltered] => {"pageviews":[{"x":"2026-11-11T12:00:00Z","y":8}],"sessions":[{"x":"2026-11-11T12:00:00Z","y":5}]}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/pageviews?startAt=1794355200000&endAt=1794441599999&timezone=UTC&unit=hour&tag=v 
+  -> HTTP 200 {"pageviews":[{"x":"2026-11-11T12:00:00Z","y":6}],"sessions":[{"x":"2026-11-11T12:00:00Z","y":4}]}
+  M pageviews [&tag=v] => {"pageviews":[{"x":"2026-11-11T12:00:00Z","y":6}],"sessions":[{"x":"2026-11-11T12:00:00Z","y":4}]}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=referrer&limit=500 
+  -> HTTP 200 [{"x":"news.ycombinator.com","y":1}]
+  M metrics type=referrer [unfiltered] => [{"x":"news.ycombinator.com","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=referrer&limit=500&tag=v 
+  -> HTTP 200 [{"x":"news.ycombinator.com","y":1}]
+  M metrics type=referrer [&tag=v] => [{"x":"news.ycombinator.com","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=country&limit=500 
+  -> HTTP 200 [{"x":"DE","y":3},{"x":"FR","y":1},{"x":"US","y":1}]
+  M metrics type=country [unfiltered] => [{"x":"DE","y":3},{"x":"FR","y":1},{"x":"US","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=country&limit=500&tag=v 
+  -> HTTP 200 [{"x":"DE","y":2},{"x":"FR","y":1},{"x":"US","y":1}]
+  M metrics type=country [&tag=v] => [{"x":"DE","y":2},{"x":"FR","y":1},{"x":"US","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=device&limit=500 
+  -> HTTP 200 [{"x":"laptop","y":4},{"x":"mobile","y":1}]
+  M metrics type=device [unfiltered] => [{"x":"laptop","y":4},{"x":"mobile","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=device&limit=500&tag=v 
+  -> HTTP 200 [{"x":"laptop","y":3},{"x":"mobile","y":1}]
+  M metrics type=device [&tag=v] => [{"x":"laptop","y":3},{"x":"mobile","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=browser&limit=500 
+  -> HTTP 200 [{"x":"chrome","y":3},{"x":"firefox","y":1},{"x":"ios","y":1}]
+  M metrics type=browser [unfiltered] => [{"x":"chrome","y":3},{"x":"firefox","y":1},{"x":"ios","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=browser&limit=500&tag=v 
+  -> HTTP 200 [{"x":"chrome","y":3},{"x":"ios","y":1}]
+  M metrics type=browser [&tag=v] => [{"x":"chrome","y":3},{"x":"ios","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=os&limit=500 
+  -> HTTP 200 [{"x":"Windows 10","y":3},{"x":"Linux","y":1},{"x":"iOS","y":1}]
+  M metrics type=os [unfiltered] => [{"x":"Windows 10","y":3},{"x":"Linux","y":1},{"x":"iOS","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=os&limit=500&tag=v 
+  -> HTTP 200 [{"x":"Windows 10","y":3},{"x":"iOS","y":1}]
+  M metrics type=os [&tag=v] => [{"x":"Windows 10","y":3},{"x":"iOS","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=path&limit=500 
+  -> HTTP 200 [{"x":"/","y":5},{"x":"/pricing","y":2},{"x":"/docs","y":1}]
+  M metrics type=path [unfiltered] => [{"x":"/","y":5},{"x":"/pricing","y":2},{"x":"/docs","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=path&limit=500&tag=v 
+  -> HTTP 200 [{"x":"/","y":4},{"x":"/docs","y":1},{"x":"/pricing","y":1}]
+  M metrics type=path [&tag=v] => [{"x":"/","y":4},{"x":"/docs","y":1},{"x":"/pricing","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=event&limit=500 
+  -> HTTP 200 [{"x":"modal_opened","y":1},{"x":"wallet_selected","y":1}]
+  M metrics type=event [unfiltered] => [{"x":"modal_opened","y":1},{"x":"wallet_selected","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=event&limit=500&tag=v 
+  -> HTTP 200 [{"x":"modal_opened","y":1},{"x":"wallet_selected","y":1}]
+  M metrics type=event [&tag=v] => [{"x":"modal_opened","y":1},{"x":"wallet_selected","y":1}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics/expanded?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=country&limit=500 
+  -> HTTP 200 [{"name":"DE","pageviews":"4","visitors":3,"visits":3,"bounces":2,"totaltime":"60"},{"name":"FR","pageviews":"3","visitors":1,"visits":1,"bounces":0,"totaltime":"300"},{"name":"US","pageviews":"1","visitors":1,"visits":1,"bounces":0,"totaltime":"0"}]
+  M metrics/expanded type=country [unfiltered] => [{"name":"DE","pageviews":"4","visitors":3,"visits":3,"bounces":2,"totaltime":"60"},{"name":"FR","pageviews":"3","visitors":1,"visits":1,"bounces":0,"totaltime":"300"},{"name":"US","pageviews":"1","visitors":1,"visits":1,"bounces":0,"totaltime":"0"}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics/expanded?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=country&limit=500&tag=v 
+  -> HTTP 200 [{"name":"DE","pageviews":"2","visitors":2,"visits":2,"bounces":2,"totaltime":"0"},{"name":"FR","pageviews":"3","visitors":1,"visits":1,"bounces":0,"totaltime":"300"},{"name":"US","pageviews":"1","visitors":1,"visits":1,"bounces":0,"totaltime":"0"}]
+  M metrics/expanded type=country [&tag=v] => [{"name":"DE","pageviews":"2","visitors":2,"visits":2,"bounces":2,"totaltime":"0"},{"name":"FR","pageviews":"3","visitors":1,"visits":1,"bounces":0,"totaltime":"300"},{"name":"US","pageviews":"1","visitors":1,"visits":1,"bounces":0,"totaltime":"0"}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics/expanded?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=path&limit=500 
+  -> HTTP 200 [{"name":"/","pageviews":"5","visitors":5,"visits":5,"bounces":0,"totaltime":0},{"name":"/pricing","pageviews":"2","visitors":2,"visits":2,"bounces":0,"totaltime":0},{"name":"/docs","pageviews":"1","visitors":1,"visits":1,"bounces":0,"totaltime":0}]
+  M metrics/expanded type=path [unfiltered] => [{"name":"/","pageviews":"5","visitors":5,"visits":5,"bounces":0,"totaltime":0},{"name":"/pricing","pageviews":"2","visitors":2,"visits":2,"bounces":0,"totaltime":0},{"name":"/docs","pageviews":"1","visitors":1,"visits":1,"bounces":0,"totaltime":0}]
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/metrics/expanded?startAt=1794355200000&endAt=1794441599999&timezone=UTC&type=path&limit=500&tag=v 
+  -> HTTP 200 [{"name":"/","pageviews":"4","visitors":4,"visits":4,"bounces":0,"totaltime":0},{"name":"/docs","pageviews":"1","visitors":1,"visits":1,"bounces":0,"totaltime":0},{"name":"/pricing","pageviews":"1","visitors":1,"visits":1,"bounces":0,"totaltime":0}]
+  M metrics/expanded type=path [&tag=v] => [{"name":"/","pageviews":"4","visitors":4,"visits":4,"bounces":0,"totaltime":0},{"name":"/docs","pageviews":"1","visitors":1,"visits":1,"bounces":0,"totaltime":0},{"name":"/pricing","pageviews":"1","visitors":1,"visits":1,"bounces":0,"totaltime":0}]
+  endAt boundary: an event exactly at endAt is included (between ... and ...)
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794398400000&endAt=1794398400000&timezone=UTC 
+  -> HTTP 200 {"pageviews":2,"visitors":2,"visits":2,"bounces":2,"totaltime":0,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+  M stats [12:00:00.000 .. 12:00:00.000] => {"pageviews":2,"visitors":2,"visits":2,"bounces":2,"totaltime":0}
+
+=================== C-82 fallback SQL (tag predicate; 30-minute-gap sessionisation) over website_event ===================
+SQL> select tag, count(*) filter (where event_type=1) pageviews, count(distinct session_id) filter (where event_type=1) visitors
+     from website_event where website_id='5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41' and created_at >= '2026-11-11' and created_at < date '2026-11-11' + 1 and url_path not like '/3%' group by rollup(tag) order by tag
+ tag | pageviews | visitors 
+-----+-----------+----------
+ s   |         2 |        2
+ v   |         6 |        4
+     |         8 |        5
+(3 rows)
+
+  30-minute-gap sessionisation vs Umami's visit_id, per session, for the item-3 visitors (A: no token; B: token)
+SQL> with e as (select session_id, visit_id, created_at, event_type,
+              case when lag(created_at) over w is null or created_at - lag(created_at) over w > interval '30 minutes' then 1 else 0 end as new_visit
+            from website_event where website_id='5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a43' and event_type in (1,2) and (url_path like '/3a%' or url_path like '/3b-%' or url_path like '/3b2%')
+            window w as (partition by session_id order by created_at)),
+     v as (select *, sum(new_visit) over (partition by session_id order by created_at) vno from e),
+     g as (select session_id, vno, count(*) filter (where event_type=1) pv, bool_or(event_type=2) has_custom,
+                  extract(epoch from max(created_at) filter (where event_type=1) - min(created_at) filter (where event_type=1))::int dur
+           from v group by 1,2 having count(*) filter (where event_type=1) > 0)
+     select left(g.session_id::text,8) sid,
+            (select count(distinct visit_id) from e where e.session_id=g.session_id) umami_visits,
+            count(*) gap30_visits, count(*) filter (where pv=1 and not has_custom) gap30_bounces, sum(dur) gap30_totaltime
+     from g group by g.session_id order by 1
+   sid    | umami_visits | gap30_visits | gap30_bounces | gap30_totaltime 
+----------+--------------+--------------+---------------+-----------------
+ b7bf61e4 |            2 |            1 |             0 |             600
+ e43aa28c |            1 |            3 |             2 |             600
+ eaeb8897 |            1 |            1 |             0 |            1800
+(3 rows)
+
+  same sessionisation over the whole metrics dataset of M (compare with the unfiltered /stats above)
+SQL> with e as (select session_id, created_at, event_type,
+              case when lag(created_at) over w is null or created_at - lag(created_at) over w > interval '30 minutes' then 1 else 0 end as new_visit
+            from website_event where website_id='5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41' and event_type in (1,2) and created_at >= '2026-11-11' and created_at < date '2026-11-11' + 1
+            window w as (partition by session_id order by created_at)),
+     v as (select *, sum(new_visit) over (partition by session_id order by created_at) vno from e),
+     g as (select session_id, vno, count(*) filter (where event_type=1) pv, bool_or(event_type=2) has_custom,
+                  extract(epoch from max(created_at) filter (where event_type=1) - min(created_at) filter (where event_type=1)) dur
+           from v group by 1,2 having count(*) filter (where event_type=1) > 0)
+     select count(distinct session_id) visitors, count(*) visits, count(*) filter (where pv=1 and not has_custom) bounces, sum(dur)::bigint totaltime from g
+ visitors | visits | bounces | totaltime 
+----------+--------+---------+-----------
+        5 |      5 |       2 |       360
+(1 row)
+
+
+=================== 7. timestamp bounds ===================
+send surr=2001:db8:7::1 cc=DE ts=- tag=v url=/ts/0 name=- cache=no extra={"timestamp":0} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"0e9c9b77-f2eb-5152-a920-781b78983cbd","visitId":"4709ffd0-ecee-5903-96fe-fad537ef55db"}
+send surr=2001:db8:7::1 cc=DE ts=- tag=v url=/ts/-1 name=- cache=no extra={"timestamp":-1} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 400 {"error":{"message":"Bad request","code":"bad-request","status":400,"errors":[],"properties":{"payload":{"errors":[],"properties":{"timestamp":{"errors":["Too small: expected number to be >=0"]}}}}}}
+send surr=2001:db8:7::1 cc=DE ts=- tag=v url=/ts/1.5 name=- cache=no extra={"timestamp":1.5} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 400 {"error":{"message":"Bad request","code":"bad-request","status":400,"errors":[],"properties":{"payload":{"errors":[],"properties":{"timestamp":{"errors":["Invalid input: expected int, received number"]}}}}}}
+send surr=2001:db8:7::1 cc=DE ts=- tag=v url=/ts/"1794460800" name=- cache=no extra={"timestamp":"1794460800"} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"2e7527d3-325d-5bb0-81ec-f0b6996d8a74","visitId":"1c0aa8ff-049b-56f4-afb8-8c58fb24e4fc"}
+send surr=2001:db8:7::1 cc=DE ts=- tag=v url=/ts/1826033955 name=- cache=no extra={"timestamp":1826033955} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"764cfbe3-a850-50b1-8fd8-df88f5b5732e","visitId":"0eaf1faa-46d0-594e-a4e1-a185a5a93ac2"}
+send surr=2001:db8:7::1 cc=DE ts=- tag=v url=/ts/2147483647 name=- cache=no extra={"timestamp":2147483647} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 200 {"cache":"<jwt>","sessionId":"20896943-9d33-5c58-ad63-1957528b7da2","visitId":"b28a75d7-6593-551f-b69f-e29a524c0791"}
+send surr=2001:db8:7::1 cc=DE ts=- tag=v url=/ts/2147483648 name=- cache=no extra={"timestamp":2147483648} ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64…
+  -> HTTP 400 {"error":{"message":"Bad request","code":"bad-request","status":400,"errors":[],"properties":{"payload":{"errors":[],"properties":{"timestamp":{"errors":["Too big: expected number to be <=2147483647"]}}}}}}
+SQL> select url_path, created_at from website_event where url_path like '/ts/%' order by 1
+     url_path     |       created_at       
+------------------+------------------------
+ /ts/"1794460800" | 2026-11-12 05:20:00+00
+ /ts/0            | 1970-01-01 00:00:00+00
+ /ts/1826033955   | 2027-11-12 15:39:15+00
+ /ts/2147483647   | 2038-01-19 03:14:07+00
+(4 rows)
+
+
+=================== 1 (cont.). no IP address stored anywhere ===================
+SQL> do $$ declare r record; n bigint; total bigint := 0; begin
+  for r in select table_schema, table_name, column_name from information_schema.columns
+           where table_schema='public' and data_type in ('text','character varying','json','jsonb','character') loop
+    execute format('select count(*) from %I.%I where %I::text ~ %L', r.table_schema, r.table_name, r.column_name, '2001:db8|10\.1\.2\.3|10\.9\.9\.9|127\.0\.0\.1|fd00:|fd12:|100\.64\.|8\.8\.8\.8|::1') into n;
+    if n > 0 then raise notice 'HIT %.%: %', r.table_name, r.column_name, n; end if; total := total + n;
+  end loop; raise notice 'text/json columns scanned, total hits: %', total; end $$;
+NOTICE:  text/json columns scanned, total hits: 0
+DO
+  pg_dump (schema+data) lines matching an IP pattern: 0
+  container log lines matching an IP pattern: 0
+
+=================== 6 (cont.). key rotation P5 -> P6 -> verify -> P10 ===================
+POST /api/auth/login {"username":"scf-t-aaaa","password":"<redacted>"}
+  -> HTTP 200 {"token":"<redacted>","user":{"id":"614596d9-40a1-4619-90ab-e754cb7fa899","username":"scf-t-aaaa","role":"view-only","createdAt":"2026-11-12T15:39:06.859Z","isAdmin":false,"passwordChangeRequired":false,"teams":[{"id":"9629f9ea-f348-4c27-808a-0540a7c500a1","name":"scf-t-aaaa","logoUrl":null}]}}
+POST /api/me/api-keys {"name":"scf-control-plane"}
+  -> HTTP 200 {"id":"b7696f38-3aad-4ba4-b502-50337af35443","name":"scf-control-plane","keyPrefix":"umami_2Ror1RGu","createdAt":"2026-11-12T15:39:16.160Z","key":"umami_<redacted>"}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC 
+  -> HTTP 200 {"pageviews":8,"visitors":5,"visits":5,"bounces":2,"totaltime":360,"comparison":{"pageviews":0,"visitors":0,"visits":0,"bounces":0,"totaltime":0}}
+DELETE /api/me/api-keys/787af8fe-6cbc-4407-944d-d14a56b63dec 
+  -> HTTP 200 {"ok":true}
+GET /api/websites/5f0c1c2e-8a7b-4f8e-9d55-1c7e0d9b2a41/stats?startAt=1794355200000&endAt=1794441599999&timezone=UTC 
+  -> HTTP 401 {"error":{"message":"Unauthorized","code":"unauthorized","status":401}}
+  old key after delete: HTTP 401
+GET /api/users/614596d9-40a1-4619-90ab-e754cb7fa899/api-keys 
+  -> HTTP 404 <!DOCTYPE html><html lang="en" class="-T-KAq_className -T-KAq_variable"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="/_next/static/chunks/1vkiow5uoz_mt.css" data-precedence="next"/><link rel="stylesheet" href="/_next/static/chunks/2x5cz7ahnudbr.css" data-precedence="next"/><link rel="stylesheet" href="/_next/static/chunks/3clez7pc5o_sn.css" data-precedence="next"/><link rel="preload" as="script" fetchPriority="low" href="/_next/static/chunks/3s4zv8tjppm42.js"/><script src="/_next/static/chunks/3ibl6372_ry82.js" a
+
+=================== done ===================
+evidence: out/run.log
