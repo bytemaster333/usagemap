@@ -1,0 +1,54 @@
+# secrets
+.env
+.env.*
+!.env.example
+# node
+node_modules/
+.pnpm-store/
+dist/
+.next/
+.turbo/
+.cache/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+.wrangler/
+.vercel/
+.svelte-kit/
+.nuxt/
+.output/
+.astro/
+.expo/
+.dart_tool/
+# …but the coverage tool itself is source (tools/coverage, test.automated-suite)
+!tools/coverage/
+*.log
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+# rust / go
+target/
+# editors / os
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+# internal docs (never commit)
+references/
+# build outputs and local state
+*.test
+*.out
+/bin/
+**/playwright-report/
+**/test-results/
+go.work.sum.lock
+# timestamped evidence of local test runs
+docs/evidence/**/*-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]Z-*
+# Go binaries built in place
+/apps/portal/caddy/caddy
+/tools/ap-listener/ap-listener
+/tools/stellar-scf/stellar-scf

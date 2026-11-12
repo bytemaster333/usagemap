@@ -1,0 +1,31 @@
+UsageMap
+Copyright 2026 the UsageMap contributors. Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes or redistributes the following third-party works.
+
+Umami (https://github.com/umami-software/umami)
+  Copyright (c) 2020 Mike Cao. Licensed under the MIT License.
+  Built unmodified from a pinned upstream commit (vendor/umami) and run as a private engine.
+
+DB-IP IP to Country Lite (https://db-ip.com)
+  IP Geolocation by DB-IP (https://db-ip.com), licensed under the Creative Commons Attribution 4.0
+  International License (CC-BY-4.0, https://creativecommons.org/licenses/by/4.0/).
+  The database is redistributed unmodified inside the gateway image and refreshed monthly.
+
+sapics ip-location-db (https://github.com/sapics/ip-location-db)
+  User-country data, Open Data Commons Public Domain Dedication and License (PDDL-1.0).
+
+iptoasn (https://iptoasn.com)
+  IP-to-ASN data, Open Data Commons Public Domain Dedication and License (PDDL-1.0).
+
+caniuse-lite (https://github.com/browserslist/caniuse-lite)
+  Browser-support data from Can I Use (https://caniuse.com) by Alexis Deveria, licensed under the Creative Commons
+  Attribution 4.0 International License (CC-BY-4.0). Used only at build time of the documentation site; not shipped.
+
+Manrope (https://github.com/sharanda/manrope), Geist and Geist Mono (https://github.com/vercel/geist-font)
+  Licensed under the SIL Open Font License, Version 1.1 (OFL-1.1). Self-hosted, unmodified, by the documentation
+  site (apps/docs) from Google Fonts at build time, and by the landing page (apps/landing/assets/fonts, latin subset).
+
+@lobehub/icons-static-svg (https://github.com/lobehub/lobe-icons)
+  The OpenAI mark in the landing page's integrations section, licensed under the MIT License. The mark itself is a
+  trademark of its owner, shown to indicate compatibility, not endorsement.
