@@ -1,0 +1,287 @@
+
+===== 0. reset + secrets + certificates + images  [16:31:22]
+sha256:405c3bc80c68d97009d4afafcbf8ef9ceed8c02942f95a8c5b73e41db5472d7f
+sha256:47ede71a9a178db76e04b25503f6ff90222fd732680c13761eb0325c4b0caf81
+pgBackRest 2.60.0
+wal-g version v3.0.9	3e49318	2026.08.20_14:32:36	PostgreSQL
+pgbackrest	2.60.0-1.pgdg13+1
+postgresql-18	18.6-1.pgdg13+2
+postgres:18 digest postgres@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
+
+===== 1. Azurite x2 (two storage accounts = two 'providers'), containers, immutability probe  [16:31:26]
+ Container scf-s08-azurite-a-1 Started 
+ Container scf-s08-azurite-b-1 Started 
+azurite 3.37.0
+created scfbackupa/pgbr
+created scfbackupb/pgbr
+created scfbackupa/pgbr-nd
+created scfbackupa/walg
+set_immutability_policy: HTTP 501 Current API is not implemented yet. Please vote your wanted features to https://github.com/azure/azurite/issues
+set_legal_hold: HTTP 501 Current API is not implemented yet. Please vote your wanted features to https://github.com/azure/azurite/issues
+
+===== 2. primary PG18 + stanza on repo1+repo2 (TLS against Azurite with a private CA)  [16:31:37]
+ Container scf-s08-pg-primary-1 Started 
+PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+archive_command=pgbackrest --stanza=scf archive-push %p
+archive_mode=on
+archive_timeout=60
+data_checksums=on
+wal_level=replica
+2026-11-12 16:31:44.361 P00   INFO: stanza-create for stanza 'scf' on repo1
+2026-11-12 16:31:44.418 P00   INFO: stanza-create for stanza 'scf' on repo2
+2026-11-12 16:31:44.477 P00   INFO: stanza-create command end: completed successfully (123ms)
+2026-11-12 16:31:44.570 P00   INFO: check repo1 configuration (primary)
+2026-11-12 16:31:44.578 P00   INFO: check repo2 configuration (primary)
+2026-11-12 16:31:44.601 P00   INFO: check repo1 archive for WAL (primary)
+2026-11-12 16:31:44.909 P00   INFO: WAL segment 000000010000000000000002 successfully archived to '/scf/archive/scf/18-1/0000000100000000/000000010000000000000002-735a4a910434322bc16c4a91c3eaefb412766f7b.zst' on repo1
+2026-11-12 16:31:44.909 P00   INFO: check repo2 archive for WAL (primary)
+2026-11-12 16:31:44.911 P00   INFO: WAL segment 000000010000000000000002 successfully archived to '/scf/archive/scf/18-1/0000000100000000/000000010000000000000002-735a4a910434322bc16c4a91c3eaefb412766f7b.zst' on repo2
+2026-11-12 16:31:44.911 P00   INFO: check command end: completed successfully (348ms)
+
+===== 2b. TLS variants against Azurite (repo-ls on repo1)  [16:31:44]
+-- with repo1-storage-ca-file=/certs/ca.crt:
+archive
+backup
+exit=0
+-- without the CA file (system trust store):
+2026-11-12 16:31:45.090 P00  ERROR: [095]: unable to verify certificate presented by 'azurite-a:10000 (172.20.2.2)': [20] unable to get local issuer certificate
+exit=95
+-- without the CA file, repo1-storage-verify-tls=n:
+archive
+backup
+exit=0
+
+===== 3. archive_timeout=60: time from an idle write to the segment being archived  [16:31:45]
+sample 1: write in 000000010000000000000003 -> segment switched after 292.25 s, archived to both repos after 292.46 s
+sample 2: write in 000000010000000000000004 -> segment switched after 44.76 s, archived to both repos after 44.96 s
+sample 3: write in 000000010000000000000005 -> segment switched after 38.46 s, archived to both repos after 38.58 s
+  2026-11-12 16:31:38.875 UTC [64] LOG:  checkpoint starting: shutdown immediate
+  2026-11-12 16:36:43.718 UTC [154] LOG:  checkpoint starting: time
+
+===== 4. full (repo1, repo2) -> batch1 -> diff (repo1, repo2) -> batch2 -> T -> batch3  [16:38:43]
+2026-11-12 16:38:45.573 P00   INFO: new backup label = 20261112-163844F
+2026-11-12 16:38:45.689 P00   INFO: full backup size = 30.1MB, file total = 1273
+2026-11-12 16:38:45.689 P00   INFO: backup command end: completed successfully (1697ms)
+2026-11-12 16:38:45.699 P00   INFO: expire command end: completed successfully (10ms)
+FULL repo1: 1.81 s
+2026-11-12 16:38:47.489 P00   INFO: new backup label = 20261112-163845F
+2026-11-12 16:38:47.585 P00   INFO: full backup size = 30.1MB, file total = 1273
+2026-11-12 16:38:47.585 P00   INFO: backup command end: completed successfully (1718ms)
+2026-11-12 16:38:47.593 P00   INFO: expire command end: completed successfully (8ms)
+FULL repo2: 1.89 s
+2026-11-12 16:38:49.455 P00   INFO: new backup label = 20261112-163844F_20261112-163848D
+2026-11-12 16:38:49.568 P00   INFO: diff backup size = 11.1MB, file total = 1274
+2026-11-12 16:38:49.568 P00   INFO: backup command end: completed successfully (1582ms)
+2026-11-12 16:38:49.580 P00   INFO: expire command end: completed successfully (12ms)
+DIFF repo1: 1.72 s
+2026-11-12 16:38:50.616 P00   INFO: new backup label = 20261112-163845F_20261112-163849D
+2026-11-12 16:38:50.720 P00   INFO: diff backup size = 11.1MB, file total = 1274
+2026-11-12 16:38:50.720 P00   INFO: backup command end: completed successfully (1039ms)
+2026-11-12 16:38:50.727 P00   INFO: expire command end: completed successfully (7ms)
+DIFF repo2: 1.14 s
+PITR target T = 2026-11-12 16:38:52.258381+00
+primary batch 1: 100000
+primary batch 2: 100000
+primary batch 3: 100000
+rows committed before T: 200000
+2026-11-12 16:38:54.576 P00   INFO: WAL segment 000000010000000000000011 successfully archived to '/scf/archive/scf/18-1/0000000100000000/000000010000000000000011-0dde01e7404ddf28103b9c1b49b5ceacd8f6c6aa.zst' on repo1
+2026-11-12 16:38:54.578 P00   INFO: WAL segment 000000010000000000000011 successfully archived to '/scf/archive/scf/18-1/0000000100000000/000000010000000000000011-0dde01e7404ddf28103b9c1b49b5ceacd8f6c6aa.zst' on repo2
+2026-11-12 16:38:54.578 P00   INFO: check command end: completed successfully (668ms)
+stanza: scf
+    status: ok
+    cipher: aes-256-cbc
+
+    db (current)
+        wal archive min/max (18): 000000010000000000000001/000000010000000000000011
+
+        full backup: 20261112-163844F
+            timestamp start/stop: 2026-11-12 16:38:44+00 / 2026-11-12 16:38:45+00
+            wal start/stop: 000000010000000000000007 / 000000010000000000000007
+            database size: 30.1MB, database backup size: 30.1MB
+            repo1: backup size: 3.6MB
+
+        full backup: 20261112-163845F
+            timestamp start/stop: 2026-11-12 16:38:45+00 / 2026-11-12 16:38:47+00
+            wal start/stop: 000000010000000000000008 / 000000010000000000000009
+            database size: 30.1MB, database backup size: 30.1MB
+            repo2: backup size: 3.6MB
+
+        diff backup: 20261112-163844F_20261112-163848D
+            timestamp start/stop: 2026-11-12 16:38:48+00 / 2026-11-12 16:38:49+00
+            wal start/stop: 00000001000000000000000C / 00000001000000000000000C
+            database size: 41.1MB, database backup size: 11.1MB
+            repo1: backup size: 3MB
+            backup reference total: 1 full
+
+        diff backup: 20261112-163845F_20261112-163849D
+            timestamp start/stop: 2026-11-12 16:38:49+00 / 2026-11-12 16:38:50+00
+            wal start/stop: 00000001000000000000000D / 00000001000000000000000E
+            database size: 41.1MB, database backup size: 11.1MB
+            repo2: backup size: 3MB
+            backup reference total: 1 full
+
+===== 5. both repositories hold the backups and the WAL  [16:38:54]
+-- account A
+       368  scf/archive/scf/archive.info
+    284048  scf/backup/scf/20261112-163844F/backup.manifest
+    316816  scf/backup/scf/20261112-163844F_20261112-163848D/backup.manifest
+      2064  scf/backup/scf/backup.info
+# 38 blobs, 31668008 bytes
+# 23 blobs, 23317200 bytes
+-- account B
+       368  scf/archive/scf/archive.info
+    284048  scf/backup/scf/20261112-163845F/backup.manifest
+    316816  scf/backup/scf/20261112-163845F_20261112-163849D/backup.manifest
+      2064  scf/backup/scf/backup.info
+# 38 blobs, 31667896 bytes
+# 23 blobs, 23317200 bytes
+
+===== 6. PITR to T from repo1 into a fresh container  [16:38:58]
+ Container scf-s08-pg-pitr-1 Started 
+restore_seconds=8.85
+PITR container up -> promoted and writable: 10.73 s
+  pg-pitr-1  | 2026-11-12 16:39:08.468 UTC [129] LOG:  starting point-in-time recovery to 2026-11-12 16:38:52.258381+00
+  pg-pitr-1  | 2026-11-12 16:39:08.967 UTC [129] LOG:  recovery stopping before commit of transaction 773, time 2026-11-12 16:38:53.535668+00
+  pg-pitr-1  | 2026-11-12 16:39:08.967 UTC [129] LOG:  redo done at 0/112B0960 system usage: CPU: user: 0.07 s, system: 0.03 s, elapsed: 0.47 s
+  pg-pitr-1  | 2026-11-12 16:39:09.034 UTC [129] LOG:  selected new timeline ID: 2
+  pg-pitr-1  | 2026-11-12 16:39:09.122 UTC [129] LOG:  archive recovery complete
+restored batch 1: 100000
+restored batch 2: 100000
+PITR VERIFY PASS (batch1/2/3 = 100000/100000/0)
+
+===== 7. restore drill (repo2, read+list SAS only, latest)  [16:39:11]
+scf pitr_test 300000 45001050000
+RESTORE-DRILL PASS repo=2 target=latest restore=8.93s ready=12.0s amcheck=0.5s counts=1ok(0.1s) end_lsn=0/13B4E000 total=13.3s
+-- negative control: corrupted expectation must FAIL
+RESTORE-DRILL FAIL repo=2 stage=counts reason="scf.pitr_test expected '1 1' got '300000 45001050000'" total=12.1s
+-- drill to time T (PITR from repo2)
+RESTORE-DRILL PASS repo=2 target=2026-11-12 16:38:52.258381+00 restore=8.49s ready=11.3s amcheck=0.5s counts=1ok(0.2s) end_lsn=0/12DFE000 total=12.7s
+
+===== 8. C-66: database node holding a SAS WITHOUT delete (perms racwl) on its own stanza  [16:39:50]
+ Container scf-s08-pg-nodelete-1 Started 
+2026-11-12 16:39:55.869 P00   INFO: stanza-create for stanza 'nd' on repo1
+2026-11-12 16:39:55.931 P00   INFO: stanza-create command end: completed successfully (73ms)
+-- archive-push / check with the no-delete SAS:
+2026-11-12 16:39:57.152 P00   INFO: WAL segment 000000010000000000000002 successfully archived to '/nd/archive/nd/18-1/0000000100000000/000000010000000000000002-f0ee3e1c1f1ea851b1eab7bec69b595b36e488f5.zst' on repo1
+2026-11-12 16:39:57.152 P00   INFO: check command end: completed successfully (1139ms)
+-- full backup with --no-expire-auto (debug: every remove pgBackRest issues):
+new backup label = 20261112-163957F
+storageRemove: (this: {type: azure, path: /nd, write: true}, fileExp: {"/nd/backup/nd/latest"}
+ERROR: [039]: HTTP request failed with 403 (This request is not authorized to perform this operation using this permission.):
+command end: aborted with exception [039]
+-- second full: first cleans up the aborted one (storagePathRemove) -> 403 again:
+ERROR: [039]: HTTP request failed with 403 (This request is not authorized to perform this operation using this permission.):
+command end: aborted with exception [039]
+-- info: no backup ever completed:
+    status: error (no valid backups)
+        wal archive min/max (18): 000000010000000000000001/000000010000000000000006
+-- expire with the no-delete SAS:
+2026-11-12 16:39:59.777 P00  ERROR: [039]: repo1: HTTP request failed with 403 (This request is not authorized to perform this operation using this permission.):
+2026-11-12 16:39:59.777 P00  ERROR: [104]: expire command encountered 1 error(s), check the log file for details
+2026-11-12 16:39:59.777 P00   INFO: expire command end: aborted with exception [104]
+
+===== 8b. SAS with create but WITHOUT write/delete (perms rcl)  [16:39:59]
+ Container scf-s08-pg-nodelete-1 Started 
+-- check (archive-push of a new segment is a create):
+2026-11-12 16:40:02.888 P00   INFO: WAL segment 000000010000000000000007 successfully archived to '/nd/archive/nd/18-1/0000000100000000/000000010000000000000007-e03b0de9b01bd983ad5a9afdefa45a9a2017a898.zst' on repo1
+2026-11-12 16:40:02.888 P00   INFO: check command end: completed successfully (140ms)
+-- full backup:
+2026-11-12 16:40:04.335 P00  ERROR: [039]: HTTP request failed with 403 (This request is not authorized to perform this operation using this permission.):
+2026-11-12 16:40:04.335 P00   INFO: backup command end: aborted with exception [039]
+
+===== 9. streaming standby (restored from repo1) + synchronous replication  [16:40:04]
+ Container scf-s08-pg-standby-1 Started 
+restore_seconds=8.57
+replication: standby1 state=streaming sync=sync
+standby sees batch 9: 1
+
+===== 10. promotion while the old primary is still alive (what happens without fencing)  [16:40:15]
+waiting for server to promote.... done
+server promoted
+pg_ctl promote -w: 0.48 s; promote + first committed write: 0.61 s
+new primary: in_recovery=false current WAL file=000000020000000000000013
+-- old primary, default synchronous_commit, statement_timeout=5s: the commit blocks on the gone sync standby
+  after 15 s: state=active wait_event=SyncRep (statement_timeout does not cover the SyncRep wait)
+  pg_cancel_backend -> true
+  [blocked client] SET
+  [blocked client] WARNING:  canceling wait for synchronous replication due to user request
+  [blocked client] DETAIL:  The transaction has already committed locally, but might not have been replicated to the standby.
+  [blocked client] INSERT 0 1
+-- old primary, synchronous_commit=local (what non-strict sync / an app with local commit does):
+  SET
+  INSERT 0 1
+old primary rows in batches 11/12 (diverged history): 2
+
+===== 11. fencing the old primary  [16:40:32]
+ Container scf-s08-pg-primary-1 Killed 
+fenced (SIGKILL = power-off via provider API) in 0.27 s
+  connect to old primary: psql: error: connection to server at "pg-primary" (172.20.2.4), port 5432 failed: Connection refused
+  connect to old primary: 	Is the server running on that host and accepting TCP/IP connections?
+  connect to old primary: 
+-- restart the old primary DEMOTED (standby.signal) pointing at the new primary:
+ Container scf-s08-pg-primary-1 Started 
+  write on demoted old primary: ERROR:  cannot execute INSERT in a read-only transaction
+  pg-primary-1  | 2026-11-12 16:40:34.866 UTC [41] LOG:  restarted WAL streaming at 0/13000000 on timeline 1
+  pg-primary-1  | 2026-11-12 16:40:34.866 UTC [41] DETAIL:  End of WAL reached on timeline 1 at 0/130000F8.
+  pg-primary-1  | 2026-11-12 16:40:34.866 UTC [39] LOG:  new timeline 2 forked off current database system timeline 1 before current recovery point 0/130002D8
+-- pg_rewind the old primary onto the new timeline (Patroni does this with use_pg_rewind):
+ Container scf-s08-pg-primary-1 Stopped 
+  184203/184203 kB (100%) copied
+  pg_rewind: creating backup label and updating control file
+  pg_rewind: syncing target data directory
+  pg_rewind: Done!
+ Container scf-s08-pg-primary-1 Started 
+new primary replication: oldprimary state=streaming
+old primary after rewind: batch 11/12 rows=0 batch 10 rows=1
+-- archive on the new timeline (new primary pushes to both repos):
+2026-11-12 16:40:46.216 P00   INFO: WAL segment 000000020000000000000013 successfully archived to '/scf/archive/scf/18-1/0000000200000000/000000020000000000000013-b88dab567926f4f9a2aaa4dcff4c680614e809f0.zst' on repo1
+2026-11-12 16:40:46.217 P00   INFO: WAL segment 000000020000000000000013 successfully archived to '/scf/archive/scf/18-1/0000000200000000/000000020000000000000013-b88dab567926f4f9a2aaa4dcff4c680614e809f0.zst' on repo2
+2026-11-12 16:40:46.217 P00   INFO: check command end: completed successfully (359ms)
+
+===== 12. WAL-G 3.0.9 fallback against Azurite (host-style URL, libsodium encryption)  [16:40:46]
+ Container scf-s08-pg-walg-1 Started 
+-- archive_timeout mitigation check: CHECKPOINT right after start, then one small write
+fresh instance + CHECKPOINT: write in 000000010000000000000002 archived after 58.48 s
+INFO: 2026/11/12 16:41:49.689282 Wrote backup with name base_000000010000000000000004 to storage default
+WAL-G backup-push: 1.54 s
+last WAL needed 000000010000000000000006 archived: 000000010000000000000006
+backup_name                   modified             wal_file_name            storage_name
+base_000000010000000000000004 2026-11-12T16:41:49Z 000000010000000000000004 default
+# 13 blobs, 20238301 bytes
+ Container scf-s08-pg-walg-restore-1 Started 
+restore_seconds=6.65
+WAL-G restore up->writable 8.60 s; rows want '200000 20000100000' got '200000 20000100000' -> PASS
+WAL-G binary LZO symbols: lzo1x_decompress_safe 
+
+===== 12b. lifecycle drift: a rule deletes the repo1 full backup behind pgBackRest's back  [16:42:01]
+-- blob layout of repo1 (what an Azure lifecycle prefixMatch has to target):
+      1 42
+      1 scf/archive/scf/18-1/0000000100000000/000000010000000000000013.partial-ee260acfccaa19ae7039d492b16083146e4497aa.zst
+      4 scf/archive/scf/18-1/0000000100000000/<backup label file>
+     18 scf/archive/scf/18-1/0000000100000000/<WAL segment>
+      1 scf/archive/scf/18-1/0000000200000000/<WAL segment>
+      1 scf/archive/scf/18-1/00000002.history
+      1 scf/archive/scf/archive.info
+      1 scf/archive/scf/archive.info.copy
+      2 scf/backup/scf/backup.history/2026/<label>.manifest.gz
+      1 scf/backup/scf/backup.info
+      1 scf/backup/scf/backup.info.copy
+     11 scf/backup/scf/<label>/<backup files>
+repo1 full=20261112-163844F diff=20261112-163844F_20261112-163848D; deleting scf/backup/scf/20261112-163844F/ only
+deleted 5 blobs under pgbr/scf/backup/scf/20261112-163844F/
+-- info after deletion:
+    status: ok
+        full backup: 20261112-163844F
+        diff backup: 20261112-163844F_20261112-163848D
+-- verify after deletion:
+verify exit=0
+2026-11-12 16:42:05.095 P00   WARN: backup '20261112-163844F' found in backup.info but not in the repository
+2026-11-12 16:42:06.227 P00   INFO: verify command end: completed successfully (1144ms)
+  ... 'file missing' lines: 1047
+-- restore of the diff (depends on the deleted full) into a scratch dir:
+2026-11-12 16:42:21.876 P00  ERROR: [055]: raised from local-2 protocol: unable to open missing file '/scf/backup/scf/20261112-163844F/bundle/1' for read
+2026-11-12 16:42:21.876 P00   INFO: restore command end: aborted with exception [055]
+
+===== 13. cleanup  [16:42:22]
+ Network scf-s08_default Removed 
+done

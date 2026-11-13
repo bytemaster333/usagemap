@@ -1,0 +1,128 @@
+{
+ "results": [
+  {
+   "sample": "ipv4_range_weighted",
+   "n": 1000000,
+   "per_db": {
+    "dbip-lite": {
+     "unknown_full": 0,
+     "unknown_trunc": 0,
+     "changed_any": 1694,
+     "changed_both_known": 1694,
+     "full_known_trunc_unknown": 0
+    },
+    "user-country": {
+     "unknown_full": 868,
+     "unknown_trunc": 868,
+     "changed_any": 984,
+     "changed_both_known": 984,
+     "full_known_trunc_unknown": 0
+    }
+   },
+   "dbip_vs_usercountry": {
+    "disagree_full_both_known": 87851,
+    "disagree_trunc_both_known": 86314,
+    "both_known_full": 999132,
+    "both_known_trunc": 999132,
+    "disagree_full_any": 88719,
+    "disagree_trunc_any": 87182
+   },
+   "top_changes_dbip": {
+    "BR-\u003eUS": 26,
+    "CA-\u003eUS": 291,
+    "DE-\u003eGB": 29,
+    "GB-\u003eDE": 29,
+    "GB-\u003eUS": 54,
+    "JP-\u003eUS": 28,
+    "MX-\u003eUS": 32,
+    "NL-\u003eDE": 25,
+    "US-\u003eCA": 79,
+    "US-\u003eGB": 27
+   }
+  },
+  {
+   "sample": "ipv4_address_weighted",
+   "n": 1000000,
+   "per_db": {
+    "dbip-lite": {
+     "unknown_full": 0,
+     "unknown_trunc": 0,
+     "changed_any": 1042,
+     "changed_both_known": 1042,
+     "full_known_trunc_unknown": 0
+    },
+    "user-country": {
+     "unknown_full": 178,
+     "unknown_trunc": 178,
+     "changed_any": 252,
+     "changed_both_known": 252,
+     "full_known_trunc_unknown": 0
+    }
+   },
+   "dbip_vs_usercountry": {
+    "disagree_full_both_known": 43353,
+    "disagree_trunc_both_known": 42738,
+    "both_known_full": 999822,
+    "both_known_trunc": 999822,
+    "disagree_full_any": 43531,
+    "disagree_trunc_any": 42916
+   },
+   "top_changes_dbip": {
+    "CA-\u003eUS": 166,
+    "ES-\u003eFR": 21,
+    "FR-\u003eGB": 11,
+    "GB-\u003eUS": 46,
+    "IT-\u003eFR": 11,
+    "JP-\u003eUS": 15,
+    "MX-\u003eUS": 17,
+    "PL-\u003eFR": 20,
+    "US-\u003eCA": 115,
+    "US-\u003eJP": 21
+   }
+  },
+  {
+   "sample": "ipv6_range_weighted",
+   "n": 1000000,
+   "per_db": {
+    "dbip-lite": {
+     "unknown_full": 12,
+     "unknown_trunc": 12,
+     "changed_any": 2709,
+     "changed_both_known": 2709,
+     "full_known_trunc_unknown": 0
+    },
+    "user-country": {
+     "unknown_full": 1016,
+     "unknown_trunc": 1016,
+     "changed_any": 2546,
+     "changed_both_known": 2546,
+     "full_known_trunc_unknown": 0
+    }
+   },
+   "dbip_vs_usercountry": {
+    "disagree_full_both_known": 116492,
+    "disagree_trunc_both_known": 113631,
+    "both_known_full": 998984,
+    "both_known_trunc": 998984,
+    "disagree_full_any": 117496,
+    "disagree_trunc_any": 114635
+   },
+   "top_changes_dbip": {
+    "AU-\u003eNZ": 31,
+    "BS-\u003eUS": 31,
+    "CA-\u003eUS": 36,
+    "GL-\u003eUS": 40,
+    "IN-\u003eUS": 173,
+    "MX-\u003eUS": 77,
+    "RU-\u003eJP": 40,
+    "RU-\u003eUS": 39,
+    "US-\u003eMX": 31,
+    "US-\u003eNL": 36
+   }
+  }
+ ],
+ "routed_v4_addresses": 3133671387,
+ "routed_v4_ranges": 459655,
+ "routed_v6_ranges": 119798,
+ "seed": 20261112
+}

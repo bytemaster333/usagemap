@@ -1,0 +1,5 @@
+pnpm 12.19.0
+GitVersion:    v3.1.4
+Version: 0.76.2
+Version:             0.121.3
+osv-scanner version: 2.7.1

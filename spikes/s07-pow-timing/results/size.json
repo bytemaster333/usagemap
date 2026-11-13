@@ -1,0 +1,14 @@
+{
+  "esbuild": "0.28.2",
+  "target": "es2017",
+  "solver_worker_body": {
+    "raw": 784,
+    "gzip9": 522,
+    "brotli11": 457
+  },
+  "solver_plus_loader": {
+    "raw": 1024,
+    "gzip9": 644,
+    "brotli11": 569
+  }
+}

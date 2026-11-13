@@ -1,0 +1,145 @@
+PREPARE
+Timing is on.
+== before: largest site 7 d, 30 d; medium site 30 d (each twice; second run = warm) ==
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1218856 |   503245 | 511393 |  202213
+(1 row)
+
+Time: 5198.581 ms (00:05.199)
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1218856 |   503245 | 511393 |  202213
+(1 row)
+
+Time: 1323.792 ms (00:01.324)
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+   5255686 |  2167619 | 2203070 |  869145
+(1 row)
+
+Time: 24895.399 ms (00:24.895)
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+   5255686 |  2167619 | 2203070 |  869145
+(1 row)
+
+Time: 17321.575 ms (00:17.322)
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+    573396 |   236243 | 239984 |   94405
+(1 row)
+
+Time: 3692.625 ms (00:03.693)
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+    573396 |   236243 | 239984 |   94405
+(1 row)
+
+Time: 677.722 ms
+== building covering index ==
+CREATE INDEX
+Time: 81138.307 ms (01:21.138)
+VACUUM
+Time: 59.012 ms
+Timing is off.
+ covering_index_size 
+---------------------
+ 7751 MB
+(1 row)
+
+Timing is on.
+== after: largest site 7 d, 30 d, 90 d; medium site 30 d, 90 d (each twice) ==
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1218856 |   503245 | 511393 |  202213
+(1 row)
+
+Time: 751.486 ms
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1218856 |   503245 | 511393 |  202213
+(1 row)
+
+Time: 726.823 ms
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+   5255686 |  2167619 | 2203070 |  869145
+(1 row)
+
+Time: 5502.995 ms (00:05.503)
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+   5255686 |  2167619 | 2203070 |  869145
+(1 row)
+
+Time: 4401.908 ms (00:04.402)
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+  15668442 |  6461171 | 6566829 | 2590769
+(1 row)
+
+Time: 16129.907 ms (00:16.130)
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+  15668442 |  6461171 | 6566829 | 2590769
+(1 row)
+
+Time: 15600.704 ms (00:15.601)
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+    573396 |   236243 | 239984 |   94405
+(1 row)
+
+Time: 415.219 ms
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+    573396 |   236243 | 239984 |   94405
+(1 row)
+
+Time: 315.126 ms
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1708522 |   704524 | 715941 |  282796
+(1 row)
+
+Time: 1209.462 ms (00:01.209)
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1708522 |   704524 | 715941 |  282796
+(1 row)
+
+Time: 1103.176 ms (00:01.103)
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=140.30..140.31 rows=1 width=32) (actual rows=1.00 loops=1)
+   Buffers: shared hit=66937, temp read=47692 written=68654
+   I/O Timings: temp read=75.022 write=193.096
+   ->  Sort  (cost=131.09..132.41 rows=526 width=44) (actual rows=2203070.00 loops=1)
+         Sort Key: t.session_id
+         Sort Method: external merge  Disk: 116416kB
+         Buffers: shared hit=66937, temp read=42301 written=63262
+         I/O Timings: temp read=69.251 write=173.599
+         ->  Subquery Scan on t  (cost=82.35..107.32 rows=526 width=44) (actual rows=2203070.00 loops=1)
+               Buffers: shared hit=66937, temp read=27749 written=48705
+               I/O Timings: temp read=39.959 write=127.336
+               ->  HashAggregate  (cost=82.35..102.06 rows=526 width=60) (actual rows=2203070.00 loops=1)
+                     Group Key: website_event.session_id, website_event.visit_id
+                     Filter: (sum(CASE WHEN (website_event.event_type <> ALL ('{2,5}'::integer[])) THEN 1 ELSE 0 END) > 0)
+                     Batches: 5  Memory Usage: 65593kB  Disk Usage: 224120kB
+                     Rows Removed by Filter: 46844
+                     Buffers: shared hit=66937, temp read=27749 written=48705
+                     I/O Timings: temp read=39.959 write=127.336
+                     ->  Index Only Scan using s11_cover on website_event  (cost=0.57..58.70 rows=1577 width=36) (actual rows=5532984.00 loops=1)
+                           Index Cond: ((website_id = $1) AND (created_at >= ($2 - $3)) AND (created_at <= $2))
+                           Filter: (event_type <> 5)
+                           Heap Fetches: 0
+                           Index Searches: 1
+                           Buffers: shared hit=66937
+ Planning Time: 0.027 ms
+ Execution Time: 4639.921 ms
+(26 rows)
+
+Time: 4640.560 ms (00:04.641)
+DROP INDEX
+Time: 676.222 ms

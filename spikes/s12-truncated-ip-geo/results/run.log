@@ -1,0 +1,3 @@
+dbip-lite: type=DBIP-Country-Lite build=1793501259 ipv=6 nodes=1410860 desc=map[en:DB-IP.com - IP to Country fr:DB-IP.com - IP vers Pays]
+user-country: type=Country (compat=GeoLite2-Country) build=1794454371 ipv=6 nodes=1307371 desc=map[en:ip-location-db - user-country]
+iptoasn routed ranges: v4=459655 v6=119798

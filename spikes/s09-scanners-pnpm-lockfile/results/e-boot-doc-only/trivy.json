@@ -1,0 +1,10 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.76.2"
+  },
+  "ReportID": "01a1d06a-483c-7ba1-8747-309a8eff9110",
+  "CreatedAt": "2026-11-12T18:39:48.668763286+03:00",
+  "ArtifactName": "e-boot-doc-only",
+  "ArtifactType": "filesystem"
+}

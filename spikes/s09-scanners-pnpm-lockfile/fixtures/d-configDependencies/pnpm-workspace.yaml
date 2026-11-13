@@ -1,0 +1,5 @@
+packages:
+  - app
+minimumReleaseAge: 4320
+configDependencies:
+  is-number: 7.0.0

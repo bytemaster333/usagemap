@@ -1,0 +1,9 @@
+{
+  "name": "s07-pow-timing",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright": "1.65.0"
+  }
+}

@@ -1,0 +1,78 @@
+Timing is on.
+psql:<stdin>:5: NOTICE:  table "daily_totals" does not exist, skipping
+psql:<stdin>:5: NOTICE:  table "daily_top" does not exist, skipping
+DROP TABLE
+Time: 3.341 ms
+CREATE TABLE
+Time: 20.388 ms
+CREATE TABLE
+Time: 4.026 ms
+== one-day incremental job (the most recent full day, all 300 sites) ==
+Time: 8.663 ms
+INSERT 0 600
+Time: 2491.733 ms (00:02.492)
+INSERT 0 65812
+Time: 31064.833 ms (00:31.065)
+== backfill the other 89 days (totals only; top-N backfilled by copying the one-day shape is not needed for timing) ==
+INSERT 0 53400
+Time: 165808.720 ms (02:45.809)
+INSERT 0 5857268
+Time: 3336.804 ms (00:03.337)
+CREATE INDEX
+Time: 2718.946 ms (00:02.719)
+ANALYZE
+Time: 58.407 ms
+ANALYZE
+Time: 133.175 ms
+ totals_size | top_size | top_rows 
+-------------+----------+----------
+ 8672 kB     | 542 MB   |  5923080
+(1 row)
+
+Time: 101.140 ms
+== 90-day dashboard reads from the aggregates, largest site (verified = tag v) ==
+Time: 6.013 ms
+    pv    | visitor_days | visits  | bounces 
+----------+--------------+---------+---------
+ 13218327 |      5567115 | 5659221 | 2185724
+(1 row)
+
+Time: 1.387 ms
+    day     |  sum   
+------------+--------
+ 2026-08-14 |  54967
+ 2026-08-15 | 138707
+ 2026-08-16 | 158778
+(3 rows)
+
+Time: 0.611 ms
+  value  |   sum   
+---------+---------
+ /       | 1073700
+ /page-1 |  305100
+ /page-2 |  212490
+ /page-3 |  169020
+ /page-4 |  153090
+ /page-5 |  121050
+ /page-6 |  116190
+ /page-7 |  101520
+ /page-8 |   98820
+ /page-9 |   88110
+(10 rows)
+
+Time: 5.541 ms
+ value |   sum   
+-------+---------
+ US    | 1598850
+ DE    |  655380
+ GB    |  514710
+ FR    |  435150
+ IN    |  374220
+ BR    |  340110
+ NL    |  311130
+ CA    |  295740
+ ES    |  264240
+ PL    |  250830
+(10 rows)
+
+Time: 2.127 ms

@@ -1,0 +1,97 @@
+[15:35:50] up: load profile (8 vCPU, 24 GB) for seeding
+postgres (PostgreSQL) 18.6
+[15:36:08] setup: creating 300 websites through the API
+ sites | pv_per_day | largest | smallest 
+-------+------------+---------+----------
+   300 |    1000000 |  174255 |      257
+(1 row)
+
+[15:36:22] load: saving and dropping secondary indexes and primary keys of website_event and session
+[15:36:30] load: saving and dropping secondary indexes and primary keys of website_event and session
+[15:41:10] load: 90 slices generated in 267 s
+[15:41:10] load: rebuilding primary keys and the 25 Umami indexes (3 at a time)
+[16:04:44] load: indexes built in 1414 s
+[16:05:46] load: vacuum analyze in 62 s
+  events  | pageviews | pct_tag_s |              min              |              max              
+----------+-----------+-----------+-------------------------------+-------------------------------
+ 94645801 |  89914324 |      15.0 | 2026-08-14 15:00:01.329528+00 | 2026-11-12 14:59:59.990404+00
+(1 row)
+
+ sessions | sites 
+----------+-------
+ 37861072 |   300
+(1 row)
+
+[16:08:24] measure_mode: restarting with the measurement profile (4 vCPU, 16 GB, shared_buffers 4 GB)
+[16:12:52] warm: c=1, warm cache, 10 reps (3 if the warm-up pass > 20 s, 1 if > 60 s)
+warm large 24h none: 27.0 s
+warm large 24h tag: 22.9 s
+warm large 7d none: 150.7 s
+warm large 7d tag: 208.7 s
+warm large 14d none: 203.6 s
+warm large 14d tag: 149.1 s
+warm large 30d none: 261.4 s
+warm large 30d tag: 140.0 s
+warm large 90d none: 281.2 s
+warm large 90d tag: 292.8 s
+warm medium 24h none: 5.6 s
+warm medium 24h tag: 5.1 s
+warm medium 7d none: 30.3 s
+warm medium 7d tag: 25.6 s
+warm medium 14d none: 59.2 s
+warm medium 14d tag: 53.9 s
+warm medium 30d none: 136.3 s
+warm medium 30d tag: 72.0 s
+warm medium 90d none: 578.7 s
+warm medium 90d tag: 626.2 s
+warm small 24h none: 1.7 s
+warm small 24h tag: 1.3 s
+warm small 7d none: 3.6 s
+warm small 7d tag: 3.0 s
+warm small 14d none: 4.7 s
+warm small 14d tag: 3.8 s
+warm small 30d none: 7.6 s
+warm small 30d tag: 6.1 s
+warm small 90d none: 13.6 s
+warm small 90d tag: 10.9 s
+[17:10:53] conc: 10 concurrent dashboard loads per combination (combinations that already fail at c=1 are skipped)
+conc large 24h none: 15.1 s
+conc large 24h tag: 13.6 s
+conc medium 24h none: 1.7 s
+conc medium 24h tag: 1.7 s
+conc medium 7d none: 13.1 s
+conc medium 7d tag: 10.9 s
+conc medium 14d none: 26.5 s
+conc medium 14d tag: 26.2 s
+conc small 24h none: 1.2 s
+conc small 24h tag: 1.1 s
+conc small 7d none: 1.4 s
+conc small 7d tag: 1.2 s
+conc small 30d none: 4.6 s
+conc small 30d tag: 2.2 s
+conc small 90d none: 4.7 s
+conc small 90d tag: 3.9 s
+[17:13:02] cold: PostgreSQL restarted with debug_io_direct=data (no OS page cache) before every dashboard load
+cold large 24h none: 7.8 s
+cold large 24h tag: 7.9 s
+cold large 7d none: 39.8 s
+cold large 7d tag: 24.0 s
+cold medium 24h none: 3.0 s
+cold medium 24h tag: 2.9 s
+cold medium 7d none: 7.0 s
+cold medium 7d tag: 7.0 s
+cold medium 14d none: 16.8 s
+cold medium 14d tag: 16.2 s
+cold small 24h none: 0.5 s
+cold small 24h tag: 0.5 s
+cold small 7d none: 1.5 s
+cold small 7d tag: 1.7 s
+cold small 30d none: 5.7 s
+cold small 30d tag: 6.4 s
+cold small 90d none: 3.2 s
+cold small 90d tag: 8.6 s
+[17:21:08] cover: side experiment with one covering index on website_event (dropped afterwards)
+[17:24:14] rollup: building a daily aggregate table and timing the 90-day read from it
+[17:27:46] ingest: closed-loop concurrency sweep, 120 s each
+[17:37:47] ingest: open-loop at design average (12/s) and 10x burst (120/s), 120 s each
+[17:41:54] down: removing containers and volumes of project scf-s11 (images kept)

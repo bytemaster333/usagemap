@@ -1,0 +1,5 @@
+downloaded/verified 2026-11-12T15:36:47Z
+75fe430010f6d38a8c4331c202bf0df6ce3221a6e6d823b9e5a6d951e4cf9758  dbip-country-lite-2026-11.mmdb.gz
+145ce5dfb812d8de28547e6289bb5c5f8b3df2f1dea21d324d5b575e0431311f  dbip-country-lite-2026-11.mmdb
+8d263ef7c6411a33ab073a411bc8a93f2d08f743b0607ea25eb43b94d3e69bff  user-country.mmdb
+1634a0e449f3ee11088bba85493447a51007b44dff3ac18328f1f2d9127c0a9e  ip2asn-combined.tsv.gz

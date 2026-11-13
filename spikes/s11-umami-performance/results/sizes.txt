@@ -1,0 +1,47 @@
+     table     | rows_est | heap_toast | indexes | total | bytes_per_row_total 
+---------------+----------+------------+---------+-------+---------------------
+ website_event | 94655840 | 15 GB      | 56 GB   | 71 GB |                 800
+ session       | 37861704 | 4934 MB    | 18 GB   | 23 GB |                 654
+(2 rows)
+
+                          index                          |  size   
+---------------------------------------------------------+---------
+ website_event_website_id_created_at_hostname_idx        | 6099 MB
+ website_event_website_id_session_id_created_at_idx      | 5327 MB
+ website_event_website_id_visit_id_created_at_idx        | 5327 MB
+ website_event_website_id_created_at_url_path_idx        | 5000 MB
+ website_event_website_id_created_at_page_title_idx      | 4773 MB
+ website_event_website_id_created_at_referrer_domain_idx | 4661 MB
+ website_event_website_id_created_at_url_query_idx       | 4514 MB
+ website_event_website_id_created_at_event_name_idx      | 4510 MB
+ website_event_website_id_created_at_tag_idx             | 4483 MB
+ website_event_website_id_created_at_idx                 | 3666 MB
+ website_event_pkey                                      | 2847 MB
+ session_website_id_created_at_screen_idx                | 2059 MB
+ website_event_created_at_idx                            | 2027 MB
+ session_website_id_created_at_os_idx                    | 1973 MB
+ session_website_id_created_at_city_idx                  | 1933 MB
+ session_website_id_created_at_browser_idx               | 1855 MB
+ session_website_id_created_at_language_idx              | 1793 MB
+ session_website_id_created_at_country_idx               | 1793 MB
+ session_website_id_created_at_region_idx                | 1793 MB
+ session_website_id_created_at_device_idx                | 1793 MB
+ website_event_visit_id_idx                              | 1755 MB
+ website_event_session_id_idx                            | 1738 MB
+ session_website_id_created_at_idx                       | 1466 MB
+ session_pkey                                            | 1139 MB
+ session_created_at_idx                                  | 811 MB
+ website_event_website_id_idx                            | 636 MB
+ session_website_id_idx                                  | 255 MB
+(27 rows)
+
+ window_total | calendar_days_touched | per_day_growth_90d_window | per_year_if_kept 
+--------------+-----------------------+---------------------------+------------------
+ 94 GB        |                    91 | 1065 MB                   | 379 GB
+(1 row)
+
+ database_size 
+---------------
+ 94 GB
+(1 row)
+

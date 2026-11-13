@@ -1,0 +1,226 @@
+[17:21:08] cover: side experiment with one covering index on website_event (dropped afterwards)
+PREPARE
+Timing is on.
+== before: largest site 7 d, 30 d; medium site 30 d (each twice; second run = warm) ==
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1218856 |   503245 | 511393 |  202213
+(1 row)
+
+Time: 5198.581 ms (00:05.199)
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1218856 |   503245 | 511393 |  202213
+(1 row)
+
+Time: 1323.792 ms (00:01.324)
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+   5255686 |  2167619 | 2203070 |  869145
+(1 row)
+
+Time: 24895.399 ms (00:24.895)
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+   5255686 |  2167619 | 2203070 |  869145
+(1 row)
+
+Time: 17321.575 ms (00:17.322)
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+    573396 |   236243 | 239984 |   94405
+(1 row)
+
+Time: 3692.625 ms (00:03.693)
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+    573396 |   236243 | 239984 |   94405
+(1 row)
+
+Time: 677.722 ms
+== building covering index ==
+CREATE INDEX
+Time: 81138.307 ms (01:21.138)
+VACUUM
+Time: 59.012 ms
+Timing is off.
+ covering_index_size 
+---------------------
+ 7751 MB
+(1 row)
+
+Timing is on.
+== after: largest site 7 d, 30 d, 90 d; medium site 30 d, 90 d (each twice) ==
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1218856 |   503245 | 511393 |  202213
+(1 row)
+
+Time: 751.486 ms
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1218856 |   503245 | 511393 |  202213
+(1 row)
+
+Time: 726.823 ms
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+   5255686 |  2167619 | 2203070 |  869145
+(1 row)
+
+Time: 5502.995 ms (00:05.503)
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+   5255686 |  2167619 | 2203070 |  869145
+(1 row)
+
+Time: 4401.908 ms (00:04.402)
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+  15668442 |  6461171 | 6566829 | 2590769
+(1 row)
+
+Time: 16129.907 ms (00:16.130)
+ pageviews | visitors | visits  | bounces 
+-----------+----------+---------+---------
+  15668442 |  6461171 | 6566829 | 2590769
+(1 row)
+
+Time: 15600.704 ms (00:15.601)
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+    573396 |   236243 | 239984 |   94405
+(1 row)
+
+Time: 415.219 ms
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+    573396 |   236243 | 239984 |   94405
+(1 row)
+
+Time: 315.126 ms
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1708522 |   704524 | 715941 |  282796
+(1 row)
+
+Time: 1209.462 ms (00:01.209)
+ pageviews | visitors | visits | bounces 
+-----------+----------+--------+---------
+   1708522 |   704524 | 715941 |  282796
+(1 row)
+
+Time: 1103.176 ms (00:01.103)
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=140.30..140.31 rows=1 width=32) (actual rows=1.00 loops=1)
+   Buffers: shared hit=66937, temp read=47692 written=68654
+   I/O Timings: temp read=75.022 write=193.096
+   ->  Sort  (cost=131.09..132.41 rows=526 width=44) (actual rows=2203070.00 loops=1)
+         Sort Key: t.session_id
+         Sort Method: external merge  Disk: 116416kB
+         Buffers: shared hit=66937, temp read=42301 written=63262
+         I/O Timings: temp read=69.251 write=173.599
+         ->  Subquery Scan on t  (cost=82.35..107.32 rows=526 width=44) (actual rows=2203070.00 loops=1)
+               Buffers: shared hit=66937, temp read=27749 written=48705
+               I/O Timings: temp read=39.959 write=127.336
+               ->  HashAggregate  (cost=82.35..102.06 rows=526 width=60) (actual rows=2203070.00 loops=1)
+                     Group Key: website_event.session_id, website_event.visit_id
+                     Filter: (sum(CASE WHEN (website_event.event_type <> ALL ('{2,5}'::integer[])) THEN 1 ELSE 0 END) > 0)
+                     Batches: 5  Memory Usage: 65593kB  Disk Usage: 224120kB
+                     Rows Removed by Filter: 46844
+                     Buffers: shared hit=66937, temp read=27749 written=48705
+                     I/O Timings: temp read=39.959 write=127.336
+                     ->  Index Only Scan using s11_cover on website_event  (cost=0.57..58.70 rows=1577 width=36) (actual rows=5532984.00 loops=1)
+                           Index Cond: ((website_id = $1) AND (created_at >= ($2 - $3)) AND (created_at <= $2))
+                           Filter: (event_type <> 5)
+                           Heap Fetches: 0
+                           Index Searches: 1
+                           Buffers: shared hit=66937
+ Planning Time: 0.027 ms
+ Execution Time: 4639.921 ms
+(26 rows)
+
+Time: 4640.560 ms (00:04.641)
+DROP INDEX
+Time: 676.222 ms
+[17:24:14] rollup: building a daily aggregate table and timing the 90-day read from it
+Timing is on.
+psql:<stdin>:5: NOTICE:  table "daily_totals" does not exist, skipping
+psql:<stdin>:5: NOTICE:  table "daily_top" does not exist, skipping
+DROP TABLE
+Time: 3.341 ms
+CREATE TABLE
+Time: 20.388 ms
+CREATE TABLE
+Time: 4.026 ms
+== one-day incremental job (the most recent full day, all 300 sites) ==
+Time: 8.663 ms
+INSERT 0 600
+Time: 2491.733 ms (00:02.492)
+INSERT 0 65812
+Time: 31064.833 ms (00:31.065)
+== backfill the other 89 days (totals only; top-N backfilled by copying the one-day shape is not needed for timing) ==
+INSERT 0 53400
+Time: 165808.720 ms (02:45.809)
+INSERT 0 5857268
+Time: 3336.804 ms (00:03.337)
+CREATE INDEX
+Time: 2718.946 ms (00:02.719)
+ANALYZE
+Time: 58.407 ms
+ANALYZE
+Time: 133.175 ms
+ totals_size | top_size | top_rows 
+-------------+----------+----------
+ 8672 kB     | 542 MB   |  5923080
+(1 row)
+
+Time: 101.140 ms
+== 90-day dashboard reads from the aggregates, largest site (verified = tag v) ==
+Time: 6.013 ms
+    pv    | visitor_days | visits  | bounces 
+----------+--------------+---------+---------
+ 13218327 |      5567115 | 5659221 | 2185724
+(1 row)
+
+Time: 1.387 ms
+    day     |  sum   
+------------+--------
+ 2026-08-14 |  54967
+ 2026-08-15 | 138707
+ 2026-08-16 | 158778
+(3 rows)
+
+Time: 0.611 ms
+  value  |   sum   
+---------+---------
+ /       | 1073700
+ /page-1 |  305100
+ /page-2 |  212490
+ /page-3 |  169020
+ /page-4 |  153090
+ /page-5 |  121050
+ /page-6 |  116190
+ /page-7 |  101520
+ /page-8 |   98820
+ /page-9 |   88110
+(10 rows)
+
+Time: 5.541 ms
+ value |   sum   
+-------+---------
+ US    | 1598850
+ DE    |  655380
+ GB    |  514710
+ FR    |  435150
+ IN    |  374220
+ BR    |  340110
+ NL    |  311130
+ CA    |  295740
+ ES    |  264240
+ PL    |  250830
+(10 rows)
+
+Time: 2.127 ms
+exit 0

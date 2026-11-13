@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>S-07 PoW bench</title>
+<p id="s">loading</p>
+<script>
+// Bench harness only (not tracker code). The solver under test is /build/solver.min.js, unmodified.
+let SRC, URLB;
+async function init() {
+  SRC = await (await fetch("/build/solver.min.js")).text();
+  URLB = URL.createObjectURL(new Blob([SRC]));
+  document.getElementById("s").textContent = "ready";
+  return SRC.length;
+}
+// Worker mode: what the tracker does - new worker per solve, timed from creation to answer.
+function solveWorker(t, cost, max, pfx, P) {
+  return new Promise((ok, no) => {
+    const t0 = performance.now(), w = new Worker(URLB);
+    w.onmessage = (e) => { const ms = performance.now() - t0; w.terminate(); ok({ c: e.data, ms }); };
+    w.onerror = (e) => no(String(e.message));
+    w.postMessage([t, cost, max, pfx, P]);
+  });
+}
+// Main-thread mode: same source, run in the page (fallback if a tenant CSP forbids blob: workers).
+function solveMain(t, cost, max, pfx, P) {
+  return new Promise((ok) => {
+    const t0 = performance.now();
+    const f = new Function("postMessage", SRC + ";return onmessage")((c) => ok({ c, ms: performance.now() - t0 }));
+    f({ data: [t, cost, max, pfx, P] });
+  });
+}
+// Control: plain JS integer loop, to see whether CPU throttling reaches this thread.
+const LOOP = "function L(n){let x=1;for(let i=0;i<n;i++){x=(x*1103515245+12345)|0}return x}";
+function loopMain(n) { const L = new Function(LOOP + ";return L")(); const t0 = performance.now(); L(n); return performance.now() - t0; }
+function loopWorker(n) {
+  return new Promise((ok) => {
+    const u = URL.createObjectURL(new Blob([LOOP + ";onmessage=e=>{const t0=performance.now();L(e.data);postMessage(performance.now()-t0)}"]));
+    const w = new Worker(u);
+    w.onmessage = (e) => { w.terminate(); ok(e.data); };
+    w.postMessage(n);
+  });
+}
+</script>

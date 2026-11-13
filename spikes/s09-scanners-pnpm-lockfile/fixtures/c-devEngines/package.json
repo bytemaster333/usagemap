@@ -1,0 +1,1 @@
+{ "name": "canary-root", "private": true, "devEngines": { "packageManager": { "name": "pnpm", "version": "12.19.0", "onFail": "error" } } }

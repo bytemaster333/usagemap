@@ -1,0 +1,216 @@
+# S-08 — always run as: docker compose -p scf-s08 --env-file .work/secrets.env ...
+# No host ports are published; everything talks over the project network.
+x-azurite: &azurite
+  image: mcr.microsoft.com/azure-storage/azurite@sha256:830430c1da1a2d537e08f3e6764dd1f5ae00cf0346bcaf625b968ec3f0971fd5
+  command: >-
+    azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data
+    --cert /certs/azurite.crt --key /certs/azurite.key --disableTelemetry --skipApiVersionCheck --silent
+  volumes:
+    - ./.work/certs:/certs:ro
+
+x-pg: &pg
+  image: scf-s08-pg:latest
+  build: .
+  shm_size: 256m
+  # REQUIRED with archive-async: pgBackRest's async archiver double-forks; without an init as PID 1 the
+  # orphan is reaped by the postmaster, which treats its non-zero exit as a backend crash and restarts.
+  init: true
+  environment: &pgenv
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    REPLICATOR_PASSWORD: ${REPLICATOR_PASSWORD}
+    PGBACKREST_REPO1_AZURE_KEY: ${AZ_A_KEY}
+    PGBACKREST_REPO1_CIPHER_PASS: ${CIPHER_A}
+    PGBACKREST_REPO2_AZURE_KEY: ${AZ_B_KEY}
+    PGBACKREST_REPO2_CIPHER_PASS: ${CIPHER_B}
+  volumes:
+    - ./conf/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+    - ./.work/certs/ca.crt:/certs/ca.crt:ro
+
+x-pg-cmd-archive: &archive_cmd
+  - postgres
+  - -c
+  - wal_level=replica
+  - -c
+  - archive_mode=on
+  - -c
+  - archive_command=pgbackrest --stanza=scf archive-push %p
+  - -c
+  - archive_timeout=60
+  - -c
+  - max_wal_senders=10
+  - -c
+  - hot_standby=on
+  - -c
+  - wal_log_hints=on
+
+x-pg-cmd-scratch: &scratch_cmd
+  - postgres
+  - -c
+  - archive_mode=off
+
+services:
+  azurite-a:
+    <<: *azurite
+    environment:
+      AZURITE_ACCOUNTS: scfbackupa:${AZ_A_KEY}
+    networks:
+      default:
+        # host-style name used by WAL-G (it only builds https://<account>.blob.<suffix>/ URLs)
+        aliases: [scfbackupa.blob.azurite-a]
+  azurite-b:
+    <<: *azurite
+    environment:
+      AZURITE_ACCOUNTS: scfbackupb:${AZ_B_KEY}
+
+  tools:
+    image: scf-s08-tools:latest
+    build: tools
+    profiles: [tools]
+    environment:
+      AZ_A_ACCOUNT: scfbackupa
+      AZ_A_KEY: ${AZ_A_KEY}
+      AZ_A_HOST: azurite-a
+      AZ_B_ACCOUNT: scfbackupb
+      AZ_B_KEY: ${AZ_B_KEY}
+      AZ_B_HOST: azurite-b
+    volumes:
+      - ./.work/certs/ca.crt:/certs/ca.crt:ro
+
+  # Item 1/2/4: the primary, archiving to repo1 + repo2.
+  pg-primary:
+    <<: *pg
+    hostname: pg-primary
+    command: *archive_cmd
+    volumes:
+      - ./conf/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - ./.work/certs/ca.crt:/certs/ca.crt:ro
+      - primary:/var/lib/postgresql
+
+  # Item 1: point-in-time restore into a fresh container (RESTORE_ARGS set by run.sh).
+  pg-pitr:
+    <<: *pg
+    profiles: [restore]
+    entrypoint: [entry-restore.sh]
+    command: *scratch_cmd
+    environment:
+      <<: *pgenv
+      RESTORE_ARGS: ${PITR_ARGS:-}
+      RESTORE_TARGET: ${PITR_TARGET:-}
+    volumes:
+      - ./conf/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - ./.work/certs/ca.crt:/certs/ca.crt:ro
+      - pitr:/var/lib/postgresql
+
+  # Item 4: hot standby built from repo1 (Patroni create_replica_methods: pgbackrest path), streaming from primary.
+  pg-standby:
+    <<: *pg
+    profiles: [standby]
+    hostname: pg-standby
+    entrypoint: [entry-restore.sh]
+    command: *archive_cmd
+    environment:
+      <<: *pgenv
+      RESTORE_ARGS: --repo=1 --type=standby
+      EXTRA_AUTO_CONF: "primary_conninfo = 'host=pg-primary user=replicator password=${REPLICATOR_PASSWORD} application_name=standby1'"
+    volumes:
+      - ./conf/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - ./.work/certs/ca.crt:/certs/ca.crt:ro
+      - standby:/var/lib/postgresql
+
+  # Item 5: scratch instance for the restore drill — repo2 only, read+list SAS only.
+  pg-drill:
+    <<: *pg
+    profiles: [drill]
+    entrypoint: [entry-restore.sh]
+    command: *scratch_cmd
+    environment:
+      POSTGRES_PASSWORD: unused-scratch
+      PGBACKREST_REPO2_AZURE_KEY: ${SAS_B_READONLY}
+      PGBACKREST_REPO2_CIPHER_PASS: ${CIPHER_B}
+      RESTORE_ARGS: ${DRILL_ARGS:-}
+      RESTORE_TARGET: ${DRILL_TARGET:-}
+    volumes:
+      - ./conf/pgbackrest-drill.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - ./.work/certs/ca.crt:/certs/ca.crt:ro
+      - drill:/var/lib/postgresql
+
+  # Item 3: separate primary whose only credential is a SAS without delete.
+  pg-nodelete:
+    <<: *pg
+    profiles: [nodelete]
+    command:
+      - postgres
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=pgbackrest --stanza=nd archive-push %p
+      - -c
+      - archive_timeout=60
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REPLICATOR_PASSWORD: ${REPLICATOR_PASSWORD}
+      PGBACKREST_REPO1_AZURE_KEY: ${SAS_ND}
+      PGBACKREST_REPO1_CIPHER_PASS: ${CIPHER_A}
+    volumes:
+      - ./conf/pgbackrest-nodelete.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - ./.work/certs/ca.crt:/certs/ca.crt:ro
+      - nodelete:/var/lib/postgresql
+
+  # Item 6: WAL-G fallback (separate cluster, its own blob container on azurite-a, host-style URL).
+  pg-walg:
+    <<: *pg
+    profiles: [walg]
+    command: &walg_cmd
+      - postgres
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=wal-g wal-push %p
+      - -c
+      - archive_timeout=60
+    environment: &walgenv
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REPLICATOR_PASSWORD: ${REPLICATOR_PASSWORD}
+      WALG_AZ_PREFIX: azure://walg/scf
+      AZURE_STORAGE_ACCOUNT: scfbackupa
+      AZURE_STORAGE_ACCESS_KEY: ${AZ_A_KEY}
+      AZURE_ENDPOINT_SUFFIX: azurite-a:10000
+      SSL_CERT_FILE: /certs/ca.crt
+      WALG_LIBSODIUM_KEY: ${WALG_LIBSODIUM_KEY}
+      WALG_LIBSODIUM_KEY_TRANSFORM: hex
+      WALG_COMPRESSION_METHOD: zstd
+      PGHOST: /var/run/postgresql
+      PGUSER: postgres
+    volumes:
+      - ./.work/certs/ca.crt:/certs/ca.crt:ro
+      - walg:/var/lib/postgresql
+  pg-walg-restore:
+    <<: *pg
+    profiles: [walg]
+    entrypoint: [bash, -c]
+    command:
+      - |
+        set -e
+        if [ ! -s "$$PGDATA/PG_VERSION" ]; then
+          install -d -o postgres -g postgres -m 0700 "$$PGDATA"
+          t0=$$(date +%s.%N)
+          gosu postgres wal-g backup-fetch "$$PGDATA" LATEST
+          gosu postgres touch "$$PGDATA/recovery.signal"
+          echo "restore_command = 'wal-g wal-fetch %f %p'" >> "$$PGDATA/postgresql.auto.conf"
+          t1=$$(date +%s.%N)
+          awk -v a="$$t0" -v b="$$t1" 'BEGIN{printf "restore_seconds=%.2f\n", b-a}' > /var/lib/postgresql/restore-timing
+        fi
+        exec docker-entrypoint.sh postgres -c archive_mode=off
+    environment: *walgenv
+    volumes:
+      - ./.work/certs/ca.crt:/certs/ca.crt:ro
+      - walgrestore:/var/lib/postgresql
+
+volumes:
+  primary:
+  pitr:
+  standby:
+  drill:
+  nodelete:
+  walg:
+  walgrestore:

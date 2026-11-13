@@ -1,0 +1,5 @@
+# Own workspace root so this throwaway spike is not part of the repo workspace.
+packages: []
+minimumReleaseAge: 4320
+allowBuilds:
+  esbuild: true

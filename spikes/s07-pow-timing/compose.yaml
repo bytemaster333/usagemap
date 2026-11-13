@@ -1,0 +1,17 @@
+# S-07: run the bench inside the Playwright image under a cgroup CPU quota (throttles every thread of every browser
+# process, unlike DevTools CPU throttling). No published ports; the page is served on 127.0.0.1:18807 inside.
+services:
+  bench:
+    image: mcr.microsoft.com/playwright:v1.65.0-noble@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe
+    cpus: ${CPUS:-1.0}
+    shm_size: 1gb
+    init: true
+    user: "${UID_GID:-1000:1000}"
+    environment:
+      HOME: /tmp
+      SETTINGS: ${SETTINGS:-}
+      OUT: ${OUT:-}
+      HOST_CPU: ${HOST_CPU:-}
+    working_dir: /work
+    volumes:
+      - .:/work
