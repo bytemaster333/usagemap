@@ -1,0 +1,37 @@
+# Gate G2 companion (docs/data-model.md §15 G2, C-72): tables in schema scf WITHOUT a tenant_id column. Each one is a
+# global table with its own explicit policies. A new table without tenant_id fails db/tests (TestGateG2GlobalTables)
+# until it is reviewed and listed here. One table name per line.
+users
+external_identities
+passkey_credentials
+auth_sessions
+auth_challenges
+platform_operators
+enrollment_tombstones
+settings
+audit_actions
+operator_api_keys
+registry_projects
+registry_sync_runs
+edge_snapshots
+edge_report_ledger
+edge_spool_accounting
+durability_reports
+audit_chain_heads
+hist_exp3_map
+rate_limit_buckets
+seal_days
+sealed_audit_anchors
+usage_map_days
+usage_map_project_daily
+usage_map_project_weekly
+usage_map_contract_daily
+usage_map_function_daily
+oauth_clients
+oauth_requests
+oauth_grants
+oauth_codes
+oauth_tokens
+protocol_usage_days
+protocol_usage_network_daily
+protocol_usage_project_daily
