@@ -1,0 +1,64 @@
+# Recipe A ("tenant-side Collector fan-out"), corrected version as tested in S-06a.
+# Differences from recipe A of the dual-export research:
+#  - exporter type otlp_http (0.165.0 logs '"otlphttp" alias is deprecated')
+#  - traces/scf is enabled and the span filter also drops spans of services that send metrics
+#    (here: everything except the span-only Next.js service), so no service reaches UsageMap twice
+#  - endpoints point at the two stand-in collectors (plain http inside the compose network)
+receivers:
+  otlp:
+    protocols:
+      grpc: { endpoint: 0.0.0.0:4317 }
+      http: { endpoint: 0.0.0.0:4318 }
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+  batch: {}
+
+  # ---- UsageMap branch only: keep just the HTTP server duration metric ----
+  filter/scf_metrics_only_http_server:
+    error_mode: ignore
+    metric_conditions:
+      - not (metric.name == "http.server.request.duration" or metric.name == "http.server.duration")
+  transform/scf_minimal_metric_attrs:
+    error_mode: ignore
+    metric_statements:
+      - keep_keys(datapoint.attributes, ["http.route", "http.request.method", "http.response.status_code", "error.type", "url.scheme", "network.protocol.version", "http.method", "http.status_code", "http.target"])
+      - keep_keys(resource.attributes, ["service.name", "service.namespace", "service.version", "service.instance.id", "deployment.environment.name"])
+
+  # ---- UsageMap branch only, for span-only stacks ----
+  filter/scf_server_spans_only:
+    error_mode: ignore
+    trace_conditions:
+      - span.kind != SPAN_KIND_SERVER
+      - not IsMatch(resource.attributes["service.name"], "^s06a-next-")   # list your span-only services
+  transform/scf_minimal_span_attrs:
+    error_mode: ignore
+    trace_statements:
+      - replace_pattern(span.attributes["http.target"], "\\?.*$", "")
+      - keep_keys(span.attributes, ["http.route", "http.request.method", "http.response.status_code", "error.type", "url.path", "url.scheme", "http.method", "http.status_code", "http.target", "next.route"])
+      - keep_keys(resource.attributes, ["service.name", "service.namespace", "service.version", "service.instance.id", "deployment.environment.name"])
+
+exporters:
+  otlp_http/apm:
+    endpoint: http://apm:4318
+    headers: { api-key: "${env:APM_API_KEY}" }
+  otlp_http/scf:
+    endpoint: http://scf:4318
+    headers:
+      Authorization: "Bearer ${env:SCF_OTLP_TOKEN}"
+    compression: gzip
+    sending_queue: { enabled: true }
+    retry_on_failure: { enabled: true }
+
+service:
+  pipelines:
+    traces/apm:   { receivers: [otlp], processors: [memory_limiter, batch], exporters: [otlp_http/apm] }
+    metrics/apm:  { receivers: [otlp], processors: [memory_limiter, batch], exporters: [otlp_http/apm] }
+    logs/apm:     { receivers: [otlp], processors: [memory_limiter, batch], exporters: [otlp_http/apm] }
+
+    metrics/scf:  { receivers: [otlp], processors: [memory_limiter, filter/scf_metrics_only_http_server, transform/scf_minimal_metric_attrs, batch], exporters: [otlp_http/scf] }
+    # Only for span-only services (see filter/scf_server_spans_only):
+    traces/scf: { receivers: [otlp], processors: [memory_limiter, filter/scf_server_spans_only, transform/scf_minimal_span_attrs, batch], exporters: [otlp_http/scf] }

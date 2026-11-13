@@ -1,0 +1,24 @@
+name: scf-s06a
+x-col: &col
+  image: otel/opentelemetry-collector-contrib:0.165.0@sha256:e40d61f10c9a617cca1ffd1be4d7e2b3a4b0f0001798ff07e58cabe82e618cea
+  user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+  environment:
+    SCF_OTLP_TOKEN: ${SCF_OTLP_TOKEN:?}
+    APM_API_KEY: ${APM_API_KEY:?}
+  volumes:
+    - ./collectors:/etc/s06a:ro
+    - ./out:/out
+services:
+  scf:
+    <<: *col
+    command: ["--config=/etc/s06a/scf.yaml"]
+    ports: ["127.0.0.1:18510:4318", "127.0.0.1:18511:4317"]
+  apm:
+    <<: *col
+    command: ["--config=/etc/s06a/apm.yaml"]
+    ports: ["127.0.0.1:18520:4318", "127.0.0.1:18521:4317"]
+  tenant:
+    <<: *col
+    command: ["--config=/etc/s06a/tenant.yaml"]
+    ports: ["127.0.0.1:18530:4318", "127.0.0.1:18531:4317"]
+    depends_on: [scf, apm]

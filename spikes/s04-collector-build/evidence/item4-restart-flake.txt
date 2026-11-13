@@ -1,0 +1,22 @@
+# Manual follow-up, 2026-11-12 ~16:12–16:14Z (not part of run.sh)
+
+In the full ./run.sh at 16:03Z, step 4b printed "health on :18433 never came up" after
+`docker compose kill -s SIGKILL collector` + `docker compose start collector` (the second kill/start
+cycle of the same container). The container logs were not captured (the container was recreated by 4d);
+run.sh now dumps `ps` and the last log lines whenever a health wait fails.
+
+Reproduction attempts (throwaway script flake.sh, same 4b sequence: sink holds 200 for 5 s,
+50 requests, kill -9 after 2 s, delay reset, start):
+  - 5 iterations, fresh container + fresh queue each time:  healthy-after-restart=yes ×5
+  - 6 iterations, same container and queue, kill/start repeatedly: healthy-after-restart=yes ×6
+Not reproduced in 11 attempts.
+
+Was data lost in the failed case? The queue directory left behind by that run
+(work/queue-d-1794499400825311416, 2 MiB bbolt file) was mounted into a fresh Collector:
+  persistent_queue.go:186  Loaded queue metadata
+  persistent_queue.go:454  Fetching items left for dispatch by consumers
+  persistent_queue.go:496  Moved items for dispatching back to queue
+  otelcol_exporter_queue_size ... 0   (after 6 s)
+  analyze.py routes d2:  requests_seen=50 distinct_points_delivered=50 duplicate_deliveries=0
+i.e. all 50 points of that burst (the 4 in flight at the kill plus the 46 never attempted) were
+still on disk and were delivered.

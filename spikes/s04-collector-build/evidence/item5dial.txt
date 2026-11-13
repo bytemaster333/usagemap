@@ -1,0 +1,9 @@
+# ./run.sh item5dial — 2026-11-12T16:11:19Z
+
+=== 5B diagnostics: Go resolver + dialer inside a scratch container, 'writers' -> two addresses, first one gone
+LookupHost: [172.20.2.3 172.20.2.2] <nil>
+GET 0 after 1ms: 200 OK
+GET 1 after 0s: 200 OK
+GET 2 after 0s: 200 OK
+dial 172.20.2.3 after 0s: err=dial tcp 172.20.2.3:4319: connect: connection refused
+dial 172.20.2.2 after 0s: err=<nil>

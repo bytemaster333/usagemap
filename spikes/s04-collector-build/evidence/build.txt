@@ -1,0 +1,27 @@
+# ./run.sh build — 2026-11-12T16:02:42Z
+
+=== ocb 0.165.0: download, SHA-256, cosign bundle
+published sha256: 6fd899cf8794803bb0d9ea0a055fdaabd2e7e8304de3872fd9aaec3f0cd7f18c
+/tmp/usagemap-spikes/s04/dl/ocb_0.165.0_linux_amd64: OK
+/tmp/usagemap-spikes/s04/cosign/cosign: OK
+Verified OK
+ocb version v0.165.0+dirty
+go version go1.27.4 linux/amd64
+
+=== ocb build: minimal distribution (builder-config.yaml)
+2026-11-12T19:02:48.229+0300	INFO	builder/main.go:153	Compiled	{"binary": "./work/build/scf-otelcol/scf-otelcol"}
+real	0m4.092s
+
+=== ocb build: test-only distribution (builder-config-s04test.yaml)
+2026-11-12T19:02:51.162+0300	INFO	builder/main.go:153	Compiled	{"binary": "./work/build/scf-otelcol-s04test/scf-otelcol-s04test"}
+real	0m2.930s
+
+=== test programs (tools/)
+
+=== images (FROM scratch)
+sha256:82fc4027cf81cebc2836517170655927abc22f67411ca29952dfdc6dd13119ee
+sha256:35172038af831c173e9f2b5f3df5ab6df51e10f1d9ef2603beeeb86d6b51f522
+sha256:2ec8140814c0c3a9fe3de6a0988e81a13541ab9fdbdc8321bc031c86aeb3a2ae
+scf-s04/sink:0.0.0-s04 32.5MB
+scf-s04/scf-otelcol-s04test:0.0.0-s04 66.8MB
+scf-s04/scf-otelcol:0.0.0-s04 66.5MB

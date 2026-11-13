@@ -1,0 +1,21 @@
+# "The UsageMap endpoint": a stock contrib Collector that requires `Authorization: Bearer <SCF_OTLP_TOKEN>`.
+# Mirrors ADR-0009: metrics + traces pipelines only, no logs pipeline (so /v1/logs answers 404).
+extensions:
+  bearertokenauth/scf:
+    scheme: Bearer
+    token: ${env:SCF_OTLP_TOKEN}
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        auth: { authenticator: bearertokenauth/scf }
+exporters:
+  debug: { verbosity: basic }
+  file/metrics: { path: /out/scf-metrics.jsonl, flush_interval: 1s }
+  file/traces: { path: /out/scf-traces.jsonl, flush_interval: 1s }
+service:
+  extensions: [bearertokenauth/scf]
+  pipelines:
+    metrics: { receivers: [otlp], exporters: [file/metrics, debug] }
+    traces: { receivers: [otlp], exporters: [file/traces, debug] }

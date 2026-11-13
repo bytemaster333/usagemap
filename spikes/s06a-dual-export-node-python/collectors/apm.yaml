@@ -1,0 +1,25 @@
+# Stand-in for the tenant's own APM vendor: stock contrib Collector, no auth,
+# debug exporter (basic) + verbatim OTLP JSON files in /out/apm/*.jsonl.
+receivers:
+  otlp:
+    protocols:
+      http: { endpoint: 0.0.0.0:4318, include_metadata: true }
+      grpc: { endpoint: 0.0.0.0:4317, include_metadata: true }
+processors:
+  resource/seen:
+    attributes:
+      - { key: spike.seen.x-vendor-key, from_context: metadata.x-vendor-key, action: upsert }
+      - { key: spike.seen.api-key, from_context: metadata.api-key, action: upsert }
+      - { key: spike.seen.authorization, from_context: metadata.authorization, action: upsert }
+      - { key: spike.seen.user-agent, from_context: metadata.user-agent, action: upsert }
+      - { key: spike.seen.content-type, from_context: metadata.content-type, action: upsert }
+exporters:
+  debug: { verbosity: basic }
+  file/metrics: { path: /out/apm/metrics.jsonl }
+  file/traces: { path: /out/apm/traces.jsonl }
+  file/logs: { path: /out/apm/logs.jsonl }
+service:
+  pipelines:
+    metrics: { receivers: [otlp], processors: [resource/seen], exporters: [debug, file/metrics] }
+    traces: { receivers: [otlp], processors: [resource/seen], exporters: [debug, file/traces] }
+    logs: { receivers: [otlp], processors: [resource/seen], exporters: [debug, file/logs] }

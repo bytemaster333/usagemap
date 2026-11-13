@@ -1,0 +1,113 @@
+# S-04 scf-otelcol configuration (items 2–4). Runs on the minimal build.
+# ${env:SINK_ENDPOINT} lets run.sh point the exporter at sink-a.
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  file_storage/queue:
+    directory: /var/lib/scf-otelcol/queue
+    create_directory: true
+    fsync: true            # default is false; this is the key (extension/storage/filestorage config.go L30)
+    timeout: 1s
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317      # loopback-only in production; 0.0.0.0 inside the container, published on 127.0.0.1
+        include_metadata: true
+        max_recv_msg_size_mib: 16
+      http:
+        endpoint: 0.0.0.0:4318
+        include_metadata: true
+        max_request_body_size: 16777216
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400
+    spike_limit_mib: 80
+  scfsanitize: {}
+  # Drop (any condition true => dropped):
+  #  1. every span that is not SERVER kind;
+  #  2. SERVER spans with a LOCAL parent: parent id present, SDK set the
+  #     "has is_remote" bit (0x100) and the "is_remote" bit (0x200) is clear.
+  #     OTTL has no bitwise operators; int64 division is integer division, so
+  #     bit n = flags/2^n - 2*(flags/2^(n+1)).
+  #  SERVER spans whose SDK did not set 0x100 are kept (cannot be classified).
+  filter/server_local_roots:
+    error_mode: ignore
+    trace_conditions:
+      - span.kind != SPAN_KIND_SERVER
+      - not IsRootSpan() and (span.flags / 256) - (span.flags / 512) * 2 == 1 and (span.flags / 512) - (span.flags / 1024) * 2 == 0
+  filter/metric_allowlist:
+    error_mode: ignore
+    metric_conditions:
+      - metric.name != "http.server.request.duration" and metric.name != "http.server.duration"
+
+connectors:
+  signal_to_metrics:
+    error_mode: ignore
+    spans:
+      - name: scf.span.server.duration
+        description: SERVER span duration (span-derived)
+        unit: s
+        include_resource_attributes:
+          - key: scf.tenant.id
+          - key: service.name
+          - key: service.instance.id
+          - key: deployment.environment.name
+        attributes:
+          - key: scf.route
+          - key: http.request.method
+            optional: true
+          - key: http.response.status_code
+            optional: true
+        exponential_histogram:
+          max_size: 160
+          value: Seconds(span.end_time - span.start_time)
+          count: Int(AdjustedCount())
+
+exporters:
+  otlp_http/writer:
+    endpoint: ${env:SINK_ENDPOINT}
+    encoding: proto
+    compression: gzip
+    timeout: 5s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 5s
+      max_elapsed_time: 0     # never give up inside one process lifetime
+    sending_queue:
+      enabled: true
+      storage: file_storage/queue
+      sizer: requests
+      queue_size: 100000
+      num_consumers: 4
+
+service:
+  extensions: [health_check, file_storage/queue]
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: detailed
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
+  pipelines:
+    # deliberately NO logs pipeline
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, scfsanitize, filter/server_local_roots]
+      exporters: [signal_to_metrics]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, scfsanitize, filter/metric_allowlist]
+      exporters: [otlp_http/writer]
+    metrics/span_derived:
+      receivers: [signal_to_metrics]
+      exporters: [otlp_http/writer]

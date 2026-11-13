@@ -1,0 +1,67 @@
+# ./run.sh item5 — 2026-11-12T16:05:38Z
+
+=== 5A-1. failover connector, both exporters with finite retries (core_b max_elapsed_time 3s), retry_interval 10s
+burst f1: 20/20 accepted (HTTP 200)
+t+0: sink-a killed
+burst f2: 20/20 accepted (HTTP 200)
+sink-b killed too (no writer up)
+burst f3: 20/20 accepted (HTTP 200)
+both sinks back; waiting 25 s (> retry_interval)
+burst f4: 20/20 accepted (HTTP 200)
+  prefix=f1 sink=sink-a points=20
+  prefix=f2 sink=sink-b points=20
+  prefix=f4 sink=sink-a points=20
+-- connector queue / drops:
+otelcol_exporter_queue_size{data_type="metrics",exporter="failover/writers"} 0
+otelcol_exporter_send_failed_metric_points{error_permanent="false",error_type="_OTHER",exporter="failover/writers"} 20
+otelcol_exporter_send_failed_metric_points{error_permanent="false",error_type="Deadline_Exceeded",exporter="otlp_http/core_a",server_address="sink-a",server_port="4319",url_path="/v1/metrics"} 5
+otelcol_exporter_send_failed_metric_points{error_permanent="false",error_type="Deadline_Exceeded",exporter="otlp_http/core_b",server_address="sink-b",server_port="4319",url_path="/v1/metrics"} 5
+otelcol_exporter_sent_metric_points{exporter="failover/writers"} 60
+otelcol_exporter_sent_metric_points{exporter="otlp_http/core_a",server_address="sink-a",server_port="4319",url_path="/v1/metrics"} 40
+otelcol_exporter_sent_metric_points{exporter="otlp_http/core_b",server_address="sink-b",server_port="4319",url_path="/v1/metrics"} 20
+collector-x-1  | 2026-11-12T16:05:58.841Z	error	internal/queue_sender.go:57	Exporting failed. Dropping data.	{"resource": {"service.instance.id": "b913f018-90a9-419e-b9bf-9ef732686d94", "service.name": "scf-otelcol-s04test", "service.version": "0.0.0-s04"}, "o
+collector-x-1  | 2026-11-12T16:05:59.267Z	error	internal/queue_sender.go:57	Exporting failed. Dropping data.	{"resource": {"service.instance.id": "b913f018-90a9-419e-b9bf-9ef732686d94", "service.name": "scf-otelcol-s04test", "service.version": "0.0.0-s04"}, "o
+
+=== 5A-2. failover connector, last level retries forever (core_b max_elapsed_time 0); kill -9 while no writer is up
+both sinks down
+burst g1: 30/30 accepted (HTTP 200)
+otelcol_exporter_queue_size{data_type="metrics",exporter="failover/writers"} 30
+otelcol_exporter_send_failed_metric_points{error_permanent="false",error_type="Deadline_Exceeded",exporter="otlp_http/core_a",server_address="sink-a",server_port="4319",url_path="/v1/metrics"} 4
+collector-x kill -9
+restarted; 15 s with no writer up
+otelcol_exporter_queue_size{data_type="metrics",exporter="failover/writers"} 30
+otelcol_exporter_send_failed_metric_points{error_permanent="false",error_type="Deadline_Exceeded",exporter="otlp_http/core_a",server_address="sink-a",server_port="4319",url_path="/v1/metrics"} 4
+only sink-a (priority 1) back; 30 s
+  prefix=g1: requests_seen=0 distinct_points_delivered=0 duplicate_deliveries=0 points_seen_in_more_than_one_distinct_body=0
+otelcol_exporter_queue_size{data_type="metrics",exporter="failover/writers"} 30
+sink-b back too; 15 s
+  prefix=g1 sink=sink-a points=26
+  prefix=g1 sink=sink-b points=4
+  prefix=g1: requests_seen=30 distinct_points_delivered=30 duplicate_deliveries=0 points_seen_in_more_than_one_distinct_body=0
+otelcol_exporter_queue_size{data_type="metrics",exporter="failover/writers"} 0
+
+=== 5B. one otlp_http exporter, endpoint http://writers:4319, /etc/hosts gives 'writers' both sink IPs (Go dialer tries each address)
+-- extra_hosts of the Collector container: [writers:172.20.3.3 writers:172.20.3.4]
+burst h1: 20/20 accepted (HTTP 200)
+sink-a killed (container gone: pooled keep-alive connections to it are now half-open)
+burst h2: 20/20 accepted (HTTP 200)
+  prefix=h1 sink=sink-a points=20
+  prefix=h2 sink=sink-b points=20
+sink-b killed, sink-a back
+burst h3: 20/20 accepted (HTTP 200)
+  prefix=h1 sink=sink-a points=20
+  prefix=h2 sink=sink-b points=20
+  prefix=h3 sink=sink-a points=20
+  prefix=h1: requests_seen=20 distinct_points_delivered=20 duplicate_deliveries=0 points_seen_in_more_than_one_distinct_body=0
+  prefix=h2: requests_seen=20 distinct_points_delivered=20 duplicate_deliveries=0 points_seen_in_more_than_one_distinct_body=0
+  prefix=h3: requests_seen=20 distinct_points_delivered=20 duplicate_deliveries=0 points_seen_in_more_than_one_distinct_body=0
+otelcol_exporter_queue_size{data_type="metrics",exporter="otlp_http/writer"} 0
+-- retry log lines (error text only):
+      8 "error": "failed to make an HTTP request: context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+-- first/last delivery per phase (sink receive time):
+   2026-11-12T16:08:00.751372235Z sink-a /dur/h1/0 200
+   2026-11-12T16:08:01.553303424Z sink-a /dur/h1/19 200
+   2026-11-12T16:08:18.959477957Z sink-b /dur/h2/0 200
+   2026-11-12T16:08:19.125434039Z sink-b /dur/h2/19 200
+   2026-11-12T16:08:44.929881485Z sink-a /dur/h3/0 200
+   2026-11-12T16:08:45.381572787Z sink-a /dur/h3/19 200

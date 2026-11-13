@@ -1,0 +1,6 @@
+# ./run.sh item4f — 2026-11-12T16:05:16Z
+
+=== 4f. is fsync really on? wall time of 2000 sequential acknowledged requests, sink down (queue only grows)
+  overlay-none.yaml      fsync=true  2000 requests in 13.07 s
+  overlay-nofsync.yaml   fsync=false 2000 requests in 0.38 s
+  disk under work/: /dev/sda       ext4

@@ -1,0 +1,56 @@
+# Recipe A of the dual-export research, run as-is except: endpoints point at the spike's
+# test collectors (plain http on the compose network) and the debug exporter is added.
+receivers:
+  otlp:
+    protocols:
+      grpc: { endpoint: 0.0.0.0:4317 }
+      http: { endpoint: 0.0.0.0:4318 }
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+  batch: {}
+
+  # ---- UsageMap branch only: keep just the HTTP server duration metric ----
+  filter/scf_metrics_only_http_server:
+    error_mode: ignore
+    metric_conditions:
+      - not (metric.name == "http.server.request.duration" or metric.name == "http.server.duration")
+  transform/scf_minimal_metric_attrs:
+    error_mode: ignore
+    metric_statements:
+      - keep_keys(datapoint.attributes, ["http.route", "http.request.method", "http.response.status_code", "error.type", "url.scheme", "network.protocol.version", "http.method", "http.status_code", "http.target"])
+      - keep_keys(resource.attributes, ["service.name", "service.namespace", "service.version", "service.instance.id", "deployment.environment.name"])
+
+  filter/scf_server_spans_only:
+    error_mode: ignore
+    trace_conditions:
+      - span.kind != SPAN_KIND_SERVER
+  transform/scf_minimal_span_attrs:
+    error_mode: ignore
+    trace_statements:
+      - replace_pattern(span.attributes["http.target"], "\\?.*$", "")
+      - keep_keys(span.attributes, ["http.route", "http.request.method", "http.response.status_code", "error.type", "url.path", "url.scheme", "http.method", "http.status_code", "http.target", "next.route"])
+      - keep_keys(resource.attributes, ["service.name", "service.namespace", "service.version", "service.instance.id", "deployment.environment.name"])
+
+exporters:
+  debug: { verbosity: basic }
+  otlphttp/apm:
+    endpoint: http://apm:4318
+    headers: { api-key: "${env:APM_API_KEY}" }
+  otlphttp/scf:
+    endpoint: http://scf-proxy:4318
+    headers:
+      Authorization: "Bearer ${env:SCF_OTLP_TOKEN}"
+    compression: gzip
+    sending_queue: { enabled: true }
+    retry_on_failure: { enabled: true }
+
+service:
+  pipelines:
+    traces/apm:   { receivers: [otlp], processors: [memory_limiter, batch], exporters: [otlphttp/apm] }
+    metrics/apm:  { receivers: [otlp], processors: [memory_limiter, batch], exporters: [otlphttp/apm] }
+    logs/apm:     { receivers: [otlp], processors: [memory_limiter, batch], exporters: [otlphttp/apm] }
+    metrics/scf:  { receivers: [otlp], processors: [memory_limiter, filter/scf_metrics_only_http_server, transform/scf_minimal_metric_attrs, batch], exporters: [otlphttp/scf, debug] }

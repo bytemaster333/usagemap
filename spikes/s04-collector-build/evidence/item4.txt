@@ -1,0 +1,58 @@
+# ./run.sh item4 — 2026-11-12T16:09:58Z
+
+=== 4a. N=1000 single-point requests while the sink is DOWN, kill -9, restart, sink up
+burst d1: 1000/1000 accepted (HTTP 200)
+otelcol_exporter_queue_size{data_type="metrics",exporter="otlp_http/writer"} 1000
+total 1868
+-rw------- 1 user group 2097152 Nov 12 19:10 exporter_otlp_http_writer_metrics
+canary request header in the on-disk queue (x-canary-hdr: CANARY-HDR-0c1d): 1004 matching blocks
+ Container scf-s04-collector-1 Killed 
+collector exited Exited (137) Less than a second ago
+-- restarted, sink still down:
+otelcol_exporter_queue_size{data_type="metrics",exporter="otlp_http/writer"} 1000
+  prefix=d1: requests_seen=1000 distinct_points_delivered=1000 duplicate_deliveries=0 points_seen_in_more_than_one_distinct_body=0
+
+=== 4b. duplicates: sink records each request, then holds the 200 for 5 s; kill -9 meanwhile
+burst d2: 50/50 accepted (HTTP 200)
+requests recorded by the sink before the kill: 4
+ Container scf-s04-collector-1 Killed 
+ Container scf-s04-collector-1 Started 
+  prefix=d2: requests_seen=54 distinct_points_delivered=50 duplicate_deliveries=4 points_seen_in_more_than_one_distinct_body=0
+  duplicated: ['/dur/d2/0', '/dur/d2/1', '/dur/d2/2', '/dur/d2/3']
+
+=== 4c. in-process retries: sink answers 503 three times per request
+burst d3: 2/2 accepted (HTTP 200)
+  #1055 status=503 sha256=3f8c558cb93a points=1 routes=[0]
+  #1056 status=503 sha256=451071678d09 points=1 routes=[1]
+  #1057 status=503 sha256=451071678d09 points=1 routes=[1]
+  #1058 status=503 sha256=3f8c558cb93a points=1 routes=[0]
+  #1059 status=503 sha256=451071678d09 points=1 routes=[1]
+  #1060 status=503 sha256=3f8c558cb93a points=1 routes=[0]
+  #1061 status=200 sha256=3f8c558cb93a points=1 routes=[0]
+  #1062 status=200 sha256=451071678d09 points=1 routes=[1]
+  prefix=d3: requests_seen=8 distinct_points_delivered=2 duplicate_deliveries=0 points_seen_in_more_than_one_distinct_body=0
+
+=== 4d. same as 4b, with sending_queue.batch (overlay-batch.yaml), N=95 (not a multiple of the batch size)
+burst b2: 95/95 accepted (HTTP 200)
+  #1063 status=200 sha256=b9b71646eeda points=10 routes=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  #1064 status=200 sha256=01571dca1240 points=10 routes=[10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+  #1065 status=200 sha256=b24a3c25e1d5 points=10 routes=[20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+  #1066 status=200 sha256=0e4d8e42f56d points=10 routes=[30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
+  #1067 status=200 sha256=e7ba67cda6e0 points=10 routes=[50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+  #1068 status=200 sha256=040604849c81 points=10 routes=[60, 61, 62, 63, 64, 65, 66, 67, 68, 69]
+  #1069 status=200 sha256=1ac2c1621910 points=10 routes=[70, 71, 72, 73, 74, 75, 76, 77, 78, 79]
+  #1070 status=200 sha256=f919e188e363 points=10 routes=[80, 81, 82, 83, 84, 85, 86, 87, 88, 89]
+  #1071 status=200 sha256=aab0fbd6b9af points=10 routes=[0, 1, 2, 3, 4, 90, 91, 92, 93, 94]
+  #1072 status=200 sha256=c0f28764a8cf points=10 routes=[5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+  #1073 status=200 sha256=32f38a51ce69 points=10 routes=[15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
+  #1074 status=200 sha256=8e48b1f37f5f points=10 routes=[25, 26, 27, 28, 29, 30, 31, 32, 33, 34]
+  #1075 status=200 sha256=ad1523930696 points=10 routes=[35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
+  #1076 status=200 sha256=1170a27e2119 points=5 routes=[45, 46, 47, 48, 49]
+  prefix=b2: requests_seen=14 distinct_points_delivered=95 duplicate_deliveries=40 points_seen_in_more_than_one_distinct_body=40
+  duplicated: ['/dur/b2/0', '/dur/b2/1', '/dur/b2/10', '/dur/b2/11', '/dur/b2/12', '/dur/b2/13', '/dur/b2/14', '/dur/b2/15'] …
+
+=== 4e. does request metadata survive the persistent queue? (test build + headers_setter, overlay-meta.yaml)
+burst m0: 3/3 accepted (HTTP 200)
+burst m1: 20/20 accepted (HTTP 200)
+  prefix=m0 (before crash, sink up): X-Scf-Tenant-Id=11111111-2222-4333-8444-555555555555 X-Scf-Node=edge-s04 status=200 requests=3
+  prefix=m1 (queued across kill -9): X-Scf-Tenant-Id=11111111-2222-4333-8444-555555555555 X-Scf-Node=edge-s04 status=200 requests=20

@@ -1,0 +1,4 @@
+# Item 4f: same as config.yaml but file_storage fsync off (the upstream default) — timing comparison only.
+extensions:
+  file_storage/queue:
+    fsync: false

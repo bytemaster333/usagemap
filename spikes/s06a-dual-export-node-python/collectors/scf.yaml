@@ -1,0 +1,38 @@
+# Stand-in for the UsageMap ingest endpoint: stock contrib Collector, bearer token required,
+# everything that arrives is written verbatim (OTLP JSON) to /out/scf/*.jsonl.
+# resource/seen copies selected *request headers* into resource attributes so the
+# header-leak hazard becomes visible in the files (spike-only instrumentation).
+extensions:
+  bearertokenauth/scf:
+    scheme: Bearer
+    token: ${env:SCF_OTLP_TOKEN}
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        include_metadata: true
+        auth: { authenticator: bearertokenauth/scf }
+      grpc:
+        endpoint: 0.0.0.0:4317
+        include_metadata: true
+        auth: { authenticator: bearertokenauth/scf }
+processors:
+  resource/seen:
+    attributes:
+      - { key: spike.seen.x-vendor-key, from_context: metadata.x-vendor-key, action: upsert }
+      - { key: spike.seen.api-key, from_context: metadata.api-key, action: upsert }
+      - { key: spike.seen.authorization, from_context: metadata.authorization, action: upsert }
+      - { key: spike.seen.user-agent, from_context: metadata.user-agent, action: upsert }
+      - { key: spike.seen.content-type, from_context: metadata.content-type, action: upsert }
+      - { key: spike.seen.content-encoding, from_context: metadata.content-encoding, action: upsert }
+exporters:
+  file/metrics: { path: /out/scf/metrics.jsonl }
+  file/traces: { path: /out/scf/traces.jsonl }
+  file/logs: { path: /out/scf/logs.jsonl }
+service:
+  extensions: [bearertokenauth/scf]
+  pipelines:
+    metrics: { receivers: [otlp], processors: [resource/seen], exporters: [file/metrics] }
+    traces: { receivers: [otlp], processors: [resource/seen], exporters: [file/traces] }
+    logs: { receivers: [otlp], processors: [resource/seen], exporters: [file/logs] }

@@ -1,0 +1,5 @@
+# Standalone spike package (not part of the repo workspace).
+# The repo rule (minimumReleaseAge 4320) is relaxed here so the versions under test resolve; see README.
+minimumReleaseAge: 0
+allowBuilds:
+  protobufjs: false

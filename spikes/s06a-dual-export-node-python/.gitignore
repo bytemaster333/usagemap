@@ -1,0 +1,7 @@
+node_modules/
+.venv/
+.next/
+next-env.d.ts
+__pycache__/
+out/*
+!out/summary.md

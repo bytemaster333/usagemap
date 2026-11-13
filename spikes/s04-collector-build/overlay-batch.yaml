@@ -1,0 +1,9 @@
+# Item 4 variant: exporter-side batching on top of the persistent queue.
+exporters:
+  otlp_http/writer:
+    sending_queue:
+      batch:
+        flush_timeout: 2s
+        sizer: items
+        min_size: 10
+        max_size: 25

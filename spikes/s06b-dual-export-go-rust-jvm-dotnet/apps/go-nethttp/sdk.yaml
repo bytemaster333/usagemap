@@ -1,0 +1,34 @@
+# OTEL_CONFIG_FILE for otelconf v0.27.0 (Go). ${VAR} is substituted from the environment.
+file_format: "1.0"
+resource:
+  attributes:
+    - name: service.name
+      value: ${OTEL_SERVICE_NAME}
+  detection/development:
+    detectors:
+      - service:          # IGNORED by otelconf v0.27.0 (no detector support): no service.instance.id. Set it as an attribute.
+tracer_provider:
+  processors:
+    - batch:
+        exporter:
+          otlp_http:
+            endpoint: ${APM_ENDPOINT}/v1/traces
+            headers: [ { name: api-key, value: "${APM_API_KEY}" } ]
+meter_provider:
+  readers:
+    - periodic:
+        interval: 5000
+        exporter:
+          otlp_http:
+            endpoint: ${APM_ENDPOINT}/v1/metrics
+            headers: [ { name: api-key, value: "${APM_API_KEY}" } ]
+    - periodic:
+        interval: 5000
+        exporter:
+          otlp_http:
+            endpoint: ${SCF_OTLP_ENDPOINT}/v1/metrics
+            headers: [ { name: Authorization, value: "Bearer ${SCF_OTLP_TOKEN}" } ]
+            temporality_preference: cumulative
+            default_histogram_aggregation: explicit_bucket_histogram
+propagator:
+  composite: [ { tracecontext: } ]

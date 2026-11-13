@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Context: work/bin (run.sh copies the ocb-built binaries there).
+FROM scratch
+ARG BIN=scf-otelcol
+COPY ${BIN} /scf-otelcol
+ENTRYPOINT ["/scf-otelcol"]

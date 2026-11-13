@@ -1,0 +1,16 @@
+# "The tenant's own APM": a stock contrib Collector that accepts everything (no auth) and writes files.
+receivers:
+  otlp:
+    protocols:
+      http: { endpoint: 0.0.0.0:4318 }
+      grpc: { endpoint: 0.0.0.0:4317 }
+exporters:
+  debug: { verbosity: basic }
+  file/metrics: { path: /out/apm-metrics.jsonl, flush_interval: 1s }
+  file/traces: { path: /out/apm-traces.jsonl, flush_interval: 1s }
+  file/logs: { path: /out/apm-logs.jsonl, flush_interval: 1s }
+service:
+  pipelines:
+    metrics: { receivers: [otlp], exporters: [file/metrics, debug] }
+    traces: { receivers: [otlp], exporters: [file/traces, debug] }
+    logs: { receivers: [otlp], exporters: [file/logs, debug] }

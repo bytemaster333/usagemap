@@ -1,0 +1,77 @@
+# S-04 item 5, mechanism A: failover connector (contrib, alpha) in the
+# test-only build. The persistent queue lives IN THE CONNECTOR (the connector
+# README recommends this: a queue on the exporter would hide its failures from
+# the connector, so it could never fail over). Exporters have no queue.
+# Same receiver/processor/connector set-up as config.yaml.
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  file_storage/queue:
+    directory: /var/lib/scf-otelcol/queue
+    create_directory: true
+    fsync: true
+    timeout: 1s
+
+receivers:
+  otlp:
+    protocols:
+      grpc: {endpoint: 0.0.0.0:4317, include_metadata: true}
+      http: {endpoint: 0.0.0.0:4318, include_metadata: true}
+
+processors:
+  memory_limiter: {check_interval: 1s, limit_mib: 400, spike_limit_mib: 80}
+  scfsanitize: {}
+  filter/metric_allowlist:
+    error_mode: ignore
+    metric_conditions:
+      - metric.name != "http.server.request.duration" and metric.name != "http.server.duration"
+
+connectors:
+  failover/writers:
+    priority_levels:
+      - [metrics/core_a]
+      - [metrics/core_b]
+    retry_interval: ${env:FAILOVER_RETRY_INTERVAL}
+    sending_queue:
+      enabled: true
+      storage: file_storage/queue
+      sizer: requests
+      queue_size: 100000
+      num_consumers: 4
+
+exporters:
+  otlp_http/core_a:
+    endpoint: http://sink-a:4319
+    compression: gzip
+    timeout: 2s
+    sending_queue: {enabled: false}
+    retry_on_failure: {enabled: true, initial_interval: 500ms, max_interval: 1s, max_elapsed_time: 3s}
+  otlp_http/core_b:
+    endpoint: http://sink-b:4319
+    compression: gzip
+    timeout: 2s
+    sending_queue: {enabled: false}
+    retry_on_failure:
+      enabled: true
+      initial_interval: 500ms
+      max_interval: 1s
+      max_elapsed_time: ${env:LAST_LEVEL_MAX_ELAPSED}   # 3s in 5A-1, 0 (= forever) in 5A-2
+
+service:
+  extensions: [health_check, file_storage/queue]
+  telemetry:
+    metrics:
+      level: detailed
+      readers:
+        - pull: {exporter: {prometheus: {host: 0.0.0.0, port: 8888}}}
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, scfsanitize, filter/metric_allowlist]
+      exporters: [failover/writers]
+    metrics/core_a:
+      receivers: [failover/writers]
+      exporters: [otlp_http/core_a]
+    metrics/core_b:
+      receivers: [failover/writers]
+      exporters: [otlp_http/core_b]

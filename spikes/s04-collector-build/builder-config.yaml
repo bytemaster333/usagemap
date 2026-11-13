@@ -1,0 +1,28 @@
+# S-04 minimal scf-otelcol distribution. Build:
+#   GOWORK=off ocb --config builder-config.yaml      (ocb v0.165.0, Go 1.27.4)
+# Core components pinned to the v0.165.0 / v1.71.0 module sets, contrib to v0.165.1.
+dist:
+  module: github.com/bytemaster333/usagemap/collector/scf-otelcol
+  name: scf-otelcol
+  description: UsageMap Collector (S-04 spike build)
+  version: 0.0.0-s04
+  output_path: ./work/build/scf-otelcol
+
+receivers:
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.165.0
+processors:
+  - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.165.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.165.1
+  - gomod: github.com/bytemaster333/usagemap/collector/processor/scfsanitizeprocessor v0.0.0
+    path: ./scfsanitizeprocessor
+connectors:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/signaltometricsconnector v0.165.1
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.165.0
+extensions:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.165.1
+providers:
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.71.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.71.0

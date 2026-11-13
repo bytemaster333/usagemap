@@ -1,0 +1,41 @@
+# OTEL_CONFIG_FILE for the OpenTelemetry Java agent 2.33.1. ${VAR} is substituted from the environment.
+file_format: "1.2"
+resource:
+  attributes:
+    - name: service.name
+      value: ${OTEL_SERVICE_NAME}
+  detection/development:
+    detectors:
+      - service:          # adds service.instance.id
+tracer_provider:
+  processors:
+    - batch:
+        exporter:
+          otlp_http:
+            endpoint: ${APM_ENDPOINT}/v1/traces
+            headers: [ { name: api-key, value: "${APM_API_KEY}" } ]
+meter_provider:
+  readers:
+    - periodic:
+        interval: 5000
+        exporter:
+          otlp_http:
+            endpoint: ${APM_ENDPOINT}/v1/metrics
+            headers: [ { name: api-key, value: "${APM_API_KEY}" } ]
+    - periodic:
+        interval: 5000
+        exporter:
+          otlp_http:
+            endpoint: ${SCF_OTLP_ENDPOINT}/v1/metrics
+            headers: [ { name: Authorization, value: "Bearer ${SCF_OTLP_TOKEN}" } ]
+            temporality_preference: cumulative
+            default_histogram_aggregation: explicit_bucket_histogram
+logger_provider:
+  processors:
+    - batch:
+        exporter:
+          otlp_http:
+            endpoint: ${APM_ENDPOINT}/v1/logs
+            headers: [ { name: api-key, value: "${APM_API_KEY}" } ]
+propagator:
+  composite: [ { tracecontext: }, { baggage: } ]

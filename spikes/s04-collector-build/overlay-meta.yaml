@@ -1,0 +1,17 @@
+# Item 4 (metadata through the queue), test-only build: copy two gateway
+# metadata keys from the request context onto the outgoing export request.
+extensions:
+  headers_setter:
+    headers:
+      - key: X-Scf-Tenant-Id
+        from_context: x-scf-tenant-id
+        action: upsert
+      - key: X-Scf-Node
+        from_context: x-scf-node
+        action: upsert
+exporters:
+  otlp_http/writer:
+    auth:
+      authenticator: headers_setter
+service:
+  extensions: [health_check, file_storage/queue, headers_setter]

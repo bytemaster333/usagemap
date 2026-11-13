@@ -1,0 +1,61 @@
+# docker compose -p scf-s04 … ; host ports 18400–18499 on 127.0.0.1 only.
+# run.sh exports UID_GID and builds the images from work/bin.
+x-collector: &collector
+  user: "${UID_GID:-1002:1005}"
+  restart: "no"
+  stop_grace_period: 2s
+
+services:
+  collector:
+    <<: *collector
+    image: scf-s04/scf-otelcol:0.0.0-s04
+    command: ["--config=/etc/scf-otelcol/config.yaml", "--config=/etc/scf-otelcol/overlay.yaml"]
+    environment:
+      SINK_ENDPOINT: ${SINK_ENDPOINT:-http://sink-a:4319}
+    volumes:
+      - ./config.yaml:/etc/scf-otelcol/config.yaml:ro
+      - ./${OVERLAY:-overlay-none.yaml}:/etc/scf-otelcol/overlay.yaml:ro
+      - ./work/${Q:-queue}:/var/lib/scf-otelcol/queue
+    ports:
+      - "127.0.0.1:18417:4317"
+      - "127.0.0.1:18418:4318"
+      - "127.0.0.1:18433:13133"
+      - "127.0.0.1:18488:8888"
+
+  # Item 4b / 5: the test-only build (adds failover connector + headers_setter).
+  collector-x:
+    <<: *collector
+    image: scf-s04/scf-otelcol-s04test:0.0.0-s04
+    command: ["--config=/etc/scf-otelcol/config.yaml", "--config=/etc/scf-otelcol/overlay.yaml"]
+    profiles: ["x"]
+    environment:
+      SINK_ENDPOINT: ${SINK_ENDPOINT:-http://sink-a:4319}
+      FAILOVER_RETRY_INTERVAL: ${FAILOVER_RETRY_INTERVAL:-10s}
+      LAST_LEVEL_MAX_ELAPSED: ${LAST_LEVEL_MAX_ELAPSED:-3s}
+    # item 5, mechanism B: one name, two addresses (run.sh fills in the sink IPs)
+    extra_hosts:
+      - "writers:${WRITER_A_IP:-127.0.0.2}"
+      - "writers:${WRITER_B_IP:-127.0.0.3}"
+    volumes:
+      - ./${XCONFIG:-config.yaml}:/etc/scf-otelcol/config.yaml:ro
+      - ./${XOVERLAY:-overlay-none.yaml}:/etc/scf-otelcol/overlay.yaml:ro
+      - ./work/${QX:-queue-x}:/var/lib/scf-otelcol/queue
+    ports:
+      - "127.0.0.1:18427:4317"
+      - "127.0.0.1:18428:4318"
+      - "127.0.0.1:18434:13133"
+      - "127.0.0.1:18489:8888"
+
+  sink-a:
+    image: scf-s04/sink:0.0.0-s04
+    user: "${UID_GID:-1002:1005}"
+    command: ["-name=sink-a", "-out=/data", "-listen=:4319"]
+    volumes: ["./work/out:/data"]
+    ports: ["127.0.0.1:18441:4319"]
+
+  sink-b:
+    image: scf-s04/sink:0.0.0-s04
+    user: "${UID_GID:-1002:1005}"
+    command: ["-name=sink-b", "-out=/data", "-listen=:4319"]
+    volumes: ["./work/out:/data"]
+    ports: ["127.0.0.1:18442:4319"]

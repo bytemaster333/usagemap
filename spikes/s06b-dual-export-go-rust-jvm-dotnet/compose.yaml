@@ -1,0 +1,29 @@
+# docker compose -p scf-s06b up -d   (run.sh does this). Host ports: 18610 (APM), 18620 (UsageMap via proxy).
+name: scf-s06b
+x-col: &col
+  image: otel/opentelemetry-collector-contrib:0.165.0
+  user: "${UID_GID:-1000:1000}"
+  volumes: ["./collector:/etc/s06b:ro", "./out:/out"]
+services:
+  apm:
+    <<: *col
+    command: ["--config=/etc/s06b/apm.yaml"]
+    ports: ["127.0.0.1:18610:4318"]
+  scf:
+    <<: *col
+    command: ["--config=/etc/s06b/scf.yaml"]
+    environment: { SCF_OTLP_TOKEN: "${SCF_OTLP_TOKEN}" }
+  scf-proxy:
+    image: python:3.13-alpine3.23
+    user: "${UID_GID:-1000:1000}"
+    command: ["python", "-u", "/tools/scf_proxy.py"]
+    environment: { SCF_OTLP_TOKEN: "${SCF_OTLP_TOKEN}", UPSTREAM: "http://scf:4318", LOG: /out/scf-proxy.jsonl, TLS_CERT: /out/tls/scf-proxy.crt, TLS_KEY: /out/tls/scf-proxy.key }
+    volumes: ["./tools:/tools:ro", "./out:/out"]
+    ports: ["127.0.0.1:18620:4318"]
+    depends_on: [scf]
+  # Pattern A (tenant-side Collector fan-out), used by the Java "collector" scenario.
+  tenant-col:
+    <<: *col
+    profiles: [tenantcol]
+    command: ["--config=/etc/s06b/tenant-fanout.yaml"]
+    environment: { SCF_OTLP_TOKEN: "${SCF_OTLP_TOKEN}", APM_API_KEY: "${APM_API_KEY}" }

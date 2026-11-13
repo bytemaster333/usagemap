@@ -1,0 +1,13 @@
+{
+  "name": "s06a-node-semconv-0.220.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@opentelemetry/api": "1.9.0",
+    "@opentelemetry/instrumentation": "0.220.0",
+    "@opentelemetry/instrumentation-express": "0.68.0",
+    "@opentelemetry/instrumentation-http": "0.220.0",
+    "@opentelemetry/sdk-node": "0.220.0",
+    "express": "5.3.0"
+  }
+}

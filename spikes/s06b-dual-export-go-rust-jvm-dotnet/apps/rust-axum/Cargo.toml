@@ -1,0 +1,24 @@
+[package]
+name = "s06b-rust-axum"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+# Off by default on purpose: opentelemetry-otlp 0.33 default features include NO TLS (reqwest default-features=false).
+tls = ["opentelemetry-otlp/reqwest-rustls"]
+
+[dependencies]
+axum = "=0.8.9"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "time"] }
+serde_json = "1"
+opentelemetry = "=0.33.1"
+opentelemetry_sdk = "=0.33.1"
+opentelemetry-otlp = "=0.33.1"   # default features: http-proto + reqwest-blocking-client + trace + metrics + logs
+# R1: HTTP server metrics (+ SERVER span) with http.route from axum's MatchedPath ('axum' feature is NOT default)
+opentelemetry-instrumentation-tower = { version = "=0.19.0", features = ["axum"] }
+# R3: tracing stack (spans only)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-opentelemetry = "=0.34.0"
+axum-tracing-opentelemetry = "=0.42.1"

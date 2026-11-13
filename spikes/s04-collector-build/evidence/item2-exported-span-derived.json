@@ -1,0 +1,112 @@
+{
+ "seq": 9,
+ "time": "2026-11-12T16:03:13.452243215Z",
+ "sink": "sink-a",
+ "path": "/v1/metrics",
+ "status": 200,
+ "sha256_decompressed": "339917ab0db25e91a18401692e885c1bd0f6b50f0ff4f36316835ad778cf2817",
+ "wire_bytes": 443,
+ "raw_bytes": 571,
+ "headers": {
+  "Accept-Encoding": "gzip",
+  "Content-Encoding": "gzip",
+  "Content-Length": "443",
+  "Content-Type": "application/x-protobuf",
+  "User-Agent": "SCF analytics Collector (S-04 spike build)/0.0.0-s04 (linux/amd64)"
+ },
+ "data_points": 1,
+ "body": {
+  "resourceMetrics": [
+   {
+    "resource": {
+     "attributes": [
+      {
+       "key": "deployment.environment.name",
+       "value": {
+        "stringValue": "prod"
+       }
+      },
+      {
+       "key": "scf.tenant.id",
+       "value": {
+        "stringValue": "11111111-2222-4333-8444-555555555555"
+       }
+      },
+      {
+       "key": "service.instance.id",
+       "value": {
+        "stringValue": "inst-1"
+       }
+      },
+      {
+       "key": "service.name",
+       "value": {
+        "stringValue": "checkout"
+       }
+      },
+      {
+       "key": "signal_to_metrics.service.instance.id",
+       "value": {
+        "stringValue": "06919b3b-1977-4d58-99e9-329b6173cb64"
+       }
+      }
+     ]
+    },
+    "scopeMetrics": [
+     {
+      "scope": {
+       "name": "github.com/open-telemetry/opentelemetry-collector-contrib/connector/signaltometricsconnector"
+      },
+      "metrics": [
+       {
+        "name": "scf.span.server.duration",
+        "description": "SERVER span duration (span-derived)",
+        "unit": "s",
+        "exponentialHistogram": {
+         "dataPoints": [
+          {
+           "attributes": [
+            {
+             "key": "http.request.method",
+             "value": {
+              "stringValue": "GET"
+             }
+            },
+            {
+             "key": "http.response.status_code",
+             "value": {
+              "intValue": "200"
+             }
+            },
+            {
+             "key": "scf.route",
+             "value": {
+              "stringValue": "/users/{id}"
+             }
+            }
+           ],
+           "timeUnixNano": "1794499393434212543",
+           "count": "1",
+           "sum": 0.12,
+           "scale": 20,
+           "positive": {
+            "offset": -3207483,
+            "bucketCounts": [
+             "1"
+            ]
+           },
+           "negative": {},
+           "min": 0.12,
+           "max": 0.12
+          }
+         ],
+         "aggregationTemporality": 1
+        }
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

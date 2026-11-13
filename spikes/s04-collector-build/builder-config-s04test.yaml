@@ -1,0 +1,30 @@
+# S-04 TEST-ONLY variant: builder-config.yaml + failover connector + headers_setter. Build:
+#   GOWORK=off ocb --config builder-config-s04test.yaml     (ocb v0.165.0, Go 1.27.4)
+# Core components pinned to the v0.165.0 / v1.71.0 module sets, contrib to v0.165.1.
+dist:
+  module: github.com/bytemaster333/usagemap/collector/scf-otelcol
+  name: scf-otelcol-s04test
+  description: scf-otelcol + failover connector + headers_setter (S-04 experiments only)
+  version: 0.0.0-s04
+  output_path: ./work/build/scf-otelcol-s04test
+
+receivers:
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.165.0
+processors:
+  - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.165.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.165.1
+  - gomod: github.com/bytemaster333/usagemap/collector/processor/scfsanitizeprocessor v0.0.0
+    path: ./scfsanitizeprocessor
+connectors:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/signaltometricsconnector v0.165.1
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.165.0
+extensions:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.165.1
+providers:
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.71.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.71.0
