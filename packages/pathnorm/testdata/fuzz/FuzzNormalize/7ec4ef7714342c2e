@@ -1,0 +1,3 @@
+go test fuzz v1
+string("accounts/GA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVSGZ/data/\x00")
+byte('\x00')
