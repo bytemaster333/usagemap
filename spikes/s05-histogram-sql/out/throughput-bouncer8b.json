@@ -1,0 +1,23 @@
+{
+ "phase": "bouncer8b",
+ "mode": "max",
+ "seconds": 30.0,
+ "workers": 8,
+ "tenants": 300,
+ "series_per_tenant": 50,
+ "interval_s": 10.0,
+ "txns": 2473,
+ "points": 123650,
+ "txn_per_s": 82.3,
+ "points_per_s": 4116.1,
+ "metric_row_upserts_per_s": 12348.4,
+ "row_writes_per_s": 16629.1,
+ "lat_ms": {
+  "p50": 92.07,
+  "p95": 163.32,
+  "p99": 200.72,
+  "max": 273.58
+ },
+ "duplicates": 0,
+ "started_at": 1794499132.738691
+}

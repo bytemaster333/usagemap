@@ -1,0 +1,23 @@
+{
+ "phase": "max16",
+ "mode": "max",
+ "seconds": 60.2,
+ "workers": 16,
+ "tenants": 300,
+ "series_per_tenant": 50,
+ "interval_s": 10.0,
+ "txns": 4613,
+ "points": 230650,
+ "txn_per_s": 76.7,
+ "points_per_s": 3833.5,
+ "metric_row_upserts_per_s": 11500.4,
+ "row_writes_per_s": 15487.2,
+ "lat_ms": {
+  "p50": 198.67,
+  "p95": 340.84,
+  "p99": 437.91,
+  "max": 796.85
+ },
+ "duplicates": 0,
+ "started_at": 1794498788.8221076
+}

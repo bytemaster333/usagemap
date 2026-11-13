@@ -1,0 +1,84 @@
+[PASS] T3: app_role via PgBouncer, GUC never set
+        expected: 0 rows
+        observed: ok [(0,)]
+[PASS] T0: owner inserts with FORCE + role-scoped policies
+        expected: ERROR new row violates row-level security policy
+        observed: error 42501: new row violates row-level security policy for table "web_daily"
+[PASS] T1: partitions inherit RLS flags/policies?
+        expected: parent t/t/2; both partitions f/f/0
+        observed: {'web_daily': (True, True, 2), 'web_daily_2025': (False, False, 0), 'web_daily_2026': (False, False, 0)}
+[PASS] T2: owner reads parent vs partition directly
+        expected: parent 0, partition 2
+        observed: parent [(0,)], partition [(2,)]
+[PASS] T4: BEGIN; SET LOCAL app.tenant_id=a; SELECT; COMMIT (via PgBouncer)
+        expected: only a's row; after COMMIT ''
+        observed: rows=[('aaaaaaaa-0000-0000-0000-000000000001',)]; after=''
+[PASS] T5: session SET by client 1, then client 2's new transaction (PgBouncer transaction mode)
+        expected: research (one session): still 'b' in the next txn
+        observed: client 2 sees GUC='bbbbbbbb-0000-0000-0000-000000000002', rows visible=2 (backend 7065)
+        note: real server + PgBouncer: the leak crosses clients, not only transactions
+[PASS] T5b: after RESET the GUC is '' and ''::uuid errors
+        expected: GUC '' ; ERROR invalid input syntax for type uuid
+        observed: GUC=''; error 22P02: invalid input syntax for type uuid: ""
+[PASS] T20: NULLIF(current_setting(...),'')::uuid policy with GUC = ''
+        expected: 0 rows, no error
+        observed: ok [(0,)]
+[PASS] T6: app_role selects partition directly, no grant
+        expected: permission denied
+        observed: error 42501: permission denied for table web_daily_2026
+[PASS] T7: tenant a inserts a row for b
+        expected: RLS violation error
+        observed: error 42501: new row violates row-level security policy for table "web_daily"
+[PASS] T8: tenant a inserts b's hostname into a global UNIQUE column
+        expected: 0 rows visible, duplicate key error
+        observed: visible=0; error 23505: duplicate key value violates unique constraint "sites_hostname_key"
+[PASS] T10: default view vs security_invoker view, table FORCEd
+        expected: default 0, invoker 1
+        observed: default 0, invoker 1
+[PASS] T10b: same with NO FORCE
+        expected: default 3 (leak), invoker 1
+        observed: default 3, invoker 1
+[PASS] T11: RLS on a materialized view
+        expected: cannot be performed / is not a table
+        observed: 42809: ALTER action ENABLE ROW SECURITY cannot be performed on relation "mv" | 42809: "mv" is not a table
+[PASS] T12: BYPASSRLS role (via PgBouncer)
+        expected: sees all 3
+        observed: 3
+[PASS] T13: SET row_security=off as app_role
+        expected: ERROR query would be affected by row-level security policy
+        observed: error 42501: query would be affected by row-level security policy for table "web_daily"
+[PASS] T14: EXPLAIN with (SELECT current_setting(...)) predicate
+        expected: InitPlan once; Index Cond tenant_id; pruned to 2026
+        observed: Bitmap Heap Scan on web_daily_2026 web_daily  (cost=4.19..9.54 rows=2 width=60) /   Recheck Cond: ((tenant_id = ((InitPlan 1).col1)::uuid) AND (day >= '2026-02-01'::date)) /   InitPlan 1 /     ->  Result  (cost=0.00..0.01 rows=1 width=32) /   ->  Bitmap Index Scan on web_daily_2026_pkey  (cost=0.00..4.17 rows=2 width=0) /         Index Cond: ((tenant_id = ((InitPlan 1).col1)::uuid) AND (day >= '2026-02-01'::date))
+[PASS] T15: proleakproof of =,<,>= on uuid/text/date/int8/timestamptz; textlike/lower/current_setting
+        expected: operators all true; the three functions false
+        observed: [('<(bigint)', True), ('<(date)', True), ('<(text)', True), ('<(timestamp with time zone)', True), ('<(uuid)', True), ('=(bigint)', True), ('=(date)', True), ('=(text)', True), ('=(timestamp with time zone)', True), ('=(uuid)', True), ('>=(bigint)', True), ('>=(date)', True), ('>=(text)', True), ('>=(timestamp with time zone)', True), ('>=(uuid)', True)] [('current_setting', False), ('current_setting', False), ('lower', False), ('lower', False), ('lower', False), ('textlike', False)]
+[PASS] T16: research CI gate query lists unprotected objects
+        expected: mv, web_daily_2025, web_daily_2026 (+ sites, t20 here)
+        observed: ['mv', 'sites', 't20', 'web_daily_2025', 'web_daily_2026']
+[PASS] T17: SECURITY DEFINER fn owned by the FORCEd owner counts all rows
+        expected: 0
+        observed: 0
+[PASS] T19: GRANT SELECT on a partition to app_role
+        expected: direct partition 2 (both tenants), parent 1
+        observed: partition 2, parent 1
+[PASS] T18: DETACH PARTITION
+        expected: detached table keeps f/f, standalone without RLS
+        observed: (False, False, False)
+[PASS] T21: app_role sets GUC to tenant b
+        expected: sees b's row(s)
+        observed: 1
+        note: 2025 partition detached by T18, so 1
+[PASS] T9: app_role granted TRUNCATE on an RLS table
+        expected: wipes tenant b's rows
+        observed: ok; b rows left=0
+[PASS] COPY: COPY FROM as RLS-subject role / FORCEd owner / BYPASSRLS
+        expected: not supported / not supported / OK
+        observed: {'app_role': 'COPY FROM not supported with row-level security', 'owner (FORCEd)': 'COPY FROM not supported with row-level security', 'ops_role BYPASSRLS': 'OK'}
+[PASS] X1: set_config(..., true) in a failed transaction, next client on the same server connection
+        expected: GUC ''
+        observed: ''
+[PASS] X2: prepared (forced generic) plan reused across pooled clients with different tenants
+        expected: each execution sees only its own tenant
+        observed: [(1, 'aaaaaaaa-0000-0000-0000-000000000001'), (1, 'bbbbbbbb-0000-0000-0000-000000000002'), (1, 'aaaaaaaa-0000-0000-0000-000000000001'), (1, 'bbbbbbbb-0000-0000-0000-000000000002'), (1, 'aaaaaaaa-0000-0000-0000-000000000001'), (1, 'bbbbbbbb-0000-0000-0000-000000000002')]
+== 27/27 passed -> /out/t-research.json

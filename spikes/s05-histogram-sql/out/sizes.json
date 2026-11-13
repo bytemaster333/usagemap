@@ -1,0 +1,42 @@
+{
+ "scf.api_metrics_1m": {
+  "rows": 50603,
+  "total_bytes": 72876032,
+  "heap_bytes": 65912832,
+  "total_bytes_per_row": 1440.2
+ },
+ "scf.api_metrics_1h": {
+  "rows": 15303,
+  "total_bytes": 30097408,
+  "heap_bytes": 27451392,
+  "total_bytes_per_row": 1966.8
+ },
+ "scf.api_metrics_1d": {
+  "rows": 15018,
+  "total_bytes": 28475392,
+  "heap_bytes": 25886720,
+  "total_bytes_per_row": 1896.1
+ },
+ "scf.api_stream_state": {
+  "rows": 15003,
+  "total_bytes": 25960448,
+  "heap_bytes": 23756800,
+  "total_bytes_per_row": 1730.4
+ },
+ "scf.api_ingest_ledger": {
+  "rows": 23913,
+  "total_bytes": 5275648,
+  "heap_bytes": 2244608,
+  "total_bytes_per_row": 220.6
+ },
+ "avg_tuple_bytes_1h_by_kind": {
+  "explicit15": {
+   "rows": 12245,
+   "bytes": 266
+  },
+  "exp3": {
+   "rows": 3058,
+   "bytes": 1698
+  }
+ }
+}

@@ -1,0 +1,24 @@
+{
+ "label": "idle",
+ "reps": 5,
+ "ensure_partitions_new_day_ms": [
+  25.5,
+  12.7,
+  32.1,
+  21.2,
+  15.1
+ ],
+ "drop_expired_partitions_ms": [
+  29.9,
+  21.7,
+  39.6,
+  19.7,
+  26.6
+ ],
+ "new_partition_rls_force_policies_vs_parent": [
+  true,
+  true,
+  9,
+  9
+ ]
+}

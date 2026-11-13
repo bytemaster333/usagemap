@@ -1,0 +1,23 @@
+{
+ "phase": "smoke",
+ "mode": "max",
+ "seconds": 10.0,
+ "workers": 4,
+ "tenants": 300,
+ "series_per_tenant": 50,
+ "interval_s": 10.0,
+ "txns": 520,
+ "points": 26000,
+ "txn_per_s": 51.8,
+ "points_per_s": 2591.9,
+ "metric_row_upserts_per_s": 7775.8,
+ "row_writes_per_s": 10471.5,
+ "lat_ms": {
+  "p50": 71.04,
+  "p95": 129.9,
+  "p99": 198.05,
+  "max": 241.31
+ },
+ "duplicates": 0,
+ "started_at": 1794498431.492982
+}

@@ -1,0 +1,23 @@
+{
+ "phase": "probe",
+ "mode": "max",
+ "seconds": 20.0,
+ "workers": 8,
+ "tenants": 300,
+ "series_per_tenant": 50,
+ "interval_s": 10.0,
+ "txns": 2163,
+ "points": 108150,
+ "txn_per_s": 107.9,
+ "points_per_s": 5395.7,
+ "metric_row_upserts_per_s": 16187.2,
+ "row_writes_per_s": 21798.8,
+ "lat_ms": {
+  "p50": 70.57,
+  "p95": 116.41,
+  "p99": 142.7,
+  "max": 211.15
+ },
+ "duplicates": 0,
+ "started_at": 1794499177.2953742
+}

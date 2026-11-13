@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
+# psql 18 + Python with psycopg 3 and numpy, from the same Alpine base as the server image.
+FROM postgres:18-alpine@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
+RUN apk add --no-cache python3 py3-psycopg py3-numpy

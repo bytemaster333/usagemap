@@ -1,0 +1,26 @@
+== 0001_schemas.sql: ok
+== 0002_context_functions.sql: ok
+== 0003_audit.sql: ok
+== 0004_rls_helpers.sql: ok
+== 0005_types.sql: ok
+== 0006_settings.sql: ok
+== 0010_identity.sql: ok
+== 0011_platform.sql: ok
+== 0012_tenants.sql: ok
+== 0013_sites.sql: ok
+== 0014_verification.sql: ok
+== 0015_services.sql: ok
+== 0016_keys.sql: ok
+== 0017_erasure.sql: ok
+== 0018_web.sql: ok
+== 0019_trust.sql: ok
+== 0020_api_metrics.sql: ok
+== 0021_onchain.sql: ok
+== 0022_edge_public.sql: ok
+== 0030_histograms.sql: ok
+== 0031_partitions.sql: ok
+   -------------------
+                   13
+   (1 row)
+== 0040_op_functions.sql: ok
+== 0041_definer_functions.sql: ok

@@ -1,0 +1,144 @@
+68 relations enumerated, 52 carry tenant_id/chain_id
+[PASS] M0: tenant B has rows in every tenant-owned table (precondition)
+        expected: no table without B rows
+        observed: []
+   !! scf_app user: 1 B rows updatable/deletable in scf.auth_challenges
+[PASS] M1: scf_app tenant A, actor user
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 51/68 relations readable; violations: []
+   !! scf_app user: 1 B rows updatable/deletable in scf.auth_challenges
+[PASS] M2: scf_app GUC unset (empty), actor user of A (tenants/memberships via membership only)
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 51/68 relations readable; violations: []
+   !! scf_app operator: 1 B rows updatable/deletable in scf.auth_challenges
+[PASS] M3: scf_app actor_kind operator WITH tenant A set (C-17: must see no tenant row at all)
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 51/68 relations readable; violations: []
+   !! scf_app anonymous: 1 B rows updatable/deletable in scf.auth_challenges
+[PASS] M4: scf_app anonymous, no context
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 51/68 relations readable; violations: []
+   !! scf_app op_key: 1 B rows updatable/deletable in scf.auth_challenges
+[PASS] M5: scf_app op_key context with tenant A set
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 51/68 relations readable; violations: []
+[PASS] M6: scf_writer tenant A, actor writer
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 15/68 relations readable; violations: []
+[PASS] M7: scf_writer no tenant
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 15/68 relations readable; violations: []
+[PASS] M8: scf_metrics_ro op_key, tenant A set
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 7/68 relations readable; violations: []
+[PASS] M9: scf_metrics_ro operator, no tenant
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 7/68 relations readable; violations: []
+[PASS] M10.00: scf_jobs job partitions, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+   !! scf_jobs retention: 1 B rows updatable/deletable in scf.auth_challenges
+[PASS] M10.01: scf_jobs job retention, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.02: scf_jobs job edge_snapshot, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.03: scf_jobs job web_rollup, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.04: scf_jobs job trust_scoring, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.05: scf_jobs job registry_sync, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.06: scf_jobs job domain_verification, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.07: scf_jobs job contract_verification, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.08: scf_jobs job onchain_correlation, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.09: scf_jobs job erasure, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.10: scf_jobs job tenant_purge, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.11: scf_jobs job public_metrics, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.12: scf_jobs job umami_reconcile, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.13: scf_jobs job durability_reconcile, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M10.14: scf_jobs job audit_verify, tenant A
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 1; writes on B rows: 0
+[PASS] M10.15: scf_jobs job audit_anchor, tenant A
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 2; writes on B rows: 0
+[PASS] M10.16: scf_jobs job stream_gc, tenant A
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M11.erasure: scf_jobs job erasure, tenant UNSET (C-87: no cross-tenant read)
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M11.tenant_purge: scf_jobs job tenant_purge, tenant UNSET (C-87: no cross-tenant read)
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M12: scf_jobs no app.job, no tenant
+        expected: 0 foreign rows visible and 0 B rows updatable/deletable in every relation
+        observed: 50/68 relations readable; violations: []
+[PASS] M13.partitions: scf_jobs job partitions, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 1; writes on B rows: 0
+   !! scf_jobs retention: 1 B rows updatable/deletable in scf.auth_challenges
+[PASS] M13.retention: scf_jobs job retention, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 8; writes on B rows: 0
+[PASS] M13.edge_snapshot: scf_jobs job edge_snapshot, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 8; writes on B rows: 0
+[PASS] M13.web_rollup: scf_jobs job web_rollup, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 5; writes on B rows: 0
+[PASS] M13.trust_scoring: scf_jobs job trust_scoring, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 18; writes on B rows: 0
+[PASS] M13.registry_sync: scf_jobs job registry_sync, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 5; writes on B rows: 0
+[PASS] M13.domain_verification: scf_jobs job domain_verification, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 4; writes on B rows: 0
+[PASS] M13.contract_verification: scf_jobs job contract_verification, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 3; writes on B rows: 0
+[PASS] M13.onchain_correlation: scf_jobs job onchain_correlation, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 3; writes on B rows: 0
+[PASS] M13.public_metrics: scf_jobs job public_metrics, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 9; writes on B rows: 0
+[PASS] M13.umami_reconcile: scf_jobs job umami_reconcile, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 3; writes on B rows: 0
+[PASS] M13.durability_reconcile: scf_jobs job durability_reconcile, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 3; writes on B rows: 0
+[PASS] M13.audit_verify: scf_jobs job audit_verify, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 2; writes on B rows: 0
+[PASS] M13.audit_anchor: scf_jobs job audit_anchor, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 3; writes on B rows: 0
+[PASS] M13.stream_gc: scf_jobs job stream_gc, tenant unset
+        expected: cross-tenant reads allowed by design; 0 B rows updatable/deletable (§6.3 writes only under the tenant context)
+        observed: 50/68 relations readable; relations showing foreign rows: 4; writes on B rows: 0
+== 45/45 passed -> /out/t-matrix.json

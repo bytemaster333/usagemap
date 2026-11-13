@@ -1,0 +1,362 @@
+[
+ {
+  "id": "M0",
+  "what": "tenant B has rows in every tenant-owned table (precondition)",
+  "expected": "no table without B rows",
+  "observed": "[]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M1",
+  "what": "scf_app tenant A, actor user",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "51/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M2",
+  "what": "scf_app GUC unset (empty), actor user of A (tenants/memberships via membership only)",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "51/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M3",
+  "what": "scf_app actor_kind operator WITH tenant A set (C-17: must see no tenant row at all)",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "51/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M4",
+  "what": "scf_app anonymous, no context",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "51/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M5",
+  "what": "scf_app op_key context with tenant A set",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "51/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M6",
+  "what": "scf_writer tenant A, actor writer",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "15/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M7",
+  "what": "scf_writer no tenant",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "15/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M8",
+  "what": "scf_metrics_ro op_key, tenant A set",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "7/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M9",
+  "what": "scf_metrics_ro operator, no tenant",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "7/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.00",
+  "what": "scf_jobs job partitions, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.01",
+  "what": "scf_jobs job retention, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.02",
+  "what": "scf_jobs job edge_snapshot, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.03",
+  "what": "scf_jobs job web_rollup, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.04",
+  "what": "scf_jobs job trust_scoring, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.05",
+  "what": "scf_jobs job registry_sync, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.06",
+  "what": "scf_jobs job domain_verification, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.07",
+  "what": "scf_jobs job contract_verification, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.08",
+  "what": "scf_jobs job onchain_correlation, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.09",
+  "what": "scf_jobs job erasure, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.10",
+  "what": "scf_jobs job tenant_purge, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.11",
+  "what": "scf_jobs job public_metrics, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.12",
+  "what": "scf_jobs job umami_reconcile, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.13",
+  "what": "scf_jobs job durability_reconcile, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.14",
+  "what": "scf_jobs job audit_verify, tenant A",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 1; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.15",
+  "what": "scf_jobs job audit_anchor, tenant A",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 2; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M10.16",
+  "what": "scf_jobs job stream_gc, tenant A",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M11.erasure",
+  "what": "scf_jobs job erasure, tenant UNSET (C-87: no cross-tenant read)",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M11.tenant_purge",
+  "what": "scf_jobs job tenant_purge, tenant UNSET (C-87: no cross-tenant read)",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M12",
+  "what": "scf_jobs no app.job, no tenant",
+  "expected": "0 foreign rows visible and 0 B rows updatable/deletable in every relation",
+  "observed": "50/68 relations readable; violations: []",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M13.partitions",
+  "what": "scf_jobs job partitions, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 1; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M13.retention",
+  "what": "scf_jobs job retention, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 8; writes on B rows: 5",
+  "ok": false,
+  "note": ""
+ },
+ {
+  "id": "M13.edge_snapshot",
+  "what": "scf_jobs job edge_snapshot, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 8; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M13.web_rollup",
+  "what": "scf_jobs job web_rollup, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 5; writes on B rows: 4",
+  "ok": false,
+  "note": ""
+ },
+ {
+  "id": "M13.trust_scoring",
+  "what": "scf_jobs job trust_scoring, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 18; writes on B rows: 2",
+  "ok": false,
+  "note": ""
+ },
+ {
+  "id": "M13.registry_sync",
+  "what": "scf_jobs job registry_sync, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 5; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M13.domain_verification",
+  "what": "scf_jobs job domain_verification, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 4; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M13.contract_verification",
+  "what": "scf_jobs job contract_verification, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 3; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M13.onchain_correlation",
+  "what": "scf_jobs job onchain_correlation, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 3; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M13.public_metrics",
+  "what": "scf_jobs job public_metrics, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 9; writes on B rows: 1",
+  "ok": false,
+  "note": ""
+ },
+ {
+  "id": "M13.umami_reconcile",
+  "what": "scf_jobs job umami_reconcile, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 3; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M13.durability_reconcile",
+  "what": "scf_jobs job durability_reconcile, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 3; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M13.audit_verify",
+  "what": "scf_jobs job audit_verify, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 2; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M13.audit_anchor",
+  "what": "scf_jobs job audit_anchor, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 3; writes on B rows: 0",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "M13.stream_gc",
+  "what": "scf_jobs job stream_gc, tenant unset",
+  "expected": "cross-tenant reads allowed by design; 0 B rows updatable/deletable (\u00a76.3 writes only under the tenant context)",
+  "observed": "50/68 relations readable; relations showing foreign rows: 4; writes on B rows: 2",
+  "ok": false,
+  "note": ""
+ }
+]

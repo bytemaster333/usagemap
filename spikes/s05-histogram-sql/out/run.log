@@ -1,0 +1,107 @@
+seeded 52 tables; empty: []
+=== 1. accuracy
+--- lognormal_82ms: n=200000 min=0.00195256s max=2.86248s SDK scale(MaxSize 160)=3 exp3 under/overflow=[0, 0]
+    exact p50/p95/p99 = 82.163ms / 305.212ms / 521.140ms
+    explicit15_with_minmax   rel err +0.91% / +18.35% / +3.76%   within bound: True
+    exp3_with_minmax         rel err +2.92% / +1.63% / +0.10%   within bound: True
+    exp3→explicit15 (SQL)    rel err +0.92% / +18.35% / +3.77%   moved 0.048% of counts, count preserved True
+    coarse scale 2           rel err +0.95% / +18.35% / +3.84%   bounds straddled by one source bucket ≤ 1
+    coarse scale 1           rel err +0.89% / +18.35% / +3.99%   bounds straddled by one source bucket ≤ 1
+    coarse scale 0           rel err +1.27% / +18.35% / +6.85%   bounds straddled by one source bucket ≤ 2
+    downscale mismatches vs direct scale 3: {4: 0, 5: 0, 6: 0, 8: 0, 12: 0, 20: 0}
+    merge explicit15: 600 rows → 1m/1h/1d hist == unsplit: True; quantiles equal across 1m/1h/1d: True; requests [Decimal('200000'), Decimal('200000'), Decimal('200000')]; class explicit15
+    merge exp3: 600 rows → 1m/1h/1d hist == unsplit: True; quantiles equal across 1m/1h/1d: True; requests [Decimal('200000'), Decimal('200000'), Decimal('200000')]; class exp3
+    mixed exp3/explicit15 in one key: class {'1m': 'explicit15_approx', '1h': 'explicit15_approx', '1d': 'explicit15_approx'}, rel err 1d +0.92% / +18.35% / +3.67%
+--- bimodal_15ms_450ms: n=200000 min=0.00410985s max=1.40896s SDK scale(MaxSize 160)=4 exp3 under/overflow=[0, 0]
+    exact p50/p95/p99 = 17.794ms / 573.621ms / 714.210ms
+    explicit15_with_minmax   rel err +17.04% / +10.79% / +3.70%   within bound: True
+    exp3_with_minmax         rel err -0.09% / -0.83% / +3.29%   within bound: True
+    exp3→explicit15 (SQL)    rel err +17.13% / +10.87% / +3.80%   moved 0.225% of counts, count preserved True
+    coarse scale 2           rel err +17.23% / +11.15% / +4.20%   bounds straddled by one source bucket ≤ 1
+    coarse scale 1           rel err +17.95% / +11.47% / +4.66%   bounds straddled by one source bucket ≤ 1
+    coarse scale 0           rel err +22.64% / +25.10% / +31.91%   bounds straddled by one source bucket ≤ 2
+    downscale mismatches vs direct scale 3: {4: 0, 5: 0, 6: 0, 8: 0, 12: 0, 20: 0}
+    merge explicit15: 600 rows → 1m/1h/1d hist == unsplit: True; quantiles equal across 1m/1h/1d: True; requests [Decimal('200000'), Decimal('200000'), Decimal('200000')]; class explicit15
+    merge exp3: 600 rows → 1m/1h/1d hist == unsplit: True; quantiles equal across 1m/1h/1d: True; requests [Decimal('200000'), Decimal('200000'), Decimal('200000')]; class exp3
+    mixed exp3/explicit15 in one key: class {'1m': 'explicit15_approx', '1h': 'explicit15_approx', '1d': 'explicit15_approx'}, rel err 1d +17.08% / +10.81% / +3.72%
+--- heavy_tail_pareto: n=200000 min=0.02s max=32596.8s SDK scale(MaxSize 160)=2 exp3 under/overflow=[0, 13]
+    exact p50/p95/p99 = 43.235ms / 553.144ms / 3264.819ms
+    explicit15_with_minmax   rel err +6.27% / +3.09% / +13.23%   within bound: True
+    exp3_with_minmax         rel err -2.21% / +2.84% / -1.44%   within bound: True
+    exp3→explicit15 (SQL)    rel err +6.30% / +3.08% / +13.44%   moved 0.035% of counts, count preserved True
+    coarse scale 2           rel err +6.45% / +3.14% / +13.84%   bounds straddled by one source bucket ≤ 1
+    coarse scale 1           rel err +7.08% / +3.22% / +13.96%   bounds straddled by one source bucket ≤ 1
+    coarse scale 0           rel err +8.02% / +4.50% / +18.11%   bounds straddled by one source bucket ≤ 2
+    downscale mismatches vs direct scale 3: {4: 0, 5: 0, 6: 0, 8: 0, 12: 0, 20: 0}
+    merge explicit15: 600 rows → 1m/1h/1d hist == unsplit: True; quantiles equal across 1m/1h/1d: True; requests [Decimal('200000'), Decimal('200000'), Decimal('200000')]; class explicit15
+    merge exp3: 600 rows → 1m/1h/1d hist == unsplit: True; quantiles equal across 1m/1h/1d: True; requests [Decimal('200000'), Decimal('200000'), Decimal('200000')]; class exp3
+    mixed exp3/explicit15 in one key: class {'1m': 'explicit15_approx', '1h': 'explicit15_approx', '1d': 'explicit15_approx'}, rel err 1d +6.28% / +3.04% / +11.59%
+--- narrow_120ms: n=200000 min=0.105462s max=0.133596s SDK scale(MaxSize 160)=8 exp3 under/overflow=[0, 0]
+    exact p50/p95/p99 = 120.010ms / 124.941ms / 126.946ms
+    explicit15_with_minmax   rel err +11.32% / +6.93% / +5.24%   within bound: True
+    exp3_with_minmax         rel err -0.35% / -4.28% / +2.73%   within bound: True
+    exp3→explicit15 (SQL)    rel err +11.32% / +6.93% / +5.24%   moved 0.000% of counts, count preserved True
+    coarse scale 2           rel err +11.32% / +6.93% / +5.24%   bounds straddled by one source bucket ≤ 0
+    coarse scale 1           rel err +11.32% / +6.93% / +5.24%   bounds straddled by one source bucket ≤ 1
+    coarse scale 0           rel err -12.12% / +6.93% / +5.24%   bounds straddled by one source bucket ≤ 2
+    downscale mismatches vs direct scale 3: {4: 0, 5: 0, 6: 0, 8: 0, 12: 0, 20: 0}
+    merge explicit15: 600 rows → 1m/1h/1d hist == unsplit: True; quantiles equal across 1m/1h/1d: True; requests [Decimal('200000'), Decimal('200000'), Decimal('200000')]; class explicit15
+    merge exp3: 600 rows → 1m/1h/1d hist == unsplit: True; quantiles equal across 1m/1h/1d: True; requests [Decimal('200000'), Decimal('200000'), Decimal('200000')]; class exp3
+    mixed exp3/explicit15 in one key: class {'1m': 'explicit15_approx', '1h': 'explicit15_approx', '1d': 'explicit15_approx'}, rel err 1d +11.32% / +6.93% / +5.24%
+--- submillisecond: n=200000 min=2.81667e-05s max=0.00359882s SDK scale(MaxSize 160)=4 exp3 under/overflow=[152, 0]
+    exact p50/p95/p99 = 0.300ms / 0.682ms / 0.954ms
+    explicit15_with_minmax   rel err +739.04% / +428.04% / +277.05%   within bound: True
+    exp3_with_minmax         rel err +1.09% / -3.07% / -2.11%   within bound: True
+    exp3→explicit15 (SQL)    rel err +739.04% / +428.04% / +277.05%   moved 0.000% of counts, count preserved True
+    coarse scale 2           rel err +739.04% / +428.04% / +277.05%   bounds straddled by one source bucket ≤ 0
+    coarse scale 1           rel err +739.04% / +428.04% / +277.05%   bounds straddled by one source bucket ≤ 0
+    coarse scale 0           rel err +739.04% / +428.04% / +277.05%   bounds straddled by one source bucket ≤ 0
+    downscale mismatches vs direct scale 3: {4: 0, 5: 0, 6: 0, 8: 0, 12: 0, 20: 0}
+    merge explicit15: 600 rows → 1m/1h/1d hist == unsplit: True; quantiles equal across 1m/1h/1d: True; requests [Decimal('200000'), Decimal('200000'), Decimal('200000')]; class explicit15
+    merge exp3: 600 rows → 1m/1h/1d hist == unsplit: True; quantiles equal across 1m/1h/1d: True; requests [Decimal('200000'), Decimal('200000'), Decimal('200000')]; class exp3
+    mixed exp3/explicit15 in one key: class {'1m': 'explicit15_approx', '1h': 'explicit15_approx', '1d': 'explicit15_approx'}, rel err 1d +739.04% / +428.04% / +277.05%
+ALL CHECKS OK
+=== 2. throughput
+setup: 300 tenants, 25 routes x 2 status codes = 50 series each
+{"phase": "target", "mode": "target", "seconds": 120.3, "workers": 8, "tenants": 300, "series_per_tenant": 50, "interval_s": 10.0, "txns": 3607, "points": 180350, "txn_per_s": 30.0, "points_per_s": 1499.7, "metric_row_upserts_per_s": 4499.1, "row_writes_per_s": 6058.7, "lat_ms": {"p50": 62.98, "p95": 124.68, "p99": 180.76, "max": 299.9}, "duplicates": 0, "started_at": 1794498604.6572418}
+  cpu target scf-s03-pg-1: avg 43% max 76% (100% = 1 core, host has 8 cores)
+  cpu target scf-s03-runner-1: avg 31% max 64% (100% = 1 core, host has 8 cores)
+{"phase": "max8", "mode": "max", "seconds": 60.1, "workers": 8, "tenants": 300, "series_per_tenant": 50, "interval_s": 10.0, "txns": 4628, "points": 231400, "txn_per_s": 77.0, "points_per_s": 3850.0, "metric_row_upserts_per_s": 11549.9, "row_writes_per_s": 15553.9, "lat_ms": {"p50": 99.28, "p95": 170.91, "p99": 208.8, "max": 305.05}, "duplicates": 0, "started_at": 1794498726.7779338}
+  cpu max8 scf-s03-pg-1: avg 92% max 100% (100% = 1 core, host has 8 cores)
+  cpu max8 scf-s03-runner-1: avg 73% max 91% (100% = 1 core, host has 8 cores)
+{"phase": "max16", "mode": "max", "seconds": 60.2, "workers": 16, "tenants": 300, "series_per_tenant": 50, "interval_s": 10.0, "txns": 4613, "points": 230650, "txn_per_s": 76.7, "points_per_s": 3833.5, "metric_row_upserts_per_s": 11500.4, "row_writes_per_s": 15487.2, "lat_ms": {"p50": 198.67, "p95": 340.84, "p99": 437.91, "max": 796.85}, "duplicates": 0, "started_at": 1794498788.8221076}
+  cpu max16 scf-s03-pg-1: avg 105% max 99% (100% = 1 core, host has 8 cores)
+  cpu max16 scf-s03-runner-1: avg 76% max 98% (100% = 1 core, host has 8 cores)
+dropped 9 FKs
+{"phase": "max16_nofk", "mode": "max", "seconds": 60.2, "workers": 16, "tenants": 300, "series_per_tenant": 50, "interval_s": 10.0, "txns": 4223, "points": 211150, "txn_per_s": 70.2, "points_per_s": 3507.8, "metric_row_upserts_per_s": 10523.3, "row_writes_per_s": 14171.4, "lat_ms": {"p50": 221.22, "p95": 370.83, "p99": 456.9, "max": 586.23}, "duplicates": 0, "started_at": 1794498851.8986535}
+  cpu max16_nofk scf-s03-pg-1: avg 93% max 98% (100% = 1 core, host has 8 cores)
+  cpu max16_nofk scf-s03-runner-1: avg 68% max 85% (100% = 1 core, host has 8 cores)
+restored FKs
+=== 3. partitions (idle)
+{"label": "idle", "reps": 5, "ensure_partitions_new_day_ms": [25.5, 12.7, 32.1, 21.2, 15.1], "drop_expired_partitions_ms": [29.9, 21.7, 39.6, 19.7, 26.6], "new_partition_rls_force_policies_vs_parent": [true, true, 9, 9]}
+=== 4. reads and sizes
+{"op_api_metrics_today_group_service": {"rows": 302, "ms": [4007.3, 3967.2, 3770.6]}, "op_api_metrics_today_group_all_hourly": {"rows": 20, "ms": [3820.7, 3143.4, 2560.2]}, "tenant_p95_per_route_1m_last_6h": {"rows": 25, "ms": [78.6, 80.2, 85.6]}}
+Traceback (most recent call last):
+  File "/repo/spikes/s05-histogram-sql/throughput.py", line 260, in <module>
+    sizes()
+    ~~~~~^^
+  File "/repo/spikes/s05-histogram-sql/throughput.py", line 212, in sizes
+    json.dump(out, open('/out05/sizes.json', 'w'), indent=1)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/json/__init__.py", line 181, in dump
+    for chunk in iterable:
+                 ^^^^^^^^
+  File "/usr/lib/python3.14/json/encoder.py", line 444, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "/usr/lib/python3.14/json/encoder.py", line 413, in _iterencode_dict
+    yield from chunks
+  File "/usr/lib/python3.14/json/encoder.py", line 413, in _iterencode_dict
+    yield from chunks
+  File "/usr/lib/python3.14/json/encoder.py", line 451, in _iterencode
+    newobj = _default(o)
+  File "/usr/lib/python3.14/json/encoder.py", line 182, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+                    f'is not JSON serializable')
+TypeError: Object of type Decimal is not JSON serializable
+when serializing dict item 'total_bytes_per_row'
+when serializing dict item 'scf.api_metrics_1m'

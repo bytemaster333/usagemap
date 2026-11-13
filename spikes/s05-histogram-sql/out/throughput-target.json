@@ -1,0 +1,23 @@
+{
+ "phase": "target",
+ "mode": "target",
+ "seconds": 120.3,
+ "workers": 8,
+ "tenants": 300,
+ "series_per_tenant": 50,
+ "interval_s": 10.0,
+ "txns": 3607,
+ "points": 180350,
+ "txn_per_s": 30.0,
+ "points_per_s": 1499.7,
+ "metric_row_upserts_per_s": 4499.1,
+ "row_writes_per_s": 6058.7,
+ "lat_ms": {
+  "p50": 62.98,
+  "p95": 124.68,
+  "p99": 180.76,
+  "max": 299.9
+ },
+ "duplicates": 0,
+ "started_at": 1794498604.6572418
+}

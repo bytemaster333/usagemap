@@ -1,0 +1,202 @@
+[
+ {
+  "id": "G1.clean",
+  "what": "gate G1 on the freshly migrated + seeded database",
+  "expected": "0 rows",
+  "observed": "[]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G2.clean",
+  "what": "gate G2 on the freshly migrated + seeded database",
+  "expected": "0 rows",
+  "observed": "[]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G3.clean",
+  "what": "gate G3 on the freshly migrated + seeded database",
+  "expected": "0 rows",
+  "observed": "[]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G4.clean",
+  "what": "gate G4 on the freshly migrated + seeded database",
+  "expected": "0 rows",
+  "observed": "[]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G5.clean",
+  "what": "gate G5 on the freshly migrated + seeded database",
+  "expected": "0 rows",
+  "observed": "[]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G6.clean",
+  "what": "gate G6 on the freshly migrated + seeded database",
+  "expected": "0 rows",
+  "observed": "[]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G7.clean",
+  "what": "gate G7 on the freshly migrated + seeded database",
+  "expected": "0 rows",
+  "observed": "[]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G8.clean",
+  "what": "gate G8 on the freshly migrated + seeded database",
+  "expected": "0 rows",
+  "observed": "[]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G9.clean",
+  "what": "gate G9 on the freshly migrated + seeded database",
+  "expected": "0 rows",
+  "observed": "[]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G10.clean",
+  "what": "gate G10 on the freshly migrated + seeded database",
+  "expected": "0 rows",
+  "observed": "[]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G1.break",
+  "what": "G1 catches: partition created without RLS/FORCE (plain PARTITION OF, not ensure_partitions)",
+  "expected": ">= 1 row naming the broken object",
+  "observed": "[('scf_part.api_metrics_1m_20310101',)]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G2.break",
+  "what": "G2 catches: new tenant table with ENABLE+FORCE but no tenant_backstop",
+  "expected": ">= 1 row naming the broken object",
+  "observed": "[('scf.g2_bad',)]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G3.break",
+  "what": "G3 catches: GRANT SELECT on an existing partition to scf_app",
+  "expected": ">= 1 row naming the broken object",
+  "observed": "[('scf_app', 'scf_part.api_metrics_1h_202611', 'SELECT')]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G4.break",
+  "what": "G4 catches: view without security_invoker",
+  "expected": ">= 1 row naming the broken object",
+  "observed": "[('scf.g4_bad',)]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G5.break",
+  "what": "G5 catches: SECURITY DEFINER function without search_path, EXECUTE left to PUBLIC (created by the superuser)",
+  "expected": ">= 1 row naming the broken object",
+  "observed": "[('scf.g5_bad()', 'postgres')]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G6.break",
+  "what": "G6 catches: extra LOGIN role with BYPASSRLS",
+  "expected": ">= 1 row naming the broken object",
+  "observed": "[('g6_bad',)]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G7.break",
+  "what": "G7 catches: a partition loses one parent policy (DROP POLICY app_select on one partition)",
+  "expected": ">= 1 row naming the broken object",
+  "observed": "[('scf_part.api_metrics_1d_2026', 'app_select')]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G8.break",
+  "what": "G8 catches: LOGIN role made member of scf_definer",
+  "expected": ">= 1 row naming the broken object",
+  "observed": "[('scf_app',)]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G9.break",
+  "what": "G9 catches: tenant table whose PK does not start with tenant_id",
+  "expected": ">= 1 row naming the broken object",
+  "observed": "[('scf.g9_bad',)]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G10.break",
+  "what": "G10 catches: tenant table with a single-column FK to sites(site_id) (sites has UNIQUE (site_id))",
+  "expected": ">= 1 row naming the broken object",
+  "observed": "[('scf.g10_bad', 'g10_bad_site_id_fkey')]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G5.gap",
+  "what": "G5 as written misses: unlisted SECURITY DEFINER function WITH search_path and no PUBLIC EXECUTE, granted to scf_app (G5 has no allow-list comparison)",
+  "expected": "documented gap (0 rows)",
+  "observed": "G5 rows=[]; other gates catching it: none",
+  "ok": true,
+  "note": "ok = the gap is real; see README for the stricter query"
+ },
+ {
+  "id": "G1.gap",
+  "what": "G1 as written misses: partition attached from a table in schema public (outside scf/scf_part) without RLS",
+  "expected": "documented gap (0 rows)",
+  "observed": "G1 rows=[]; other gates catching it: {'G7': [('g1_outside', 'app_select'), ('g1_outside', 'op_definer_select'), ('g1_outside', 'jobs_select'), ('g1_outside', 'jobs_delete'), ('g1_outside', 'writer_select'), ('g1_outside', 'writer_update'), ('g1_outside', 'tenant_backstop'), ('g1_outside', 'writer_insert')]}",
+  "ok": true,
+  "note": "ok = the gap is real; see README for the stricter query"
+ },
+ {
+  "id": "G4.gap",
+  "what": "G4 as written misses: security_invoker view created in schema scf_admin/public (G4 checks schema scf only) \u2014 owner-semantics view elsewhere",
+  "expected": "documented gap (0 rows)",
+  "observed": "G4 rows=[]; other gates catching it: none",
+  "ok": true,
+  "note": "ok = the gap is real; see README for the stricter query"
+ },
+ {
+  "id": "G8b.break",
+  "what": "pg_stat_statements check catches a session-level SET app.tenant_id (via PgBouncer)",
+  "expected": ">= 1 row",
+  "observed": "[('SET app.tenant_id = $1',)]",
+  "ok": true,
+  "note": ""
+ },
+ {
+  "id": "G8b.gap",
+  "what": "pg_stat_statements check vs session-level set_config('app.tenant_id', $1, false) from a driver",
+  "expected": "documented gap (0 rows: constants are normalised to $n)",
+  "observed": "gate rows=[]; recorded as [('SELECT set_config($2, $1, $3)',)]",
+  "ok": true,
+  "note": ""
+ }
+]

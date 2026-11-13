@@ -1,0 +1,26 @@
+{
+ "op_api_metrics_today_group_service": {
+  "rows": 302,
+  "ms": [
+   4007.3,
+   3967.2,
+   3770.6
+  ]
+ },
+ "op_api_metrics_today_group_all_hourly": {
+  "rows": 20,
+  "ms": [
+   3820.7,
+   3143.4,
+   2560.2
+  ]
+ },
+ "tenant_p95_per_route_1m_last_6h": {
+  "rows": 25,
+  "ms": [
+   78.6,
+   80.2,
+   85.6
+  ]
+ }
+}

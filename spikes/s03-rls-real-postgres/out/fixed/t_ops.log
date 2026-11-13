@@ -1,0 +1,122 @@
+[PASS] O1: op_projects as operator
+        expected: A and B listed, canary C excluded, 1 audit row operator.read.op_projects
+        observed: [('aaaaaaaa-0000-7000-8000-000000000001', 2, 1, 1), ('bbbbbbbb-0000-7000-8000-000000000002', 2, 1, 1)] audit=[('operator.read.op_projects', None, 'success', None, 'operator')]
+[PASS] O2: op_web_metrics (C-95: totals exact, no k / rounding)
+        expected: pageviews 7 and visitors 3 returned exactly, suppressed=false; 1 audit row
+        observed: [('aaaaaaaa-0000-7000-8000-000000000001', 7, 3, False), ('bbbbbbbb-0000-7000-8000-000000000002', 7, 3, False)] audit=[('operator.read.op_web_metrics', None, 'success', None, 'operator')]
+[PASS] O2b: op_web_metrics p_group='all'
+        expected: one row, tenant NULL, pageviews 14 (A+B, canary excluded)
+        observed: [(None, 14)]
+[PASS] O2c: op_web_metrics naming canary C
+        expected: C returned only when named
+        observed: [('cccccccc-0000-7000-8000-000000000003', 7)]
+[PASS] O3: op_web_breakdown (C-95: the ONLY thresholded output, k=10, round to 10)
+        expected: XX (3 visitors) omitted; DE 24→20 visitors, 26→30 pageviews; FR 10→10, 14→10
+        observed: [('aaaaaaaa-0000-7000-8000-000000000001', 'DE', 20, 30, False), ('aaaaaaaa-0000-7000-8000-000000000001', 'FR', 10, 10, False), ('bbbbbbbb-0000-7000-8000-000000000002', 'DE', 20, 30, False), ('bbbbbbbb-0000-7000-8000-000000000002', 'FR', 10, 10, False)] audit=[('operator.read.op_web_breakdown', None, 'success', None, 'operator')]
+[PASS] O4: op_web_verdicts (exact)
+        expected: count 3 exactly per tenant, 1 audit row
+        observed: [('aaaaaaaa-0000-7000-8000-000000000001', 'verdict', 'verified', 3, False), ('bbbbbbbb-0000-7000-8000-000000000002', 'verdict', 'verified', 3, False)] audit=[('operator.read.op_web_verdicts', None, 'success', None, 'operator')]
+[PASS] O5: op_api_metrics (exact, merged percentiles)
+        expected: requests 3 exactly (below k), p50/p95/p99 set, accuracy explicit15
+        observed: [('aaaaaaaa-0000-7000-8000-000000000001', 3, 3, 0.0875, 0.15, 0.15, 'explicit15', False), ('bbbbbbbb-0000-7000-8000-000000000002', 3, 3, 0.0875, 0.15, 0.15, 'explicit15', False)] audit=[('operator.read.op_api_metrics', None, 'success', None, 'operator')]
+[PASS] O6: op_trust
+        expected: 2 rows, 1 audit row
+        observed: [('aaaaaaaa-0000-7000-8000-000000000001', 80), ('bbbbbbbb-0000-7000-8000-000000000002', 80)] audit=[('operator.read.op_trust', None, 'success', None, 'operator')]
+[PASS] O7: op_api_assurance
+        expected: 2 rows, 1 audit row
+        observed: [('aaaaaaaa-0000-7000-8000-000000000001', 1), ('bbbbbbbb-0000-7000-8000-000000000002', 1)] audit=[('operator.read.op_api_assurance', None, 'success', None, 'operator')]
+[PASS] O8: op_onchain (exact)
+        expected: invocations 3, distinct_invokers 1 exactly, 1 audit row
+        observed: [('aaaaaaaa-0000-7000-8000-000000000001', 3, 1, False), ('bbbbbbbb-0000-7000-8000-000000000002', 3, 1, False)] audit=[('operator.read.op_onchain', None, 'success', None, 'operator')]
+[PASS] O9: op_tenant_detail(A)
+        expected: jsonb for A, no secret_hash in tokens; 1 audit row in A's chain
+        observed: keys=['annotations', 'domains', 'erasure_requests', 'evidence', 'ingest_tokens', 'members', 'registry_links', 'services', 'sites', 'tenant', 'verification_level'] tokens=[{'label': 'ing tenant-a', 'last4': 'abcd', 'token_id': 'aaaaaaaa0000', 'tenant_id': 'aaaaaaaa-0000-7000-8000-000000000001', 'created_at': '2026-11-12T15:48:57.892025+00:00', 'created_by': '0a000000-0000-7000-8000-00000000000a', 'expires_at': None, 'revoked_at': None, 'revoked_by': None, 'last_used_at': None, 'revoke_reason': None, 'pepper_version': 1, 'allowed_service_names': None}] audit=[('operator.read.op_tenant_detail', 'aaaaaaaa-0000-7000-8000-000000000001', 'success', ['aaaaaaaa-0000-7000-8000-000000000001'], 'operator')]
+[PASS] O10: op_audit_list
+        expected: audit rows of every chain, 1 audit row for the call
+        observed: 5 rows; audit=[('operator.read.op_audit_list', None, 'success', None, 'operator')]
+[PASS] O11: op_metrics_document via op_key with both scopes
+        expected: document of A, 1 audit row outcome success
+        observed: [({'tenant': 'tenant-a'},)] audit=[('operator.read.op_metrics_document', 'aaaaaaaa-0000-7000-8000-000000000001', 'success', ['aaaaaaaa-0000-7000-8000-000000000001'], 'op_key')]
+[PASS] O12: op_metrics_document, key restricted to B, asks for A
+        expected: NULL; audit row outcome denied
+        observed: [(None,)] audit=[('operator.read.op_metrics_document', None, 'denied', [], 'op_key')]
+[PASS] O13: op_metrics_document with web:read only (needs both)
+        expected: ERROR 42501 scope
+        observed: ERROR 42501: scope web:read,api:read required
+[PASS] O14: op_key restricted to A asks op_web_metrics for B
+        expected: 0 rows (intersection empty); audit subject = {}
+        observed: [] audit=[('operator.read.op_web_metrics', None, 'success', [], 'op_key')]
+[PASS] O15: op_key restricted to A, no tenant filter
+        expected: only A
+        observed: [('aaaaaaaa-0000-7000-8000-000000000001',)]
+[PASS] O16: op_key with web:read calls op_api_metrics (needs api:read)
+        expected: ERROR 42501
+        observed: ERROR 42501: scope api:read required
+[PASS] O17a: op_projects(1, ...) with an int4 literal for p_min_level smallint
+        expected: documented usability issue: ERROR 42883
+        observed: ERROR 42883: function scf.op_projects(integer, unknown) does not exist
+        note: callers must pass smallint explicitly; integer parameters would be friendlier
+[PASS] O17: op_key lists removed tenants via op_projects
+        expected: ERROR 42501
+        observed: ERROR 42501: status filter not allowed
+[PASS] O18: op_add_annotation(A, site of A)
+        expected: annotation id; 1 audit row trust.annotation.created in A's chain
+        observed: [(UUID('01a1d072-cf64-70f8-b871-4f9f3fdaf848'),)] audit=[('trust.annotation.created', 'aaaaaaaa-0000-7000-8000-000000000001', 'success', ['aaaaaaaa-0000-7000-8000-000000000001'], 'operator')]
+[PASS] O19: op_add_annotation(A, site of B) (C-87)
+        expected: ERROR P0002 not found
+        observed: ERROR P0002: not found
+[PASS] O20: write without step-up (C-09)
+        expected: ERROR 42501 step-up required
+        observed: ERROR 42501: step-up required
+[PASS] O21: op_registry_link_decide confirm
+        expected: 1 audit row registry.link_confirmed
+        observed: [('',)] audit=[('registry.link_confirmed', 'aaaaaaaa-0000-7000-8000-000000000001', 'success', ['aaaaaaaa-0000-7000-8000-000000000001'], 'operator')]
+[PASS] O22: op_resolve_domain_dispute
+        expected: 1 audit row domain.dispute_resolved
+        observed: [('',)] audit=[('domain.dispute_resolved', 'aaaaaaaa-0000-7000-8000-000000000001', 'success', ['aaaaaaaa-0000-7000-8000-000000000001'], 'operator')]
+[PASS] O23: op_approve_tenant_evidence
+        expected: evidence id; 1 audit row verification.operator_approved
+        observed: [(UUID('01a1d072-cf8d-7b56-b92f-b3f5b62d66f9'),)] audit=[('verification.operator_approved', 'aaaaaaaa-0000-7000-8000-000000000001', 'success', ['aaaaaaaa-0000-7000-8000-000000000001'], 'operator')]
+[PASS] O24: op_tenant_transition(B, suspend)
+        expected: 'suspended'; 1 audit row tenant.suspended in B's chain
+        observed: [('suspended',)] audit=[('tenant.suspended', 'bbbbbbbb-0000-7000-8000-000000000002', 'success', ['bbbbbbbb-0000-7000-8000-000000000002'], 'operator')]
+[PASS] O25: op_tenant_transition remove by plain operator
+        expected: ERROR 42501 operator_admin required
+        observed: ERROR 42501: operator_admin required
+[PASS] O26: op_tenant_transition remove by operator_admin
+        expected: 'removed'; 1 audit row tenant.removed
+        observed: [('removed',)] audit=[('tenant.removed', 'bbbbbbbb-0000-7000-8000-000000000002', 'success', ['bbbbbbbb-0000-7000-8000-000000000002'], 'operator')]
+[PASS] O27: op_lift_tombstone by operator_admin
+        expected: 1 audit row operator.tombstone_lifted (platform chain)
+        observed: [('',)] audit=[('operator.tombstone_lifted', None, 'success', None, 'operator')]
+[PASS] N1: scf_app in a tenant (user) context calls op_web_metrics
+        expected: ERROR 42501, no audit row
+        observed: ERROR 42501: SCF operator context required []
+[PASS] N2.scf_writer: scf_writer calls op_web_metrics
+        expected: permission denied for function
+        observed: ERROR 42501: permission denied for function op_web_metrics
+[PASS] N2.scf_jobs: scf_jobs calls op_web_metrics
+        expected: permission denied for function
+        observed: ERROR 42501: permission denied for function op_web_metrics
+[PASS] N3.scf_app: scf_app calls op_begin / op_eligible_tenants directly
+        expected: permission denied for function (both)
+        observed: ERROR 42501: permission denied for function op_begin | ERROR 42501: permission denied for function op_eligible_tenants
+[PASS] N3.scf_metrics_ro: scf_metrics_ro calls op_begin / op_eligible_tenants directly
+        expected: permission denied for function (both)
+        observed: ERROR 42501: permission denied for function op_begin | ERROR 42501: permission denied for function op_eligible_tenants
+[PASS] N3.scf_writer: scf_writer calls op_begin / op_eligible_tenants directly
+        expected: permission denied for function (both)
+        observed: ERROR 42501: permission denied for function op_begin | ERROR 42501: permission denied for function op_eligible_tenants
+[PASS] N3.scf_jobs: scf_jobs calls op_begin / op_eligible_tenants directly
+        expected: permission denied for function (both)
+        observed: ERROR 42501: permission denied for function op_begin | ERROR 42501: permission denied for function op_eligible_tenants
+[PASS] N4: scf_metrics_ro calls console-only op_tenant_detail
+        expected: permission denied for function
+        observed: ERROR 42501: permission denied for function op_tenant_detail
+[PASS] N5: scf_app, operator context, SELECT web_daily_totals directly
+        expected: 0 rows
+        observed: [(0,)]
+[PASS] N6: catalog: every op_* owned by scf_op_definer, definer (except helpers), no PUBLIC EXECUTE
+        expected: no exceptions
+        observed: 19 functions; exceptions []
+== 40/40 passed -> /out/t-ops.json

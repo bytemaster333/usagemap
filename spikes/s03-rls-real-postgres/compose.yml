@@ -1,0 +1,50 @@
+# S-03 / S-05 spike stack. Project name: scf-s03. Host ports 18301 (postgres) / 18302 (pgbouncer), loopback only.
+# Passwords below are throwaway spike values for a container that lives a few minutes; not secrets.
+name: scf-s03
+services:
+  pg:
+    image: postgres:18-alpine@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
+    environment:
+      POSTGRES_PASSWORD: spike-super
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - max_connections=300
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - synchronous_commit=on
+      - -c
+      - log_min_messages=warning
+      - -c
+      - pg_stat_statements.track=all
+    ports: ["127.0.0.1:18301:5432"]
+    shm_size: 1g
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 1s
+      retries: 60
+  bouncer:
+    image: edoburu/pgbouncer@sha256:8638aa563607256d3c7440437534195f1066a92b68015d89ae9d6b935b444a6d
+    volumes:
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    entrypoint: ["pgbouncer", "/etc/pgbouncer/pgbouncer.ini"]
+    ports: ["127.0.0.1:18302:6432"]
+    depends_on:
+      pg: {condition: service_healthy}
+  runner:
+    build: {context: ., dockerfile: Dockerfile.runner}
+    image: scf-s03-runner:local
+    volumes:
+      - ../..:/repo:ro
+      - ./out:/out
+      - ../s05-histogram-sql/out:/out05
+    environment:
+      PGPASSWORD: spike-super
+    entrypoint: ["sleep", "infinity"]
+    depends_on:
+      pg: {condition: service_healthy}
