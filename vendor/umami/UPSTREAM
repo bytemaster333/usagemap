@@ -1,0 +1,11 @@
+# Pinned upstream base engine (ADR-0002, ADR-0003, C-104). Read by scripts/ and test/; the same values are
+# repeated as ARG defaults in ../Dockerfile — scripts/verify-pin.sh fails if the two drift apart.
+# Verified 2026-11-12: `git ls-remote https://github.com/umami-software/umami.git refs/tags/v3.5.0`
+#   -> d3c62a805beda8643cb468924dda38617fb4c286 (lightweight tag).
+UMAMI_REPO=https://github.com/umami-software/umami.git
+UMAMI_TAG=v3.5.0
+UMAMI_VERSION=3.5.0
+UMAMI_COMMIT=d3c62a805beda8643cb468924dda38617fb4c286
+IMAGE_TAG=3.5.0-d3c62a8
+APP_IMAGE=usagemap/umami
+MIGRATE_IMAGE=usagemap/umami-migrate

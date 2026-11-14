@@ -1,0 +1,96 @@
+# SPDX-License-Identifier: Apache-2.0
+# Test stack of vendor/umami/test/hardening-check.sh (the S-02 checks re-run against our built images).
+# Run through hardening-check.sh only (default project scf-umami-test, loopback port ${UMAMI_TEST_PORT:-56122}).
+name: scf-umami-test
+
+x-hardened: &hardened
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
+networks:
+  engine:          # Umami + PostgreSQL: no default route, no internet egress (C-10)
+    internal: true
+  testfront:       # test-only: lets the host reach Umami through `front`; Umami is NOT on it
+    driver: bridge
+
+volumes:
+  pgdata:
+  netcap:
+
+services:
+  postgres:
+    image: postgres:18.7-alpine@sha256:b6972e1115a4ff8eba5d7f7d19184926d1e16d7d1136ae1e1a7ebf286da0f015
+    environment:
+      POSTGRES_PASSWORD: ${PG_SUPERUSER_PASSWORD:?run via hardening-check.sh}
+      UMAMI_DB_PASSWORD: ${UMAMI_DB_PASSWORD:?run via hardening-check.sh}
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    networks: [engine]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d umami"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # One-shot deploy step (C-40): Umami's own migrations, never at app start.
+  umami-migrate:
+    <<: *hardened
+    image: ${MIGRATE_IMAGE:?run via hardening-check.sh}
+    command: ["migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://umami_app:${UMAMI_DB_PASSWORD}@postgres:5432/umami
+      CHECKPOINT_DISABLE: "1"
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    networks: [engine]
+    depends_on:
+      postgres: {condition: service_healthy}
+    restart: "no"
+
+  umami:
+    <<: *hardened
+    image: ${APP_IMAGE:?run via hardening-check.sh}
+    environment:
+      DATABASE_URL: postgresql://umami_app:${UMAMI_DB_PASSWORD}@postgres:5432/umami
+      APP_SECRET: ${APP_SECRET:?run via hardening-check.sh}
+      DISABLE_TELEMETRY: "1"
+      DISABLE_UPDATES: "1"
+      PRIVATE_MODE: "1"
+      SKIP_DB_MIGRATION: "1"
+      SALT_ROTATION: day
+      TZ: UTC
+      CLIENT_IP_HEADER: x-scf-surrogate-ip
+    # Neither is needed for /api/send, the admin API or the dashboard (proved with no tmpfs at all);
+    # /app/.next/cache is written only by the image optimiser (/_next/image, blocked anyway) and
+    # /tmp is kept as the conventional scratch path. Both small and owned by uid 1001.
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /app/.next/cache:size=64m,uid=1001,gid=1001,mode=0700
+    pids_limit: 256
+    mem_limit: 1g
+    networks: [engine]
+    depends_on:
+      umami-migrate: {condition: service_completed_successfully}
+
+  # Test-only TCP forwarder 127.0.0.1:${UMAMI_TEST_PORT} -> umami:3000 so curl/Playwright on the host can reach Umami.
+  front:
+    <<: *hardened
+    image: ${APP_IMAGE:?run via hardening-check.sh}
+    entrypoint: ["node", "-e", "const n=require('net');n.createServer(c=>{const u=n.connect(3000,'umami');c.pipe(u).pipe(c);u.on('error',()=>c.destroy());c.on('error',()=>u.destroy())}).listen(8080)"]
+    healthcheck: {disable: true}
+    networks: [engine, testfront]
+    ports: ["127.0.0.1:${UMAMI_TEST_PORT:-56122}:8080"]
+
+  # Test-only packet capture inside Umami's network namespace.
+  netcap:
+    image: ${NETCAP_IMAGE:-scf-umami-test/netcap}
+    network_mode: "service:umami"
+    cap_drop: [ALL]
+    cap_add: [NET_RAW]
+    user: "0:0"
+    command: ["tcpdump", "-i", "any", "-nn", "-p", "-U", "-w", "/cap/umami.pcap"]
+    volumes: [netcap:/cap]
+    depends_on: [umami]
