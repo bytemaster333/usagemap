@@ -1,0 +1,602 @@
+{
+ "resourceMetrics": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "s06b-dotnet"
+      }
+     },
+     {
+      "key": "service.instance.id",
+      "value": {
+       "stringValue": "559b6a71-0a87-4572-b0a3-85752ff0c68c"
+      }
+     },
+     {
+      "key": "scf.tenant.id",
+      "value": {
+       "stringValue": "11111111-2222-4333-8444-555555555555"
+      }
+     },
+     {
+      "key": "scf.received_at_unix_nano",
+      "value": {
+       "intValue": "1794499508469761500"
+      }
+     },
+     {
+      "key": "scf.tenant.level",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "scf.stream.instance",
+      "value": {
+       "stringValue": "559b6a71-0a87-4572-b0a3-85752ff0c68c"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "Microsoft.AspNetCore.Hosting"
+     },
+     "metrics": [
+      {
+       "name": "http.server.request.duration",
+       "unit": "s",
+       "histogram": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "scf.route",
+            "value": {
+             "stringValue": "/health"
+            }
+           },
+           {
+            "key": "scf.rules_version",
+            "value": {
+             "stringValue": "scf-path-rules/1.1.0"
+            }
+           },
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": "200"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499443488691300",
+          "timeUnixNano": "1794499448469760300",
+          "count": "15",
+          "sum": 0.0603216,
+          "bucketCounts": [
+           "14",
+           "0",
+           "0",
+           "0",
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.075,
+           0.1,
+           0.25,
+           0.5,
+           0.75,
+           1,
+           2.5,
+           5,
+           7.5,
+           10
+          ],
+          "min": 0.0002336,
+          "max": 0.055174
+         },
+         {
+          "attributes": [
+           {
+            "key": "scf.route",
+            "value": {
+             "stringValue": "/accounts/{id}"
+            }
+           },
+           {
+            "key": "scf.rules_version",
+            "value": {
+             "stringValue": "scf-path-rules/1.1.0"
+            }
+           },
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": "200"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499443488691300",
+          "timeUnixNano": "1794499448469760300",
+          "count": "10",
+          "sum": 0.005509899999999999,
+          "bucketCounts": [
+           "10",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.075,
+           0.1,
+           0.25,
+           0.5,
+           0.75,
+           1,
+           2.5,
+           5,
+           7.5,
+           10
+          ],
+          "min": 0.000261,
+          "max": 0.0027694
+         },
+         {
+          "attributes": [
+           {
+            "key": "scf.route",
+            "value": {
+             "stringValue": "/accounts/{id}"
+            }
+           },
+           {
+            "key": "scf.rules_version",
+            "value": {
+             "stringValue": "scf-path-rules/1.1.0"
+            }
+           },
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": "404"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499443488691300",
+          "timeUnixNano": "1794499448469760300",
+          "count": "2",
+          "sum": 0.0016158000000000001,
+          "bucketCounts": [
+           "2",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.075,
+           0.1,
+           0.25,
+           0.5,
+           0.75,
+           1,
+           2.5,
+           5,
+           7.5,
+           10
+          ],
+          "min": 0.000246,
+          "max": 0.0013698
+         },
+         {
+          "attributes": [
+           {
+            "key": "scf.route",
+            "value": {
+             "stringValue": "/assets/{code}/{issuer}"
+            }
+           },
+           {
+            "key": "scf.rules_version",
+            "value": {
+             "stringValue": "scf-path-rules/1.1.0"
+            }
+           },
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": "200"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499443488691300",
+          "timeUnixNano": "1794499448469760300",
+          "count": "6",
+          "sum": 0.1058717,
+          "bucketCounts": [
+           "0",
+           "0",
+           "6",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.075,
+           0.1,
+           0.25,
+           0.5,
+           0.75,
+           1,
+           2.5,
+           5,
+           7.5,
+           10
+          ],
+          "min": 0.0156374,
+          "max": 0.0212433
+         },
+         {
+          "attributes": [
+           {
+            "key": "scf.route",
+            "value": {
+             "stringValue": "/payments"
+            }
+           },
+           {
+            "key": "scf.rules_version",
+            "value": {
+             "stringValue": "scf-path-rules/1.1.0"
+            }
+           },
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "POST"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": "400"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499443488691300",
+          "timeUnixNano": "1794499448469760300",
+          "count": "5",
+          "sum": 0.0018034000000000001,
+          "bucketCounts": [
+           "5",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.075,
+           0.1,
+           0.25,
+           0.5,
+           0.75,
+           1,
+           2.5,
+           5,
+           7.5,
+           10
+          ],
+          "min": 0.0002337,
+          "max": 0.0004452
+         },
+         {
+          "attributes": [
+           {
+            "key": "scf.route",
+            "value": {
+             "stringValue": "/boom"
+            }
+           },
+           {
+            "key": "scf.rules_version",
+            "value": {
+             "stringValue": "scf-path-rules/1.1.0"
+            }
+           },
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": "500"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499443488691300",
+          "timeUnixNano": "1794499448469760300",
+          "count": "3",
+          "sum": 0.0011860999999999998,
+          "bucketCounts": [
+           "3",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.075,
+           0.1,
+           0.25,
+           0.5,
+           0.75,
+           1,
+           2.5,
+           5,
+           7.5,
+           10
+          ],
+          "min": 0.0001958,
+          "max": 0.0006994
+         },
+         {
+          "attributes": [
+           {
+            "key": "scf.route",
+            "value": {
+             "stringValue": "{unknown}"
+            }
+           },
+           {
+            "key": "scf.rules_version",
+            "value": {
+             "stringValue": "scf-path-rules/1.1.0"
+            }
+           },
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": "404"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499443488691300",
+          "timeUnixNano": "1794499448469760300",
+          "count": "3",
+          "sum": 0.0010280999999999999,
+          "bucketCounts": [
+           "3",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.075,
+           0.1,
+           0.25,
+           0.5,
+           0.75,
+           1,
+           2.5,
+           5,
+           7.5,
+           10
+          ],
+          "min": 0.0001408,
+          "max": 0.000629
+         }
+        ],
+        "aggregationTemporality": 2
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "scf.tenant.id",
+      "value": {
+       "stringValue": "11111111-2222-4333-8444-555555555555"
+      }
+     },
+     {
+      "key": "scf.received_at_unix_nano",
+      "value": {
+       "intValue": "1794499508469761500"
+      }
+     },
+     {
+      "key": "scf.tenant.level",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "scf.stream.instance",
+      "value": {
+       "stringValue": "_"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "scf/scfsanitize",
+      "version": "1.3.0"
+     },
+     "metrics": [
+      {
+       "name": "scf.ingest.dropped",
+       "unit": "{point}",
+       "sum": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "scf.reason",
+            "value": {
+             "stringValue": "metric_not_allowed"
+            }
+           },
+           {
+            "key": "service.name",
+            "value": {
+             "stringValue": "s06b-dotnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499508469761500",
+          "timeUnixNano": "1794499508469761500",
+          "asInt": "14"
+         }
+        ],
+        "aggregationTemporality": 1,
+        "isMonotonic": true
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

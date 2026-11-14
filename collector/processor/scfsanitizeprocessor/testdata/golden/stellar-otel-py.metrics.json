@@ -1,0 +1,92 @@
+{
+ "resourceMetrics": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "scf.tenant.id",
+      "value": {
+       "stringValue": "11111111-2222-4333-8444-555555555555"
+      }
+     },
+     {
+      "key": "scf.received_at_unix_nano",
+      "value": {
+       "intValue": "1795097378289286265"
+      }
+     },
+     {
+      "key": "scf.tenant.level",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "scf.stream.instance",
+      "value": {
+       "stringValue": "_"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "scf/scfsanitize",
+      "version": "1.3.0"
+     },
+     "metrics": [
+      {
+       "name": "scf.ingest.dropped",
+       "unit": "{point}",
+       "sum": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "scf.reason",
+            "value": {
+             "stringValue": "client_metric_ignored"
+            }
+           },
+           {
+            "key": "service.name",
+            "value": {
+             "stringValue": "stellar-dapp-api-py"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097378289286265",
+          "timeUnixNano": "1795097378289286265",
+          "asInt": "10"
+         },
+         {
+          "attributes": [
+           {
+            "key": "scf.reason",
+            "value": {
+             "stringValue": "metric_not_allowed"
+            }
+           },
+           {
+            "key": "service.name",
+            "value": {
+             "stringValue": "stellar-dapp-api-py"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097378289286265",
+          "timeUnixNano": "1795097378289286265",
+          "asInt": "8"
+         }
+        ],
+        "aggregationTemporality": 1,
+        "isMonotonic": true
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

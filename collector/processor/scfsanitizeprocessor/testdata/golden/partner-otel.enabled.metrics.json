@@ -1,0 +1,695 @@
+{
+ "resourceMetrics": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "partner-dapp-api"
+      }
+     },
+     {
+      "key": "deployment.environment.name",
+      "value": {
+       "stringValue": "test"
+      }
+     },
+     {
+      "key": "scf.tenant.id",
+      "value": {
+       "stringValue": "11111111-2222-4333-8444-555555555555"
+      }
+     },
+     {
+      "key": "scf.received_at_unix_nano",
+      "value": {
+       "intValue": "1795097854295000000"
+      }
+     },
+     {
+      "key": "scf.tenant.level",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "scf.stream.instance",
+      "value": {
+       "stringValue": "_"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "@usagemap/partner-otel",
+      "version": "0.1.0"
+     },
+     "metrics": [
+      {
+       "name": "stellar.partner.call.duration",
+       "unit": "s",
+       "histogram": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "stellar.partner",
+            "value": {
+             "stringValue": "soroswap"
+            }
+           },
+           {
+            "key": "stellar.partner.operation",
+            "value": {
+             "stringValue": "/quote"
+            }
+           },
+           {
+            "key": "stellar.partner.outcome",
+            "value": {
+             "stringValue": "success"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097794183000000",
+          "timeUnixNano": "1795097794295000000",
+          "count": "1",
+          "sum": 0.020944546,
+          "bucketCounts": [
+           "0",
+           "0",
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "min": 0.020944546,
+          "max": 0.020944546
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.partner",
+            "value": {
+             "stringValue": "soroswap"
+            }
+           },
+           {
+            "key": "stellar.partner.operation",
+            "value": {
+             "stringValue": "/quote/build"
+            }
+           },
+           {
+            "key": "stellar.partner.outcome",
+            "value": {
+             "stringValue": "success"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "mainnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097794185000000",
+          "timeUnixNano": "1795097794295000000",
+          "count": "1",
+          "sum": 0.001759055999999987,
+          "bucketCounts": [
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "min": 0.001759055999999987,
+          "max": 0.001759055999999987
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.partner",
+            "value": {
+             "stringValue": "defindex"
+            }
+           },
+           {
+            "key": "stellar.partner.operation",
+            "value": {
+             "stringValue": "/vault/{id}/deposit"
+            }
+           },
+           {
+            "key": "stellar.partner.outcome",
+            "value": {
+             "stringValue": "success"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "mainnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097794186000000",
+          "timeUnixNano": "1795097794295000000",
+          "count": "1",
+          "sum": 0.0007447609999999827,
+          "bucketCounts": [
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "min": 0.0007447609999999827,
+          "max": 0.0007447609999999827
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.partner",
+            "value": {
+             "stringValue": "trustless_work"
+            }
+           },
+           {
+            "key": "stellar.partner.operation",
+            "value": {
+             "stringValue": "/escrow/{type}/fund-escrow"
+            }
+           },
+           {
+            "key": "stellar.partner.outcome",
+            "value": {
+             "stringValue": "success"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097794186000000",
+          "timeUnixNano": "1795097794295000000",
+          "count": "1",
+          "sum": 0.0005852580000000103,
+          "bucketCounts": [
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "min": 0.0005852580000000103,
+          "max": 0.0005852580000000103
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.partner",
+            "value": {
+             "stringValue": "bridge"
+            }
+           },
+           {
+            "key": "stellar.partner.operation",
+            "value": {
+             "stringValue": "_OTHER"
+            }
+           },
+           {
+            "key": "stellar.partner.outcome",
+            "value": {
+             "stringValue": "not_found"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "mainnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097794187000000",
+          "timeUnixNano": "1795097794295000000",
+          "count": "1",
+          "sum": 0.0004903300000000002,
+          "bucketCounts": [
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "min": 0.0004903300000000002,
+          "max": 0.0004903300000000002
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.partner",
+            "value": {
+             "stringValue": "bridge"
+            }
+           },
+           {
+            "key": "stellar.partner.operation",
+            "value": {
+             "stringValue": "/transfers/{id}"
+            }
+           },
+           {
+            "key": "stellar.partner.outcome",
+            "value": {
+             "stringValue": "rate_limited"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097794188000000",
+          "timeUnixNano": "1795097794295000000",
+          "count": "1",
+          "sum": 0.0004592799999999784,
+          "bucketCounts": [
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "min": 0.0004592799999999784,
+          "max": 0.0004592799999999784
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.partner",
+            "value": {
+             "stringValue": "koywe"
+            }
+           },
+           {
+            "key": "stellar.partner.operation",
+            "value": {
+             "stringValue": "/orders/{id}"
+            }
+           },
+           {
+            "key": "stellar.partner.outcome",
+            "value": {
+             "stringValue": "server_error"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "mainnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097794189000000",
+          "timeUnixNano": "1795097794295000000",
+          "count": "1",
+          "sum": 0.0009614100000000008,
+          "bucketCounts": [
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "min": 0.0009614100000000008,
+          "max": 0.0009614100000000008
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.partner",
+            "value": {
+             "stringValue": "koywe"
+            }
+           },
+           {
+            "key": "stellar.partner.operation",
+            "value": {
+             "stringValue": "/orders/{id}"
+            }
+           },
+           {
+            "key": "stellar.partner.outcome",
+            "value": {
+             "stringValue": "timeout"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "mainnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097794290000000",
+          "timeUnixNano": "1795097794295000000",
+          "count": "1",
+          "sum": 0.10157948300000001,
+          "bucketCounts": [
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "min": 0.10157948300000001,
+          "max": 0.10157948300000001
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.partner",
+            "value": {
+             "stringValue": "allbridge"
+            }
+           },
+           {
+            "key": "stellar.partner.operation",
+            "value": {
+             "stringValue": "/check/{id}/{id}"
+            }
+           },
+           {
+            "key": "stellar.partner.outcome",
+            "value": {
+             "stringValue": "success"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "mainnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097794293000000",
+          "timeUnixNano": "1795097794295000000",
+          "count": "1",
+          "sum": 0.002556763999999987,
+          "bucketCounts": [
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "min": 0.002556763999999987,
+          "max": 0.002556763999999987
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.partner",
+            "value": {
+             "stringValue": "aquarius"
+            }
+           },
+           {
+            "key": "stellar.partner.operation",
+            "value": {
+             "stringValue": "/find-path"
+            }
+           },
+           {
+            "key": "stellar.partner.outcome",
+            "value": {
+             "stringValue": "success"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795097794294000000",
+          "timeUnixNano": "1795097794295000000",
+          "count": "1",
+          "sum": 0.0007111030000000369,
+          "bucketCounts": [
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "min": 0.0007111030000000369,
+          "max": 0.0007111030000000369
+         }
+        ],
+        "aggregationTemporality": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

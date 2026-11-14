@@ -1,0 +1,752 @@
+{
+ "resourceSpans": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "s06a-node-0.220.0"
+      }
+     },
+     {
+      "key": "scf.tenant.id",
+      "value": {
+       "stringValue": "11111111-2222-4333-8444-555555555555"
+      }
+     },
+     {
+      "key": "scf.received_at_unix_nano",
+      "value": {
+       "intValue": "1794498766842497894"
+      }
+     },
+     {
+      "key": "scf.tenant.level",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "scf.stream.instance",
+      "value": {
+       "stringValue": "_"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "@opentelemetry/instrumentation-http",
+      "version": "0.220.0"
+     },
+     "spans": [
+      {
+       "traceId": "a34ea492e74b115f811e0f8abba90dbb",
+       "spanId": "01cbc7deebf31f90",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498705847000000",
+       "endTimeUnixNano": "1794498705917015263",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/health"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "7baf48e15c4d062339e5403c193514f9",
+       "spanId": "3d7f9192361d0c4a",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706169000000",
+       "endTimeUnixNano": "1794498706172463232",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/health"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "248fb3be3206c36840121cad8783e7eb",
+       "spanId": "593ee55ca2b6e19e",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706188000000",
+       "endTimeUnixNano": "1794498706189948818",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/health"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "2bc9c18d51ac77a8259668bfdf0a9756",
+       "spanId": "433eee59ae2428e3",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706294000000",
+       "endTimeUnixNano": "1794498706298981371",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/accounts/{id}"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "519f0afd27fb38d1f8a1091d757c6f54",
+       "spanId": "31b1aa1e1ec75244",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706303000000",
+       "endTimeUnixNano": "1794498706303555446",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/accounts/{id}"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "983908e53ce5eadd84790c410e4d7f6d",
+       "spanId": "208b61bcca5c6fe0",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706310000000",
+       "endTimeUnixNano": "1794498706310784127",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/accounts/{id}"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "d11582839a09d47e63df0a5172c74b16",
+       "spanId": "e4bed87c743702c1",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706429000000",
+       "endTimeUnixNano": "1794498706434649323",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/accounts/{id}"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "404"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "6a33f983acefc94fe2c8d04845cf8a17",
+       "spanId": "ca86c18f612b1393",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706435000000",
+       "endTimeUnixNano": "1794498706442542153",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/accounts/{id}"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "404"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "a4492a91a8e2cb3ace8e1d847f7fd832",
+       "spanId": "7d4931a791a991fc",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706443000000",
+       "endTimeUnixNano": "1794498706446273564",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/accounts/{id}"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "404"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "a260d2e40fa14f1528e9f90a8f4b8350",
+       "spanId": "f72cfaed277398df",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706470000000",
+       "endTimeUnixNano": "1794498706487175647",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/assets/{code}/{issuer}"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "57f331fe7908079dcac77fc8f009de87",
+       "spanId": "48c1d602e0348392",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706487000000",
+       "endTimeUnixNano": "1794498706494177070",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/assets/{code}/{issuer}"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "44e4cac09764d903aa28fcf33317221c",
+       "spanId": "76b1144a523347ba",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706495000000",
+       "endTimeUnixNano": "1794498706510228875",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/assets/{code}/{issuer}"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "1a5962917b0f830879d48e3130882664",
+       "spanId": "b7b4318ae5036850",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706650000000",
+       "endTimeUnixNano": "1794498706674478296",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/boom"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "500"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "033aa251a5dc4067a44674053c71d47b",
+       "spanId": "beb388df9508a39e",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706698000000",
+       "endTimeUnixNano": "1794498706698699209",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/boom"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "500"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "b0daf5571a6f1ea384324a5d495579ae",
+       "spanId": "e0024bdbfb58adad",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706701000000",
+       "endTimeUnixNano": "1794498706713914442",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/boom"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "500"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "47ba4bd7cd3c2b5201779f178d854c83",
+       "spanId": "8f910d9723a0dd7c",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706800000000",
+       "endTimeUnixNano": "1794498706806814937",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/nope/unmatched-canary-path"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "404"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "b69831235626555c840e02c9557c890e",
+       "spanId": "69efebca4eb75155",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706811000000",
+       "endTimeUnixNano": "1794498706826343301",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/nope/unmatched-canary-path"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "404"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "0496612a1dff4d52c162edb0a6a796f4",
+       "spanId": "21ca89e1b01ad989",
+       "flags": 257,
+       "kind": 2,
+       "startTimeUnixNano": "1794498706827000000",
+       "endTimeUnixNano": "1794498706842497894",
+       "attributes": [
+        {
+         "key": "scf.route",
+         "value": {
+          "stringValue": "/nope/unmatched-canary-path"
+         }
+        },
+        {
+         "key": "scf.rules_version",
+         "value": {
+          "stringValue": "scf-path-rules/1.1.0"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "404"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "scf.tenant.id",
+      "value": {
+       "stringValue": "11111111-2222-4333-8444-555555555555"
+      }
+     },
+     {
+      "key": "scf.received_at_unix_nano",
+      "value": {
+       "intValue": "1794498766842497894"
+      }
+     },
+     {
+      "key": "scf.tenant.level",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "scf.stream.instance",
+      "value": {
+       "stringValue": "_"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "scf/scfsanitize",
+      "version": "1.3.0"
+     },
+     "spans": [
+      {
+       "kind": 1,
+       "startTimeUnixNano": "1794498766842497894",
+       "endTimeUnixNano": "1794498766842497894",
+       "attributes": [
+        {
+         "key": "scf.marker",
+         "value": {
+          "stringValue": "ingest.dropped"
+         }
+        },
+        {
+         "key": "scf.reason",
+         "value": {
+          "stringValue": "span_not_server"
+         }
+        },
+        {
+         "key": "service.name",
+         "value": {
+          "stringValue": "s06a-node-0.220.0"
+         }
+        },
+        {
+         "key": "scf.dropped_count",
+         "value": {
+          "intValue": "12"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,904 @@
+{
+ "resourceMetrics": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "stellar-dapp-api"
+      }
+     },
+     {
+      "key": "deployment.environment.name",
+      "value": {
+       "stringValue": "staging"
+      }
+     }
+    ],
+    "droppedAttributesCount": 0
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "@usagemap/stellar-otel",
+      "version": "0.1.0"
+     },
+     "metrics": [
+      {
+       "name": "rpc.client.call.duration",
+       "description": "Duration of outbound Stellar RPC calls, by JSON-RPC method",
+       "unit": "s",
+       "histogram": {
+        "aggregationTemporality": 2,
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "rpc.system.name",
+            "value": {
+             "stringValue": "jsonrpc"
+            }
+           },
+           {
+            "key": "rpc.method",
+            "value": {
+             "stringValue": "getNetwork"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "bucketCounts": [
+           0,
+           0,
+           1,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "count": 1,
+          "sum": 0.017148916999999982,
+          "min": 0.017148916999999982,
+          "max": 0.017148916999999982,
+          "startTimeUnixNano": "1795084168283000000",
+          "timeUnixNano": "1795084168302000000"
+         },
+         {
+          "attributes": [
+           {
+            "key": "rpc.system.name",
+            "value": {
+             "stringValue": "jsonrpc"
+            }
+           },
+           {
+            "key": "rpc.method",
+            "value": {
+             "stringValue": "getHealth"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "bucketCounts": [
+           2,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "count": 2,
+          "sum": 0.003565449000000001,
+          "min": 0.0011864310000000273,
+          "max": 0.0023790179999999737,
+          "startTimeUnixNano": "1795084168285000000",
+          "timeUnixNano": "1795084168302000000"
+         },
+         {
+          "attributes": [
+           {
+            "key": "rpc.system.name",
+            "value": {
+             "stringValue": "jsonrpc"
+            }
+           },
+           {
+            "key": "rpc.method",
+            "value": {
+             "stringValue": "getFeeStats"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           },
+           {
+            "key": "error.type",
+            "value": {
+             "stringValue": "503"
+            }
+           }
+          ],
+          "bucketCounts": [
+           1,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "count": 1,
+          "sum": 0.0011355029999999715,
+          "min": 0.0011355029999999715,
+          "max": 0.0011355029999999715,
+          "startTimeUnixNano": "1795084168288000000",
+          "timeUnixNano": "1795084168302000000"
+         },
+         {
+          "attributes": [
+           {
+            "key": "rpc.system.name",
+            "value": {
+             "stringValue": "jsonrpc"
+            }
+           },
+           {
+            "key": "rpc.method",
+            "value": {
+             "stringValue": "sendTransaction"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "bucketCounts": [
+           3,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "count": 3,
+          "sum": 0.0029059050000000185,
+          "min": 0.0009390710000000127,
+          "max": 0.001010310000000004,
+          "startTimeUnixNano": "1795084168289000000",
+          "timeUnixNano": "1795084168302000000"
+         },
+         {
+          "attributes": [
+           {
+            "key": "rpc.system.name",
+            "value": {
+             "stringValue": "jsonrpc"
+            }
+           },
+           {
+            "key": "rpc.method",
+            "value": {
+             "stringValue": "getTransaction"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "bucketCounts": [
+           2,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "count": 2,
+          "sum": 0.001989859999999965,
+          "min": 0.0009563989999999763,
+          "max": 0.0010334609999999883,
+          "startTimeUnixNano": "1795084168293000000",
+          "timeUnixNano": "1795084168302000000"
+         },
+         {
+          "attributes": [
+           {
+            "key": "rpc.system.name",
+            "value": {
+             "stringValue": "jsonrpc"
+            }
+           },
+           {
+            "key": "rpc.method",
+            "value": {
+             "stringValue": "simulateTransaction"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "bucketCounts": [
+           2,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "count": 2,
+          "sum": 0.0018565699999999765,
+          "min": 0.0008040629999999851,
+          "max": 0.0010525069999999914,
+          "startTimeUnixNano": "1795084168296000000",
+          "timeUnixNano": "1795084168302000000"
+         },
+         {
+          "attributes": [
+           {
+            "key": "rpc.system.name",
+            "value": {
+             "stringValue": "jsonrpc"
+            }
+           },
+           {
+            "key": "rpc.method",
+            "value": {
+             "stringValue": "_OTHER"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           },
+           {
+            "key": "error.type",
+            "value": {
+             "stringValue": "-32601"
+            }
+           },
+           {
+            "key": "rpc.status_code",
+            "value": {
+             "stringValue": "-32601"
+            }
+           }
+          ],
+          "bucketCounts": [
+           1,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "count": 1,
+          "sum": 0.000645387000000028,
+          "min": 0.000645387000000028,
+          "max": 0.000645387000000028,
+          "startTimeUnixNano": "1795084168299000000",
+          "timeUnixNano": "1795084168302000000"
+         }
+        ]
+       }
+      },
+      {
+       "name": "http.client.request.duration",
+       "description": "Duration of outbound Horizon requests, by route template",
+       "unit": "s",
+       "histogram": {
+        "aggregationTemporality": 2,
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "url.template",
+            "value": {
+             "stringValue": "/fee_stats"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": 200
+            }
+           }
+          ],
+          "bucketCounts": [
+           1,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "count": 1,
+          "sum": 0.0009772029999999745,
+          "min": 0.0009772029999999745,
+          "max": 0.0009772029999999745,
+          "startTimeUnixNano": "1795084168300000000",
+          "timeUnixNano": "1795084168302000000"
+         },
+         {
+          "attributes": [
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "url.template",
+            "value": {
+             "stringValue": "/accounts/{id}"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": 404
+            }
+           },
+           {
+            "key": "error.type",
+            "value": {
+             "stringValue": "404"
+            }
+           }
+          ],
+          "bucketCounts": [
+           1,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "count": 1,
+          "sum": 0.0006917379999999867,
+          "min": 0.0006917379999999867,
+          "max": 0.0006917379999999867,
+          "startTimeUnixNano": "1795084168301000000",
+          "timeUnixNano": "1795084168302000000"
+         },
+         {
+          "attributes": [
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "POST"
+            }
+           },
+           {
+            "key": "url.template",
+            "value": {
+             "stringValue": "/transactions"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": 400
+            }
+           },
+           {
+            "key": "error.type",
+            "value": {
+             "stringValue": "400"
+            }
+           }
+          ],
+          "bucketCounts": [
+           1,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0,
+           0
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1,
+           2.5,
+           5,
+           10,
+           30
+          ],
+          "count": 1,
+          "sum": 0.0006606519999999705,
+          "min": 0.0006606519999999705,
+          "max": 0.0006606519999999705,
+          "startTimeUnixNano": "1795084168302000000",
+          "timeUnixNano": "1795084168302000000"
+         }
+        ]
+       }
+      },
+      {
+       "name": "stellar.tx.submissions",
+       "description": "Transaction submissions by status class",
+       "unit": "{transaction}",
+       "sum": {
+        "aggregationTemporality": 2,
+        "isMonotonic": true,
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "stellar.tx.via",
+            "value": {
+             "stringValue": "rpc"
+            }
+           },
+           {
+            "key": "stellar.tx.status",
+            "value": {
+             "stringValue": "PENDING"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795084168289000000",
+          "timeUnixNano": "1795084168302000000",
+          "asInt": 1
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.tx.via",
+            "value": {
+             "stringValue": "rpc"
+            }
+           },
+           {
+            "key": "stellar.tx.status",
+            "value": {
+             "stringValue": "ERROR"
+            }
+           },
+           {
+            "key": "stellar.tx.result_class",
+            "value": {
+             "stringValue": "bad_seq"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795084168290000000",
+          "timeUnixNano": "1795084168302000000",
+          "asInt": 1
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.tx.via",
+            "value": {
+             "stringValue": "rpc"
+            }
+           },
+           {
+            "key": "stellar.tx.status",
+            "value": {
+             "stringValue": "TRY_AGAIN_LATER"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795084168292000000",
+          "timeUnixNano": "1795084168302000000",
+          "asInt": 1
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.tx.via",
+            "value": {
+             "stringValue": "horizon"
+            }
+           },
+           {
+            "key": "stellar.tx.status",
+            "value": {
+             "stringValue": "FAILED"
+            }
+           },
+           {
+            "key": "stellar.tx.result_class",
+            "value": {
+             "stringValue": "insufficient_fee"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795084168302000000",
+          "timeUnixNano": "1795084168302000000",
+          "asInt": 1
+         }
+        ]
+       }
+      },
+      {
+       "name": "stellar.tx.polls",
+       "description": "getTransaction results by status class",
+       "unit": "{call}",
+       "sum": {
+        "aggregationTemporality": 2,
+        "isMonotonic": true,
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "stellar.tx.status",
+            "value": {
+             "stringValue": "FAILED"
+            }
+           },
+           {
+            "key": "stellar.tx.result_class",
+            "value": {
+             "stringValue": "contract_error"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795084168293000000",
+          "timeUnixNano": "1795084168302000000",
+          "asInt": 1
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.tx.status",
+            "value": {
+             "stringValue": "NOT_FOUND"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795084168295000000",
+          "timeUnixNano": "1795084168302000000",
+          "asInt": 1
+         }
+        ]
+       }
+      },
+      {
+       "name": "stellar.tx.simulations",
+       "description": "simulateTransaction results by outcome class",
+       "unit": "{call}",
+       "sum": {
+        "aggregationTemporality": 2,
+        "isMonotonic": true,
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "stellar.sim.outcome",
+            "value": {
+             "stringValue": "success"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795084168296000000",
+          "timeUnixNano": "1795084168302000000",
+          "asInt": 1
+         },
+         {
+          "attributes": [
+           {
+            "key": "stellar.sim.outcome",
+            "value": {
+             "stringValue": "error"
+            }
+           },
+           {
+            "key": "stellar.sim.error_class",
+            "value": {
+             "stringValue": "other"
+            }
+           },
+           {
+            "key": "stellar.network",
+            "value": {
+             "stringValue": "testnet"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795084168298000000",
+          "timeUnixNano": "1795084168302000000",
+          "asInt": 1
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
