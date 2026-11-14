@@ -1,0 +1,203 @@
+# scf-otelcol production configuration (ADR-0009, C-107, C-112(8); wire-formats §f, §g).
+#
+#   gateway (TLS, ingest-token auth, rate limit, strips headers)
+#     → loopback OTLP (x-scf-* metadata) → memory_limiter → scfsanitize
+#         traces : → filter/server_local_roots → signal_to_metrics ─┐  (spans never leave the process)
+#         metrics: ───────────────────────────────────────────────── ┤
+#     metrics/span_derived: signal_to_metrics → transform/span_derived ┤
+#     → otlp_http/writer (persistent fsync'd queue, NO exporter batching, mTLS) → writers.<mesh>:4319 (both writers)
+#
+# Rules enforced by collector/tests (config lint): no logs pipeline (so /v1/logs → 404, gRPC → UNIMPLEMENTED);
+# the traces pipeline exports only to signal_to_metrics; scfsanitize runs right after memory_limiter in every
+# pipeline fed by the receiver; no batch processor; no sending_queue.batch; file_storage fsync on; receivers on
+# loopback by default.
+#
+# Environment (defaults in brackets):
+#   SCF_WRITER_ENDPOINT          required, e.g. https://writers.mesh.internal:4319 — one name, two address records
+#   SCF_MTLS_CA_FILE             [/etc/scf-otelcol/tls/ca.crt]    private CA (C-60)
+#   SCF_MTLS_CERT_FILE           [/etc/scf-otelcol/tls/node.crt]  this node's client certificate
+#   SCF_MTLS_KEY_FILE            [/etc/scf-otelcol/tls/node.key]
+#   SCF_OTLP_GRPC_ENDPOINT       [127.0.0.1:4317]  loopback; an internal-only address in Compose
+#   SCF_OTLP_HTTP_ENDPOINT       [127.0.0.1:4318]
+#   SCF_HEALTH_ENDPOINT          [127.0.0.1:13133]
+#   SCF_SELF_METRICS_HOST        [127.0.0.1]       Prometheus self-metrics
+#   SCF_SELF_METRICS_PORT        [8888]
+#   SCF_QUEUE_DIR                [/var/lib/scf-otelcol/queue]  the only writable path
+#   SCF_QUEUE_BYTES              [2147483648] the persistent queue's bound in bytes (C-114): the IaC sets 72 h × the
+#                                node's planned request rate × average request size, within the queue volume's free
+#                                space (C-107, C-112(8)); the writer enforces the 72 h age cap itself. The v0.165
+#                                queue has one sizer, so the request count is bounded through the bytes (≥ ~150 bytes
+#                                per queued request)
+#   SCF_MEMORY_LIMIT_MIB         [400]   SCF_MEMORY_SPIKE_MIB [80]
+
+extensions:
+  health_check:
+    endpoint: ${env:SCF_HEALTH_ENDPOINT:-127.0.0.1:13133}
+  file_storage/queue:
+    directory: ${env:SCF_QUEUE_DIR:-/var/lib/scf-otelcol/queue}
+    create_directory: true
+    directory_permissions: "0700"
+    fsync: true # default false; S-04 4f proved it is really on (≈ 7 ms per acknowledged request)
+    timeout: 1s
+    compaction:
+      on_start: true
+      on_rebound: true
+      directory: ${env:SCF_QUEUE_DIR:-/var/lib/scf-otelcol/queue}
+      cleanup_on_start: true
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: ${env:SCF_OTLP_GRPC_ENDPOINT:-127.0.0.1:4317}
+        include_metadata: true # x-scf-* gRPC metadata → client.Info (§f.4)
+        max_recv_msg_size_mib: 16 # the gateway enforces 16 MiB decompressed (§f.3)
+      http:
+        endpoint: ${env:SCF_OTLP_HTTP_ENDPOINT:-127.0.0.1:4318}
+        include_metadata: true # x-scf-* headers → client.Info (§f.4)
+        max_request_body_size: 16777216
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: ${env:SCF_MEMORY_LIMIT_MIB:-400}
+    spike_limit_mib: ${env:SCF_MEMORY_SPIKE_MIB:-80}
+
+  # Tenant id, allow-lists, route normalisation, time bounds, drop counters (wire-formats §f.5).
+  scfsanitize:
+    max_future: 5m
+    max_age: 48h
+    # Stellar client metrics (wire-formats §f.5 step 4a, packages/stellar-otel): on in every profile since the
+    # writer stores them in scf.stellar_client_* (migration 0080, wire-formats §g.7, C-153). A writer older than
+    # that would drop them as metric_not_allowed: deploy the writer and migration 0080 first.
+    stellar_client_metrics: true
+    # Further client-metric steps (wire-formats §f.5 4b partner, 4c payments, 4d anchors; clientrules.go): on since
+    # the writer stores them in scf.integration_metrics_* (migration 0085, "integration" stream, wire-formats §g.8).
+    # A writer older than that would drop them as metric_not_allowed: deploy migration 0085 and the writer first.
+    client_metric_sets: [partner, payments, anchors]
+
+  # Defence in depth: scfsanitize already keeps only SERVER local roots and counts the rest per tenant; this
+  # filter (S-04 §2 expression) must drop nothing — otelcol_processor_filter_spans_filtered > 0 means a bug.
+  # Any condition true => span dropped. Marker spans (scf.marker, created by scfsanitize) carry the drop counts.
+  filter/server_local_roots:
+    error_mode: ignore
+    traces:
+      span:
+        - span.attributes["scf.marker"] == nil and span.kind != SPAN_KIND_SERVER
+        - span.attributes["scf.marker"] == nil and not IsRootSpan() and (span.flags / 256) - (span.flags / 512) * 2 == 1 and (span.flags / 512) - (span.flags / 1024) * 2 == 0
+
+  # The connector adds the Collector's instance UUID (new on every restart) to each resource; the writer ignores
+  # it (§g.2), so it is removed here rather than sent and queued.
+  transform/span_derived:
+    error_mode: ignore
+    metric_statements:
+      - context: resource
+        statements:
+          - delete_key(resource.attributes, "signal_to_metrics.service.instance.id")
+
+connectors:
+  signal_to_metrics:
+    error_mode: ignore
+    spans:
+      - name: scf.span.server.duration
+        description: SERVER span duration (span-derived)
+        unit: s
+        conditions:
+          - span.attributes["scf.marker"] == nil
+        include_resource_attributes:
+          - key: scf.tenant.id
+          - key: scf.received_at_unix_nano
+          - key: scf.stream.instance
+          - key: scf.tenant.level # int 0…3 from x-scf-tenant-level (C-116); absent when the header was not valid
+          - key: service.name
+          - key: service.namespace
+          - key: service.instance.id
+          - key: deployment.environment.name
+        attributes:
+          - key: scf.route
+          - key: scf.rules_version
+          - key: http.request.method
+            optional: true
+          - key: http.response.status_code
+            optional: true
+          - key: rpc.method
+            optional: true
+        exponential_histogram:
+          max_size: 160
+          value: Seconds(span.end_time - span.start_time)
+          count: Int(AdjustedCount())
+      # Drop counts of the traces pipeline (scfsanitize marker spans) → the same scf.ingest.dropped as metrics.
+      - name: scf.ingest.dropped
+        description: Items dropped by the sanitise step, by reason
+        unit: "{point}"
+        conditions:
+          - span.attributes["scf.marker"] == "ingest.dropped"
+        include_resource_attributes:
+          - key: scf.tenant.id
+          - key: scf.received_at_unix_nano
+          - key: scf.stream.instance
+        attributes:
+          - key: scf.reason
+          - key: service.name
+        sum:
+          value: span.attributes["scf.dropped_count"]
+          monotonic: true
+
+exporters:
+  otlp_http/writer:
+    endpoint: ${env:SCF_WRITER_ENDPOINT}
+    encoding: proto
+    compression: gzip
+    # Longer than the writer's whole request budget (SCF_WRITER_WORK_TIMEOUT 12 s, at most 14 s): the writer always
+    # answers before this timeout, so a request still being applied is never retried in parallel.
+    # A writer host that vanishes is left after this timeout (README "Writer failover").
+    timeout: 15s
+    tls:
+      ca_file: ${env:SCF_MTLS_CA_FILE:-/etc/scf-otelcol/tls/ca.crt}
+      cert_file: ${env:SCF_MTLS_CERT_FILE:-/etc/scf-otelcol/tls/node.crt}
+      key_file: ${env:SCF_MTLS_KEY_FILE:-/etc/scf-otelcol/tls/node.key}
+      min_version: "1.3"
+      reload_interval: 1h
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 5s
+      max_elapsed_time: 72h
+    # One queued request = one incoming request: NO `batch` key here (byte-identical retries and crash replays,
+    # the writer's SHA-256 batch key, §g.3). Queue full → the receiver answers 503/UNAVAILABLE → gateway → tenant.
+    # Bounded in bytes (C-114): the disk cannot fill however small or large the requests are.
+    sending_queue:
+      enabled: true
+      storage: file_storage/queue
+      sizer: bytes
+      queue_size: ${env:SCF_QUEUE_BYTES:-2147483648}
+      num_consumers: 4
+
+service:
+  extensions: [health_check, file_storage/queue]
+  telemetry:
+    logs:
+      level: info
+      encoding: json
+    metrics:
+      level: detailed
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: ${env:SCF_SELF_METRICS_HOST:-127.0.0.1}
+                port: ${env:SCF_SELF_METRICS_PORT:-8888}
+  pipelines:
+    # Deliberately no logs pipeline.
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, scfsanitize, filter/server_local_roots]
+      exporters: [signal_to_metrics]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, scfsanitize]
+      exporters: [otlp_http/writer]
+    metrics/span_derived:
+      receivers: [signal_to_metrics]
+      processors: [transform/span_derived]
+      exporters: [otlp_http/writer]

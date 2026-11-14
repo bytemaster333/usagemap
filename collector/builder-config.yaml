@@ -1,0 +1,39 @@
+# scf-otelcol — the UsageMap Collector distribution (C-107, wire-formats §g.1).
+# Exactly the declared components; nothing else is compiled in (checked by collector/tests: components golden).
+# Build (from collector/): scripts/build.sh   ==   GOWORK=off ocb --config builder-config.yaml
+# ocb v0.165.0 (SHA-256 and Sigstore signature verified, see README.md); Go 1.27.4.
+dist:
+  module: github.com/bytemaster333/usagemap/collector/scf-otelcol
+  name: scf-otelcol
+  description: UsageMap Collector (OTLP in, sanitised request-duration metrics out)
+  version: 1.0.0
+  output_path: ./_build
+
+receivers:
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.165.0
+
+processors:
+  - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.165.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.165.1
+  - gomod: github.com/bytemaster333/usagemap/collector/processor/scfsanitizeprocessor v0.0.0
+    path: ./processor/scfsanitizeprocessor
+
+connectors:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/signaltometricsconnector v0.165.1
+
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.165.0
+
+extensions:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.165.1
+
+providers:
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.71.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.71.0
+
+# The processor's own replace directive is not inherited by the generated main module.
+# Relative to output_path.
+replaces:
+  - github.com/bytemaster333/usagemap/packages/pathnorm => ../../packages/pathnorm

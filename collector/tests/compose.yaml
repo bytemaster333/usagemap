@@ -1,0 +1,87 @@
+# Compose test bed of collector/tests/compose_test.go (project scf-wsc, host ports 56170–56175 on loopback only).
+# Two writer stand-ins share the name writers.scf.test — the production topology of wire-formats §g.1 (one
+# otlp_http exporter, one name, two address records, mutual TLS). The name is written into the Collector's
+# /etc/hosts with both fixed addresses (as the IaC does), so a killed writer's address stays in the answer and
+# Go's dialer has to fall back to the second address — S-04 item 5B, now with mTLS.
+# The writers run the static test binary cmd/writersink in a stock alpine image (no Dockerfile: test-only).
+name: scf-wsc
+
+networks:
+  edge: {} # only for the loopback-published test ports
+  mesh:
+    internal: true # Collector ↔ writers
+    ipam:
+      config:
+        - subnet: 10.216.160.0/24
+
+volumes:
+  queue: {}
+
+x-writer: &writer
+  image: alpine:3.22
+  command:
+    [
+      "/sink/writersink",
+      "-listen",
+      ":4319",
+      "-admin",
+      ":8080",
+      "-ca",
+      "/pki/ca.crt",
+      "-cert",
+      "/pki/writer.crt",
+      "-key",
+      "/pki/writer.key",
+    ]
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  user: "65532:65532"
+  volumes:
+    - ${SCF_WSC_SINK_BIN:?}:/sink/writersink:ro
+    - ${SCF_WSC_PKI:?}:/pki:ro
+
+services:
+  writer-a:
+    <<: *writer
+    networks:
+      mesh: { ipv4_address: 10.216.160.11 }
+      edge: {}
+    ports: ["127.0.0.1:56173:8080"]
+
+  writer-b:
+    <<: *writer
+    networks:
+      mesh: { ipv4_address: 10.216.160.12 }
+      edge: {}
+    ports: ["127.0.0.1:56174:8080"]
+
+  collector:
+    image: ${SCF_WSC_IMAGE:-scf-wsc/scf-otelcol:test}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      SCF_WRITER_ENDPOINT: https://writers.scf.test:4319
+      SCF_MTLS_CA_FILE: /pki/ca.crt
+      SCF_MTLS_CERT_FILE: /pki/node.crt
+      SCF_MTLS_KEY_FILE: /pki/node.key
+      # Inside the container the receivers bind the container's interfaces; they are reachable only from the
+      # Compose networks and the loopback-published ports below (in production: 127.0.0.1, beside the gateway).
+      SCF_OTLP_GRPC_ENDPOINT: 0.0.0.0:4317
+      SCF_OTLP_HTTP_ENDPOINT: 0.0.0.0:4318
+      SCF_HEALTH_ENDPOINT: 0.0.0.0:13133
+      SCF_SELF_METRICS_HOST: 0.0.0.0
+      SCF_QUEUE_BYTES: "67108864"
+    volumes:
+      - queue:/var/lib/scf-otelcol/queue
+      - ${SCF_WSC_PKI:?}:/pki:ro
+    extra_hosts:
+      - "writers.scf.test=10.216.160.11"
+      - "writers.scf.test=10.216.160.12"
+    networks: [edge, mesh]
+    ports:
+      - "127.0.0.1:56170:4318"
+      - "127.0.0.1:56175:4317"
+      - "127.0.0.1:56171:13133"
+      - "127.0.0.1:56172:8888"

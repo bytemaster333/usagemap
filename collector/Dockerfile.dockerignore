@@ -1,0 +1,8 @@
+# Build context is the repository root; send only what the image needs.
+*
+!packages/pathnorm/
+!collector/builder-config.yaml
+!collector/processor/
+!collector/config/collector.yaml
+collector/processor/**/testdata/
+**/*_test.go
