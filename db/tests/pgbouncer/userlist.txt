@@ -1,0 +1,5 @@
+"scf_app" "wse-test"
+"scf_writer" "wse-test"
+"scf_jobs" "wse-test"
+"scf_metrics_ro" "wse-test"
+"scf_migrator" "wse-test"

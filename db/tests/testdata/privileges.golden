@@ -1,0 +1,1481 @@
+column scf.declared_contracts.conflict_since scf_app UPDATE
+column scf.declared_contracts.conflict_since scf_op_definer UPDATE
+column scf.declared_contracts.contract_id scf_app INSERT
+column scf.declared_contracts.contract_ref scf_app INSERT
+column scf.declared_contracts.created_at scf_app UPDATE
+column scf.declared_contracts.created_by scf_app INSERT
+column scf.declared_contracts.created_by scf_app UPDATE
+column scf.declared_contracts.label scf_app INSERT
+column scf.declared_contracts.label scf_app UPDATE
+column scf.declared_contracts.last_checked_at scf_app UPDATE
+column scf.declared_contracts.network scf_app INSERT
+column scf.declared_contracts.next_check_at scf_app UPDATE
+column scf.declared_contracts.next_check_at scf_op_definer UPDATE
+column scf.declared_contracts.rejected_reason scf_app UPDATE
+column scf.declared_contracts.rejected_reason scf_op_definer UPDATE
+column scf.declared_contracts.removed_at scf_app UPDATE
+column scf.declared_contracts.service_id scf_app INSERT
+column scf.declared_contracts.service_id scf_app UPDATE
+column scf.declared_contracts.status scf_app UPDATE
+column scf.declared_contracts.status scf_op_definer UPDATE
+column scf.declared_contracts.tenant_id scf_app INSERT
+column scf.declared_contracts.verification_method scf_app UPDATE
+column scf.declared_contracts.verification_method scf_op_definer UPDATE
+column scf.declared_contracts.verified_at scf_app UPDATE
+column scf.declared_contracts.verified_at scf_op_definer UPDATE
+column scf.declared_contracts.verified_by_evidence scf_app UPDATE
+column scf.declared_contracts.verified_by_evidence scf_op_definer UPDATE
+column scf.declared_contracts.verified_role scf_app UPDATE
+column scf.declared_contracts.verified_role scf_op_definer UPDATE
+column scf.domain_verifications.last_checked_at scf_op_definer UPDATE
+column scf.domain_verifications.last_result_code scf_op_definer UPDATE
+column scf.domain_verifications.next_check_at scf_op_definer UPDATE
+column scf.domain_verifications.status scf_op_definer UPDATE
+column scf.domain_verifications.verified_at scf_op_definer UPDATE
+column scf.external_identities.provider scf_definer SELECT
+column scf.external_identities.subject scf_definer SELECT
+column scf.external_identities.user_id scf_definer SELECT
+column scf.footprint_keys.created_by scf_app INSERT
+column scf.footprint_keys.expires_at scf_app INSERT
+column scf.footprint_keys.key_id scf_app INSERT
+column scf.footprint_keys.label scf_app INSERT
+column scf.footprint_keys.last4 scf_app INSERT
+column scf.footprint_keys.last_used_at scf_app UPDATE
+column scf.footprint_keys.network scf_app INSERT
+column scf.footprint_keys.pepper_version scf_app INSERT
+column scf.footprint_keys.revoked_at scf_app UPDATE
+column scf.footprint_keys.revoked_by scf_app UPDATE
+column scf.footprint_keys.secret_hash scf_app INSERT
+column scf.footprint_keys.tenant_id scf_app INSERT
+column scf.operator_api_keys.flagged_for_review_at scf_op_definer UPDATE
+column scf.operator_api_keys.last_used_at scf_metrics_ro UPDATE
+column scf.operator_api_keys.revoke_reason scf_op_definer UPDATE
+column scf.operator_api_keys.revoked_at scf_op_definer UPDATE
+column scf.platform_operators.revoked_at scf_definer UPDATE
+column scf.settings.updated_at scf_app UPDATE
+column scf.settings.updated_by scf_app UPDATE
+column scf.settings.value scf_app UPDATE
+column scf.site_domains.domain_id scf_app INSERT
+column scf.site_domains.host scf_app INSERT
+column scf.site_domains.include_subdomains scf_app INSERT
+column scf.site_domains.site_id scf_app INSERT
+column scf.site_domains.state scf_definer UPDATE
+column scf.site_domains.tenant_id scf_app INSERT
+column scf.sites.anonymous_reports scf_app INSERT
+column scf.sites.anonymous_reports scf_app UPDATE
+column scf.sites.archived_at scf_app UPDATE
+column scf.sites.created_by scf_app INSERT
+column scf.sites.debug_until scf_app UPDATE
+column scf.sites.dev_origins scf_app INSERT
+column scf.sites.dev_origins scf_app UPDATE
+column scf.sites.event_retention_days scf_app INSERT
+column scf.sites.event_retention_days scf_app UPDATE
+column scf.sites.exclude_countries scf_app INSERT
+column scf.sites.exclude_countries scf_app UPDATE
+column scf.sites.name scf_app INSERT
+column scf.sites.name scf_app UPDATE
+column scf.sites.opt_out_page_url scf_app INSERT
+column scf.sites.opt_out_page_url scf_app UPDATE
+column scf.sites.path_folding scf_app INSERT
+column scf.sites.path_folding scf_app UPDATE
+column scf.sites.site_id scf_app INSERT
+column scf.sites.site_key scf_app INSERT
+column scf.sites.status scf_app UPDATE
+column scf.sites.tenant_id scf_app INSERT
+column scf.sites.tracker_profile scf_app INSERT
+column scf.sites.tracker_profile scf_app UPDATE
+column scf.sites.umami_twin_website_id scf_app INSERT
+column scf.sites.umami_twin_website_id scf_app UPDATE
+column scf.sites.umami_website_id scf_app INSERT
+column scf.sites.visitor_id scf_app INSERT
+column scf.sites.visitor_id scf_app UPDATE
+column scf.sites.visitor_id_explicit scf_app INSERT
+column scf.sites.visitor_id_explicit scf_app UPDATE
+column scf.sites.visitor_id_off_countries scf_app INSERT
+column scf.sites.visitor_id_off_countries scf_app UPDATE
+column scf.tenants.created_by scf_app INSERT
+column scf.tenants.description scf_app INSERT
+column scf.tenants.description scf_app UPDATE
+column scf.tenants.footprint_none_declared scf_app INSERT
+column scf.tenants.footprint_none_declared scf_app UPDATE
+column scf.tenants.name scf_app INSERT
+column scf.tenants.name scf_app UPDATE
+column scf.tenants.onchain_correlation_enabled scf_app INSERT
+column scf.tenants.onchain_correlation_enabled scf_app UPDATE
+column scf.tenants.public_stats_enabled scf_app INSERT
+column scf.tenants.public_stats_enabled scf_app UPDATE
+column scf.tenants.purge_after scf_op_definer UPDATE
+column scf.tenants.purged_at scf_jobs UPDATE
+column scf.tenants.removal_reason_code scf_op_definer UPDATE
+column scf.tenants.removed_at scf_op_definer UPDATE
+column scf.tenants.seal_enabled scf_app INSERT
+column scf.tenants.seal_enabled scf_app UPDATE
+column scf.tenants.seed_warning_ack_at scf_app UPDATE
+column scf.tenants.seed_warning_ack_baseline scf_app UPDATE
+column scf.tenants.slug scf_app INSERT
+column scf.tenants.status scf_app INSERT
+column scf.tenants.status scf_app UPDATE
+column scf.tenants.status scf_op_definer UPDATE
+column scf.tenants.status_changed_by scf_op_definer UPDATE
+column scf.tenants.status_reason scf_app UPDATE
+column scf.tenants.status_reason scf_op_definer UPDATE
+column scf.tenants.tenant_id scf_app INSERT
+column scf.traction_snapshots.canonical_sha256 scf_jobs UPDATE
+column scf.traction_snapshots.created_by scf_app INSERT
+column scf.traction_snapshots.document scf_jobs UPDATE
+column scf.traction_snapshots.include_api scf_app INSERT
+column scf.traction_snapshots.kid scf_jobs UPDATE
+column scf.traction_snapshots.methodology_version scf_jobs UPDATE
+column scf.traction_snapshots.period_end scf_app INSERT
+column scf.traction_snapshots.period_start scf_app INSERT
+column scf.traction_snapshots.preset scf_app INSERT
+column scf.traction_snapshots.revoked_at scf_app UPDATE
+column scf.traction_snapshots.revoked_reason scf_app UPDATE
+column scf.traction_snapshots.schema_version scf_app INSERT
+column scf.traction_snapshots.series_seq scf_jobs UPDATE
+column scf.traction_snapshots.signature scf_jobs UPDATE
+column scf.traction_snapshots.signed_at scf_jobs UPDATE
+column scf.traction_snapshots.snapshot_id scf_app INSERT
+column scf.traction_snapshots.tenant_id scf_app INSERT
+column scf.users.deleted_at scf_definer SELECT
+column scf.users.disabled_at scf_definer SELECT
+column scf.users.user_id scf_definer SELECT
+column scf.verification_evidence.lapsed_at scf_definer UPDATE
+column scf.verification_evidence.status scf_definer UPDATE
+function scf.accept_invitation(bytea,uuid) scf_app EXECUTE (definer, owner scf_definer)
+function scf.accept_invitation(bytea,uuid) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.accuracy_class(boolean,boolean,smallint) scf_app EXECUTE
+function scf.accuracy_class(boolean,boolean,smallint) scf_jobs EXECUTE
+function scf.accuracy_class(boolean,boolean,smallint) scf_metrics_ro EXECUTE
+function scf.accuracy_class(boolean,boolean,smallint) scf_op_definer EXECUTE
+function scf.accuracy_class(boolean,boolean,smallint) scf_writer EXECUTE
+function scf.actor_kind() scf_app EXECUTE
+function scf.actor_kind() scf_definer EXECUTE
+function scf.actor_kind() scf_jobs EXECUTE
+function scf.actor_kind() scf_metrics_ro EXECUTE
+function scf.actor_kind() scf_op_definer EXECUTE
+function scf.actor_kind() scf_writer EXECUTE
+function scf.audit_canonical(scf.audit_log) scf_app EXECUTE
+function scf.audit_canonical(scf.audit_log) scf_audit_definer EXECUTE
+function scf.audit_canonical(scf.audit_log) scf_definer EXECUTE
+function scf.audit_canonical(scf.audit_log) scf_jobs EXECUTE
+function scf.audit_canonical(scf.audit_log) scf_metrics_ro EXECUTE
+function scf.audit_canonical(scf.audit_log) scf_op_definer EXECUTE
+function scf.audit_canonical(scf.audit_log) scf_writer EXECUTE
+function scf.audit_chain_append() scf_audit_definer EXECUTE (definer, owner scf_audit_definer)
+function scf.audited_in_tx() scf_app EXECUTE
+function scf.audited_in_tx() scf_audit_definer EXECUTE
+function scf.audited_in_tx() scf_definer EXECUTE
+function scf.audited_in_tx() scf_jobs EXECUTE
+function scf.audited_in_tx() scf_metrics_ro EXECUTE
+function scf.audited_in_tx() scf_op_definer EXECUTE
+function scf.audited_in_tx() scf_writer EXECUTE
+function scf.claim_host(text,uuid,uuid) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.claim_host(text,uuid,uuid) scf_jobs EXECUTE (definer, owner scf_definer)
+function scf.cross_tenant_read_ok() scf_app EXECUTE
+function scf.cross_tenant_read_ok() scf_definer EXECUTE
+function scf.cross_tenant_read_ok() scf_jobs EXECUTE
+function scf.cross_tenant_read_ok() scf_metrics_ro EXECUTE
+function scf.cross_tenant_read_ok() scf_op_definer EXECUTE
+function scf.cross_tenant_read_ok() scf_writer EXECUTE
+function scf.current_actor() scf_app EXECUTE
+function scf.current_actor() scf_definer EXECUTE
+function scf.current_actor() scf_jobs EXECUTE
+function scf.current_actor() scf_metrics_ro EXECUTE
+function scf.current_actor() scf_op_definer EXECUTE
+function scf.current_actor() scf_writer EXECUTE
+function scf.current_actor_user() scf_app EXECUTE
+function scf.current_actor_user() scf_definer EXECUTE
+function scf.current_actor_user() scf_jobs EXECUTE
+function scf.current_actor_user() scf_metrics_ro EXECUTE
+function scf.current_actor_user() scf_op_definer EXECUTE
+function scf.current_actor_user() scf_writer EXECUTE
+function scf.current_job() scf_app EXECUTE
+function scf.current_job() scf_definer EXECUTE
+function scf.current_job() scf_jobs EXECUTE
+function scf.current_job() scf_metrics_ro EXECUTE
+function scf.current_job() scf_op_definer EXECUTE
+function scf.current_job() scf_writer EXECUTE
+function scf.current_tenant() scf_app EXECUTE
+function scf.current_tenant() scf_definer EXECUTE
+function scf.current_tenant() scf_jobs EXECUTE
+function scf.current_tenant() scf_metrics_ro EXECUTE
+function scf.current_tenant() scf_op_definer EXECUTE
+function scf.current_tenant() scf_writer EXECUTE
+function scf.drop_expired_partitions() scf_jobs EXECUTE (definer, owner scf_migrator)
+function scf.ensure_partitions() scf_jobs EXECUTE (definer, owner scf_migrator)
+function scf.erasure_redact_selectors(integer) scf_jobs EXECUTE
+function scf.explicit15_bounds() scf_app EXECUTE
+function scf.explicit15_bounds() scf_jobs EXECUTE
+function scf.explicit15_bounds() scf_metrics_ro EXECUTE
+function scf.explicit15_bounds() scf_op_definer EXECUTE
+function scf.explicit15_bounds() scf_writer EXECUTE
+function scf.hist_acc(bigint[],integer[]) scf_app EXECUTE
+function scf.hist_acc(bigint[],integer[]) scf_jobs EXECUTE
+function scf.hist_acc(bigint[],integer[]) scf_metrics_ro EXECUTE
+function scf.hist_acc(bigint[],integer[]) scf_op_definer EXECUTE
+function scf.hist_acc(bigint[],integer[]) scf_writer EXECUTE
+function scf.hist_add(integer[],integer[]) scf_app EXECUTE
+function scf.hist_add(integer[],integer[]) scf_jobs EXECUTE
+function scf.hist_add(integer[],integer[]) scf_metrics_ro EXECUTE
+function scf.hist_add(integer[],integer[]) scf_op_definer EXECUTE
+function scf.hist_add(integer[],integer[]) scf_writer EXECUTE
+function scf.hist_add8(bigint[],bigint[]) scf_app EXECUTE
+function scf.hist_add8(bigint[],bigint[]) scf_jobs EXECUTE
+function scf.hist_add8(bigint[],bigint[]) scf_metrics_ro EXECUTE
+function scf.hist_add8(bigint[],bigint[]) scf_op_definer EXECUTE
+function scf.hist_add8(bigint[],bigint[]) scf_writer EXECUTE
+function scf.hist_exp3_to_explicit15(bigint[]) scf_app EXECUTE
+function scf.hist_exp3_to_explicit15(bigint[]) scf_jobs EXECUTE
+function scf.hist_exp3_to_explicit15(bigint[]) scf_metrics_ro EXECUTE
+function scf.hist_exp3_to_explicit15(bigint[]) scf_op_definer EXECUTE
+function scf.hist_exp3_to_explicit15(bigint[]) scf_writer EXECUTE
+function scf.hist_merge_fits(scf.hist_kind,integer[],scf.hist_kind,integer[]) scf_app EXECUTE
+function scf.hist_merge_fits(scf.hist_kind,integer[],scf.hist_kind,integer[]) scf_jobs EXECUTE
+function scf.hist_merge_fits(scf.hist_kind,integer[],scf.hist_kind,integer[]) scf_metrics_ro EXECUTE
+function scf.hist_merge_fits(scf.hist_kind,integer[],scf.hist_kind,integer[]) scf_op_definer EXECUTE
+function scf.hist_merge_fits(scf.hist_kind,integer[],scf.hist_kind,integer[]) scf_writer EXECUTE
+function scf.hist_quantile(scf.hist_kind,bigint[],double precision,double precision,double precision) scf_app EXECUTE
+function scf.hist_quantile(scf.hist_kind,bigint[],double precision,double precision,double precision) scf_jobs EXECUTE
+function scf.hist_quantile(scf.hist_kind,bigint[],double precision,double precision,double precision) scf_metrics_ro EXECUTE
+function scf.hist_quantile(scf.hist_kind,bigint[],double precision,double precision,double precision) scf_op_definer EXECUTE
+function scf.hist_quantile(scf.hist_kind,bigint[],double precision,double precision,double precision) scf_writer EXECUTE
+function scf.hist_quantile_exp3(bigint[],double precision,double precision,double precision) scf_app EXECUTE
+function scf.hist_quantile_exp3(bigint[],double precision,double precision,double precision) scf_jobs EXECUTE
+function scf.hist_quantile_exp3(bigint[],double precision,double precision,double precision) scf_metrics_ro EXECUTE
+function scf.hist_quantile_exp3(bigint[],double precision,double precision,double precision) scf_op_definer EXECUTE
+function scf.hist_quantile_exp3(bigint[],double precision,double precision,double precision) scf_writer EXECUTE
+function scf.hist_quantile_explicit15(bigint[],double precision,double precision,double precision) scf_app EXECUTE
+function scf.hist_quantile_explicit15(bigint[],double precision,double precision,double precision) scf_jobs EXECUTE
+function scf.hist_quantile_explicit15(bigint[],double precision,double precision,double precision) scf_metrics_ro EXECUTE
+function scf.hist_quantile_explicit15(bigint[],double precision,double precision,double precision) scf_op_definer EXECUTE
+function scf.hist_quantile_explicit15(bigint[],double precision,double precision,double precision) scf_writer EXECUTE
+function scf.hist_sum(integer[]) scf_app EXECUTE
+function scf.hist_sum(integer[]) scf_jobs EXECUTE
+function scf.hist_sum(integer[]) scf_metrics_ro EXECUTE
+function scf.hist_sum(integer[]) scf_op_definer EXECUTE
+function scf.hist_sum(integer[]) scf_writer EXECUTE
+function scf.hist_to_explicit15(scf.hist_kind,integer[]) scf_app EXECUTE
+function scf.hist_to_explicit15(scf.hist_kind,integer[]) scf_jobs EXECUTE
+function scf.hist_to_explicit15(scf.hist_kind,integer[]) scf_metrics_ro EXECUTE
+function scf.hist_to_explicit15(scf.hist_kind,integer[]) scf_op_definer EXECUTE
+function scf.hist_to_explicit15(scf.hist_kind,integer[]) scf_writer EXECUTE
+function scf.host_owner_check() scf_definer EXECUTE (definer, owner scf_definer)
+function scf.is_preferred_group(uuid,uuid,date,bigint) scf_app EXECUTE
+function scf.is_preferred_group(uuid,uuid,date,bigint) scf_jobs EXECUTE
+function scf.is_preferred_group(uuid,uuid,date,bigint) scf_op_definer EXECUTE
+function scf.is_tombstoned(text,text) scf_app EXECUTE (definer, owner scf_definer)
+function scf.is_tombstoned(text,text) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.is_tombstoned(text,text) scf_jobs EXECUTE (definer, owner scf_definer)
+function scf.job_queue(text) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.job_queue(text) scf_jobs EXECUTE (definer, owner scf_definer)
+function scf.lookup_footprint_key(text) scf_app EXECUTE (definer, owner scf_definer)
+function scf.lookup_footprint_key(text) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.lookup_share_key(text) scf_app EXECUTE (definer, owner scf_definer)
+function scf.lookup_share_key(text) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.op_add_annotation(uuid,uuid,uuid,timestamp with time zone,timestamp with time zone,text,text[],boolean) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_add_annotation(uuid,uuid,uuid,timestamp with time zone,timestamp with time zone,text,text[],boolean) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_api_assurance(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_api_assurance(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_api_assurance(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_api_metrics(timestamp with time zone,timestamp with time zone,text,text,uuid[],uuid[],smallint) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_api_metrics(timestamp with time zone,timestamp with time zone,text,text,uuid[],uuid[],smallint) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_api_metrics(timestamp with time zone,timestamp with time zone,text,text,uuid[],uuid[],smallint) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_approve_tenant_evidence(uuid,text) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_approve_tenant_evidence(uuid,text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_audit_list(timestamp with time zone,timestamp with time zone,uuid,text,integer,timestamp with time zone,uuid,bigint) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_audit_list(timestamp with time zone,timestamp with time zone,uuid,text,integer,timestamp with time zone,uuid,bigint) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_authorize(text,boolean,boolean) scf_op_definer EXECUTE
+function scf.op_begin(text,text,uuid[],jsonb,boolean,boolean,text) scf_op_definer EXECUTE
+function scf.op_cohorts(timestamp with time zone,timestamp with time zone,text,smallint) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_cohorts(timestamp with time zone,timestamp with time zone,text,smallint) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_cohorts(timestamp with time zone,timestamp with time zone,text,smallint) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_count(bigint) scf_app EXECUTE
+function scf.op_count(bigint) scf_definer EXECUTE
+function scf.op_count(bigint) scf_jobs EXECUTE
+function scf.op_count(bigint) scf_metrics_ro EXECUTE
+function scf.op_count(bigint) scf_op_definer EXECUTE
+function scf.op_count(bigint) scf_writer EXECUTE
+function scf.op_eligible_tenants(smallint,uuid[],scf.tenant_status[]) scf_op_definer EXECUTE
+function scf.op_enrolment_summary() scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_enrolment_summary() scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_erasure_requests(timestamp with time zone,timestamp with time zone,uuid,scf.erasure_status[]) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_erasure_requests(timestamp with time zone,timestamp with time zone,uuid,scf.erasure_status[]) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_footprint(uuid[],text) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_footprint(uuid[],text) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_footprint(uuid[],text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_footprint_reject(uuid,uuid) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_footprint_reject(uuid,uuid) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_key_url_exposed(text,bytea) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_key_url_exposed(text,bytea) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_lift_tombstone(uuid) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_lift_tombstone(uuid) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_metrics_document(text) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_metrics_document(text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_onchain(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_onchain(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_onchain(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_projects(smallint,scf.tenant_status[],text) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_projects(smallint,scf.tenant_status[],text) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_projects(smallint,scf.tenant_status[],text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_protocol_usage(timestamp with time zone,timestamp with time zone,text) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_protocol_usage(timestamp with time zone,timestamp with time zone,text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_registry_coverage(integer) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_registry_coverage(integer) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_registry_link_decide(uuid,uuid,text) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_registry_link_decide(uuid,uuid,text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_resolve_domain_dispute(uuid,uuid,text) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_resolve_domain_dispute(uuid,uuid,text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_set_site_multiplicity_mode(uuid,uuid,text) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_set_site_multiplicity_mode(uuid,uuid,text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_tenant_detail(uuid) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_tenant_detail(uuid) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_tenant_transition(uuid,text,text,text) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_tenant_transition(uuid,text,text,text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_trust(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_trust(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_trust(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_usage_map(timestamp with time zone,timestamp with time zone,text) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_usage_map(timestamp with time zone,timestamp with time zone,text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_usage_map_project(uuid,timestamp with time zone,timestamp with time zone,text) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_usage_map_project(uuid,timestamp with time zone,timestamp with time zone,text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_web_breakdown(timestamp with time zone,timestamp with time zone,scf.web_dimension,scf.web_variant,uuid[],smallint,integer,text) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_web_breakdown(timestamp with time zone,timestamp with time zone,scf.web_dimension,scf.web_variant,uuid[],smallint,integer,text) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_web_breakdown(timestamp with time zone,timestamp with time zone,scf.web_dimension,scf.web_variant,uuid[],smallint,integer,text) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_web_metrics(timestamp with time zone,timestamp with time zone,text,text,scf.web_variant,uuid[],smallint) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_web_metrics(timestamp with time zone,timestamp with time zone,text,text,scf.web_variant,uuid[],smallint) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_web_metrics(timestamp with time zone,timestamp with time zone,text,text,scf.web_variant,uuid[],smallint) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.op_web_verdicts(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_app EXECUTE (definer, owner scf_op_definer)
+function scf.op_web_verdicts(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_metrics_ro EXECUTE (definer, owner scf_op_definer)
+function scf.op_web_verdicts(timestamp with time zone,timestamp with time zone,uuid[],smallint) scf_op_definer EXECUTE (definer, owner scf_op_definer)
+function scf.operator_admin_guard() scf_definer EXECUTE (definer, owner scf_definer)
+function scf.platform_role() scf_app EXECUTE
+function scf.platform_role() scf_definer EXECUTE
+function scf.platform_role() scf_jobs EXECUTE
+function scf.platform_role() scf_metrics_ro EXECUTE
+function scf.platform_role() scf_op_definer EXECUTE
+function scf.platform_role() scf_writer EXECUTE
+function scf.public_metrics_document(text,uuid) scf_app EXECUTE (definer, owner scf_definer)
+function scf.public_metrics_document(text,uuid) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.public_seal_proof(uuid) scf_app EXECUTE (definer, owner scf_definer)
+function scf.public_seal_proof(uuid) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.public_snapshot(uuid) scf_app EXECUTE (definer, owner scf_definer)
+function scf.public_snapshot(uuid) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.public_snapshot_list(text) scf_app EXECUTE (definer, owner scf_definer)
+function scf.public_snapshot_list(text) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.reauth_fresh() scf_app EXECUTE
+function scf.reauth_fresh() scf_definer EXECUTE
+function scf.reauth_fresh() scf_jobs EXECUTE
+function scf.reauth_fresh() scf_metrics_ro EXECUTE
+function scf.reauth_fresh() scf_op_definer EXECUTE
+function scf.reauth_fresh() scf_writer EXECUTE
+function scf.registry_claimants(uuid) scf_app EXECUTE (definer, owner scf_definer)
+function scf.registry_claimants(uuid) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.release_domain_claim(uuid,uuid) scf_app EXECUTE (definer, owner scf_definer)
+function scf.release_domain_claim(uuid,uuid) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.release_domain_claim(uuid,uuid) scf_jobs EXECUTE (definer, owner scf_definer)
+function scf.release_host(text,uuid) scf_app EXECUTE (definer, owner scf_definer)
+function scf.release_host(text,uuid) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.release_host(text,uuid) scf_jobs EXECUTE (definer, owner scf_definer)
+function scf.retention_apply(text,integer) scf_jobs EXECUTE
+function scf.retention_rules() scf_jobs EXECUTE
+function scf.set_tenant_ctx(uuid,text,text,text,timestamp with time zone,timestamp with time zone,text,uuid[],text,text) scf_app EXECUTE
+function scf.set_tenant_ctx(uuid,text,text,text,timestamp with time zone,timestamp with time zone,text,uuid[],text,text) scf_jobs EXECUTE
+function scf.set_tenant_ctx(uuid,text,text,text,timestamp with time zone,timestamp with time zone,text,uuid[],text,text) scf_metrics_ro EXECUTE
+function scf.set_tenant_ctx(uuid,text,text,text,timestamp with time zone,timestamp with time zone,text,uuid[],text,text) scf_writer EXECUTE
+function scf.setting_int(text) scf_app EXECUTE
+function scf.setting_int(text) scf_definer EXECUTE
+function scf.setting_int(text) scf_jobs EXECUTE
+function scf.setting_int(text) scf_metrics_ro EXECUTE
+function scf.setting_int(text) scf_op_definer EXECUTE
+function scf.setting_int(text) scf_writer EXECUTE
+function scf.site_domains_claim_sync() scf_definer EXECUTE (definer, owner scf_definer)
+function scf.sites_umami_websites() scf_definer EXECUTE (definer, owner scf_definer)
+function scf.tenant_ctx_ok() scf_app EXECUTE
+function scf.tenant_ctx_ok() scf_definer EXECUTE
+function scf.tenant_ctx_ok() scf_jobs EXECUTE
+function scf.tenant_ctx_ok() scf_metrics_ro EXECUTE
+function scf.tenant_ctx_ok() scf_op_definer EXECUTE
+function scf.tenant_ctx_ok() scf_writer EXECUTE
+function scf.utc_day_range(timestamp with time zone,timestamp with time zone,integer) scf_app EXECUTE
+function scf.utc_day_range(timestamp with time zone,timestamp with time zone,integer) scf_jobs EXECUTE
+function scf.utc_day_range(timestamp with time zone,timestamp with time zone,integer) scf_op_definer EXECUTE
+function scf.verification_level(uuid) scf_app EXECUTE
+function scf.verification_level(uuid) scf_definer EXECUTE
+function scf.verification_level(uuid) scf_jobs EXECUTE
+function scf.verification_level(uuid) scf_op_definer EXECUTE
+function scf.web_live_window_days(uuid,uuid) scf_app EXECUTE
+function scf.web_live_window_days(uuid,uuid) scf_jobs EXECUTE
+function scf.write_removal_tombstones(uuid) scf_app EXECUTE (definer, owner scf_definer)
+function scf.write_removal_tombstones(uuid) scf_definer EXECUTE (definer, owner scf_definer)
+function scf.write_removal_tombstones(uuid) scf_jobs EXECUTE (definer, owner scf_definer)
+function scf.writer_tenant_gone() scf_definer EXECUTE (definer, owner scf_definer)
+function scf.writer_tenant_gone() scf_writer EXECUTE (definer, owner scf_definer)
+policy scf.api_ingest_counters app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_ingest_counters app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_ingest_counters app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_ingest_counters jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text, 'tenant_purge'::text]))
+policy scf.api_ingest_counters jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'retention'::text, 'tenant_purge'::text]))
+policy scf.api_ingest_counters op_definer_select permissive r {scf_op_definer} USING true
+policy scf.api_ingest_counters tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_ingest_counters tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_ingest_counters writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_ingest_counters writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_ingest_counters writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_ingest_ledger jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.api_ingest_ledger jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.api_ingest_ledger tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_ingest_ledger tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_ingest_ledger writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_ingest_ledger writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1d app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1d jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['erasure'::text, 'tenant_purge'::text]))
+policy scf.api_metrics_1d jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'public_metrics'::text, 'erasure'::text, 'tenant_purge'::text]))
+policy scf.api_metrics_1d op_definer_select permissive r {scf_op_definer} USING true
+policy scf.api_metrics_1d tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_metrics_1d tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_metrics_1d writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1d writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1d writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1h app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1h jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['erasure'::text, 'tenant_purge'::text]))
+policy scf.api_metrics_1h jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'erasure'::text, 'tenant_purge'::text]))
+policy scf.api_metrics_1h op_definer_select permissive r {scf_op_definer} USING true
+policy scf.api_metrics_1h tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_metrics_1h tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_metrics_1h writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1h writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1h writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1m app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1m jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['erasure'::text, 'tenant_purge'::text]))
+policy scf.api_metrics_1m jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['erasure'::text, 'tenant_purge'::text]))
+policy scf.api_metrics_1m op_definer_select permissive r {scf_op_definer} USING true
+policy scf.api_metrics_1m tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_metrics_1m tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_metrics_1m writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1m writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_metrics_1m writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_route_day jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['stream_gc'::text, 'tenant_purge'::text]))
+policy scf.api_route_day jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['stream_gc'::text, 'tenant_purge'::text]))
+policy scf.api_route_day tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_route_day tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_route_day writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_route_day writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_routes app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_routes jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['erasure'::text, 'tenant_purge'::text]))
+policy scf.api_routes jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'erasure'::text, 'tenant_purge'::text]))
+policy scf.api_routes op_definer_select permissive r {scf_op_definer} USING true
+policy scf.api_routes tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_routes tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_routes writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_routes writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_routes writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_service_assurance app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_service_assurance jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'tenant_purge'::text]))
+policy scf.api_service_assurance jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text]))
+policy scf.api_service_assurance jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'public_metrics'::text, 'tenant_purge'::text]))
+policy scf.api_service_assurance jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text]))
+policy scf.api_service_assurance op_definer_select permissive r {scf_op_definer} USING true
+policy scf.api_service_assurance tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_service_assurance tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_service_day_groups app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_service_day_groups jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.api_service_day_groups jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'tenant_purge'::text, 'public_metrics'::text]))
+policy scf.api_service_day_groups op_definer_select permissive r {scf_op_definer} USING true
+policy scf.api_service_day_groups tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_service_day_groups tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_service_day_groups writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_service_day_groups writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_services app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_services app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_services app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_services jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.api_services jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['edge_snapshot'::text, 'trust_scoring'::text, 'public_metrics'::text, 'erasure'::text, 'tenant_purge'::text, 'stream_gc'::text]))
+policy scf.api_services op_definer_select permissive r {scf_op_definer} USING true
+policy scf.api_services tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_services tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_services writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_services writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_stream_groups app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_stream_groups jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.api_stream_groups jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'tenant_purge'::text, 'public_metrics'::text]))
+policy scf.api_stream_groups op_definer_select permissive r {scf_op_definer} USING true
+policy scf.api_stream_groups tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_stream_groups tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_stream_groups writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_stream_groups writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_stream_state jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['stream_gc'::text, 'tenant_purge'::text]))
+policy scf.api_stream_state jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['stream_gc'::text, 'tenant_purge'::text]))
+policy scf.api_stream_state tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_stream_state tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.api_stream_state writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_stream_state writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.api_stream_state writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.app_event_daily app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.app_event_daily app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.app_event_daily app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.app_event_daily tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.app_event_daily tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.audit_actions migrator_seed permissive * {scf_migrator} USING true CHECK true
+policy scf.audit_actions read_all permissive r {scf_app,scf_definer,scf_jobs,scf_metrics_ro,scf_op_definer,scf_writer} USING true
+policy scf.audit_chain_heads audit_definer_all permissive * {scf_audit_definer} USING true CHECK true
+policy scf.audit_chain_heads jobs_anchor_read permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'audit_anchor'::text)
+policy scf.audit_log audit_insert permissive a {scf_app,scf_jobs,scf_metrics_ro,scf_op_definer} CHECK ((actor_kind = ( SELECT scf.actor_kind() AS actor_kind)) AND (action IN ( SELECT x.action FROM scf.audit_actions x WHERE ((CURRENT_USER)::text = ANY (x.writers)))))
+policy scf.audit_log audit_read_jobs permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['audit_verify'::text, 'audit_anchor'::text]))
+policy scf.audit_log audit_read_own_tx permissive r {scf_app,scf_definer,scf_jobs,scf_metrics_ro,scf_writer} USING (tx_id = pg_current_xact_id())
+policy scf.audit_log audit_read_tenant permissive r {scf_app} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.audit_log op_definer_all permissive r {scf_op_definer} USING true
+policy scf.audit_log tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) OR (tx_id = pg_current_xact_id()) OR (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['audit_verify'::text, 'audit_anchor'::text]))) CHECK ((tenant_id IS NULL) OR (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)))
+policy scf.audit_log writer_insert permissive a {scf_writer} CHECK ((actor_kind = 'writer'::text) AND (action = 'service.auto_registered'::text) AND (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND (action IN ( SELECT x.action FROM scf.audit_actions x WHERE ('scf_writer'::text = ANY (x.writers)))))
+policy scf.auth_challenges app_global permissive * {scf_app} USING true CHECK true
+policy scf.auth_challenges jobs_retention permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.auth_challenges op_definer_select permissive r {scf_op_definer} USING true
+policy scf.auth_sessions app_global permissive * {scf_app} USING true CHECK true
+policy scf.auth_sessions jobs_retention permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.auth_sessions op_definer_select permissive r {scf_op_definer} USING true
+policy scf.declared_contracts app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.declared_contracts app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.declared_contracts app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.declared_contracts jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.declared_contracts jobs_protocol_usage permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'protocol_usage'::text)
+policy scf.declared_contracts jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['contract_verification'::text, 'onchain_correlation'::text, 'registry_sync'::text, 'trust_scoring'::text, 'tenant_purge'::text, 'public_metrics'::text]))
+policy scf.declared_contracts jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['contract_verification'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['contract_verification'::text]))
+policy scf.declared_contracts op_definer_select permissive r {scf_op_definer} USING true
+policy scf.declared_contracts op_definer_update permissive w {scf_op_definer} USING true CHECK true
+policy scf.declared_contracts tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.declared_contracts tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.domain_verifications app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.domain_verifications app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.domain_verifications app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.domain_verifications jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text, 'tenant_purge'::text]))
+policy scf.domain_verifications jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['domain_verification'::text, 'retention'::text, 'tenant_purge'::text]))
+policy scf.domain_verifications jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['domain_verification'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['domain_verification'::text]))
+policy scf.domain_verifications op_definer_select permissive r {scf_op_definer} USING true
+policy scf.domain_verifications op_definer_update permissive w {scf_op_definer} USING true CHECK true
+policy scf.domain_verifications tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.domain_verifications tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.durability_reports app_read permissive r {scf_app} USING (( SELECT scf.platform_role() AS platform_role) IS NOT NULL)
+policy scf.durability_reports jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.durability_reports jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = 'durability_reconcile'::text)
+policy scf.durability_reports jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['durability_reconcile'::text, 'retention'::text]))
+policy scf.durability_reports jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'durability_reconcile'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'durability_reconcile'::text)
+policy scf.edge_report_ledger app_rw permissive * {scf_app} USING true CHECK true
+policy scf.edge_report_ledger jobs_retention permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.edge_snapshots app_read permissive r {scf_app} USING true
+policy scf.edge_snapshots jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['edge_snapshot'::text, 'retention'::text]))
+policy scf.edge_snapshots jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = 'edge_snapshot'::text)
+policy scf.edge_snapshots jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['edge_snapshot'::text, 'retention'::text]))
+policy scf.edge_spool_accounting app_counters permissive * {scf_app} USING (( SELECT scf.actor_kind() AS actor_kind) = 'system'::text) CHECK (( SELECT scf.actor_kind() AS actor_kind) = 'system'::text)
+policy scf.edge_spool_accounting jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.edge_spool_accounting jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['durability_reconcile'::text, 'retention'::text]))
+policy scf.enrollment_tombstones app_admin_read permissive r {scf_app} USING (( SELECT scf.platform_role() AS platform_role) = 'operator_admin'::text)
+policy scf.enrollment_tombstones definer_all permissive * {scf_definer,scf_op_definer} USING true CHECK true
+policy scf.enrollment_tombstones jobs_purge permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'tenant_purge'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'tenant_purge'::text)
+policy scf.erasure_requests app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.erasure_requests app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.erasure_requests app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.erasure_requests definer_queue permissive r {scf_definer} USING true
+policy scf.erasure_requests jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.erasure_requests jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['erasure'::text, 'retention'::text, 'tenant_purge'::text]))
+policy scf.erasure_requests jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['erasure'::text, 'retention'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['erasure'::text, 'retention'::text]))
+policy scf.erasure_requests op_definer_select permissive r {scf_op_definer} USING true
+policy scf.erasure_requests tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.erasure_requests tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.external_identities app_global permissive * {scf_app} USING true CHECK true
+policy scf.external_identities definer_select permissive r {scf_definer} USING true
+policy scf.external_identities jobs_retention permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.external_identities op_definer_select permissive r {scf_op_definer} USING true
+policy scf.footprint_items app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.footprint_items app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.footprint_items app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.footprint_items jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text, 'tenant_purge'::text]))
+policy scf.footprint_items jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['contract_verification'::text, 'onchain_correlation'::text, 'registry_sync'::text, 'trust_scoring'::text, 'retention'::text, 'tenant_purge'::text]))
+policy scf.footprint_items jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['contract_verification'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['contract_verification'::text]))
+policy scf.footprint_items op_definer_select permissive r {scf_op_definer} USING true
+policy scf.footprint_items op_definer_update permissive w {scf_op_definer} USING true CHECK true
+policy scf.footprint_items tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.footprint_items tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.footprint_keys app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.footprint_keys app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.footprint_keys app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.footprint_keys definer_lookup permissive r {scf_definer} USING true
+policy scf.footprint_keys jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.footprint_keys jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.footprint_keys tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.footprint_keys tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.hist_exp3_map migrator_seed permissive * {scf_migrator} USING true CHECK true
+policy scf.hist_exp3_map read_all permissive r {scf_app,scf_jobs,scf_op_definer,scf_writer} USING true
+policy scf.host_claims app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.host_claims definer_claims permissive * {scf_definer} USING true CHECK true
+policy scf.host_claims jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['edge_snapshot'::text, 'tenant_purge'::text]))
+policy scf.host_claims op_definer_insert permissive a {scf_op_definer} CHECK true
+policy scf.host_claims op_definer_select permissive r {scf_op_definer} USING true
+policy scf.host_claims op_definer_update permissive w {scf_op_definer} USING true CHECK true
+policy scf.host_claims tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.host_claims tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.ingest_tokens app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.ingest_tokens app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.ingest_tokens app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.ingest_tokens jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.ingest_tokens jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['edge_snapshot'::text, 'tenant_purge'::text]))
+policy scf.ingest_tokens op_definer_select permissive r {scf_op_definer} USING true
+policy scf.ingest_tokens tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.ingest_tokens tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.integration_metrics_1d app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.integration_metrics_1d jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.integration_metrics_1d jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.integration_metrics_1d tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.integration_metrics_1d tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.integration_metrics_1d writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.integration_metrics_1d writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.integration_metrics_1d writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.integration_metrics_1h app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.integration_metrics_1h jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.integration_metrics_1h jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.integration_metrics_1h tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.integration_metrics_1h tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.integration_metrics_1h writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.integration_metrics_1h writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.integration_metrics_1h writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.integration_stream_state jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['stream_gc'::text]))
+policy scf.integration_stream_state jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['stream_gc'::text]))
+policy scf.integration_stream_state tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.integration_stream_state tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.integration_stream_state writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.integration_stream_state writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.integration_stream_state writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.memberships app_delete permissive d {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.memberships app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.memberships app_select permissive r {scf_app} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) OR (user_id = ( SELECT scf.current_actor_user() AS current_actor_user)))
+policy scf.memberships app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.memberships definer_accept permissive * {scf_definer} USING true CHECK true
+policy scf.memberships jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'tenant_purge'::text)
+policy scf.memberships jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'tenant_purge'::text)
+policy scf.memberships op_definer_select permissive r {scf_op_definer} USING true
+policy scf.memberships tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok) OR (( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok) AND (user_id = ( SELECT scf.current_actor_user() AS current_actor_user)))) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.memberships tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.oauth_clients app_global permissive * {scf_app} USING true CHECK true
+policy scf.oauth_clients jobs_retention permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.oauth_codes app_global permissive * {scf_app} USING true CHECK true
+policy scf.oauth_codes jobs_retention permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.oauth_grants app_global permissive * {scf_app} USING true CHECK true
+policy scf.oauth_grants jobs_retention permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.oauth_requests app_global permissive * {scf_app} USING true CHECK true
+policy scf.oauth_requests jobs_retention permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.oauth_tokens app_global permissive * {scf_app} USING true CHECK true
+policy scf.oauth_tokens jobs_retention permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.onchain_daily app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.onchain_daily jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.onchain_daily jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['onchain_correlation'::text]))
+policy scf.onchain_daily jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['onchain_correlation'::text, 'trust_scoring'::text, 'tenant_purge'::text, 'public_metrics'::text]))
+policy scf.onchain_daily jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['onchain_correlation'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['onchain_correlation'::text]))
+policy scf.onchain_daily op_definer_select permissive r {scf_op_definer} USING true
+policy scf.onchain_daily tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.onchain_daily tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.operator_api_keys app_admin_insert permissive a {scf_app} CHECK ((( SELECT scf.platform_role() AS platform_role) = 'operator_admin'::text) AND ( SELECT scf.audited_in_tx() AS audited_in_tx))
+policy scf.operator_api_keys app_admin_update permissive w {scf_app} USING ((( SELECT scf.platform_role() AS platform_role) = 'operator_admin'::text) AND ( SELECT scf.audited_in_tx() AS audited_in_tx)) CHECK ((( SELECT scf.platform_role() AS platform_role) = 'operator_admin'::text) AND ( SELECT scf.audited_in_tx() AS audited_in_tx))
+policy scf.operator_api_keys app_read permissive r {scf_app} USING (( SELECT scf.platform_role() AS platform_role) IS NOT NULL)
+policy scf.operator_api_keys metrics_ro_touch permissive w {scf_metrics_ro} USING true CHECK true
+policy scf.operator_api_keys metrics_ro_verify permissive r {scf_metrics_ro} USING true
+policy scf.operator_api_keys op_definer_read permissive r {scf_op_definer} USING true
+policy scf.operator_api_keys op_definer_revoke permissive w {scf_op_definer} USING (revoked_at IS NULL) CHECK (revoked_at IS NOT NULL)
+policy scf.passkey_credentials app_global permissive * {scf_app} USING true CHECK true
+policy scf.passkey_credentials jobs_retention permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.passkey_credentials op_definer_select permissive r {scf_op_definer} USING true
+policy scf.platform_operators app_admin_insert permissive a {scf_app} CHECK ((( SELECT scf.platform_role() AS platform_role) = 'operator_admin'::text) AND ( SELECT scf.audited_in_tx() AS audited_in_tx))
+policy scf.platform_operators app_admin_update permissive w {scf_app} USING ((( SELECT scf.platform_role() AS platform_role) = 'operator_admin'::text) AND ( SELECT scf.audited_in_tx() AS audited_in_tx)) CHECK ((( SELECT scf.platform_role() AS platform_role) = 'operator_admin'::text) AND ( SELECT scf.audited_in_tx() AS audited_in_tx))
+policy scf.platform_operators app_read permissive r {scf_app} USING true
+policy scf.platform_operators definer_lock permissive w {scf_definer} USING true CHECK false
+policy scf.platform_operators definer_select permissive r {scf_definer} USING true
+policy scf.protocol_usage_days jobs_protocol_usage permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'protocol_usage'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'protocol_usage'::text)
+policy scf.protocol_usage_days op_definer_select permissive r {scf_op_definer} USING true
+policy scf.protocol_usage_days tenant_days permissive r {scf_app} USING (scf.tenant_ctx_ok() AND (scf.current_tenant() IS NOT NULL))
+policy scf.protocol_usage_network_daily jobs_protocol_usage permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'protocol_usage'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'protocol_usage'::text)
+policy scf.protocol_usage_network_daily op_definer_select permissive r {scf_op_definer} USING true
+policy scf.protocol_usage_project_daily jobs_protocol_usage permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'protocol_usage'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'protocol_usage'::text)
+policy scf.protocol_usage_project_daily op_definer_select permissive r {scf_op_definer} USING true
+policy scf.protocol_usage_tenant_daily app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.protocol_usage_tenant_daily jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['protocol_usage'::text, 'tenant_purge'::text]))
+policy scf.protocol_usage_tenant_daily jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['protocol_usage'::text]))
+policy scf.protocol_usage_tenant_daily jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['protocol_usage'::text, 'tenant_purge'::text]))
+policy scf.protocol_usage_tenant_daily op_definer_select permissive r {scf_op_definer} USING true
+policy scf.protocol_usage_tenant_daily tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.protocol_usage_tenant_daily tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.public_metrics_documents app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.public_metrics_documents definer_public permissive r {scf_definer} USING true
+policy scf.public_metrics_documents jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['public_metrics'::text, 'tenant_purge'::text]))
+policy scf.public_metrics_documents jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['public_metrics'::text]))
+policy scf.public_metrics_documents jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['public_metrics'::text, 'tenant_purge'::text]))
+policy scf.public_metrics_documents jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['public_metrics'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['public_metrics'::text]))
+policy scf.public_metrics_documents op_definer_select permissive r {scf_op_definer} USING true
+policy scf.public_metrics_documents tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.public_metrics_documents tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.rate_limit_buckets app_rw permissive * {scf_app} USING true CHECK true
+policy scf.registry_projects definer_select permissive r {scf_definer} USING true
+policy scf.registry_projects jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.registry_projects jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = 'registry_sync'::text)
+policy scf.registry_projects jobs_protocol_usage permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'protocol_usage'::text)
+policy scf.registry_projects jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['registry_sync'::text, 'trust_scoring'::text, 'retention'::text, 'public_metrics'::text]))
+policy scf.registry_projects jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'registry_sync'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'registry_sync'::text)
+policy scf.registry_projects jobs_usage_map permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'usage_map'::text)
+policy scf.registry_projects read_all permissive r {scf_app,scf_metrics_ro,scf_op_definer} USING true
+policy scf.registry_sync_runs jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.registry_sync_runs jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = 'registry_sync'::text)
+policy scf.registry_sync_runs jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['registry_sync'::text, 'retention'::text]))
+policy scf.registry_sync_runs jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'registry_sync'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'registry_sync'::text)
+policy scf.registry_sync_runs read_all permissive r {scf_app,scf_metrics_ro,scf_op_definer} USING true
+policy scf.seal_days jobs_audit_verify_read permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'audit_verify'::text)
+policy scf.seal_days jobs_seal permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'daily_seal'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'daily_seal'::text)
+policy scf.seal_days read_all permissive r {scf_app,scf_definer,scf_metrics_ro} USING true
+policy scf.seal_leaves app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.seal_leaves definer_public permissive r {scf_definer} USING true
+policy scf.seal_leaves jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['daily_seal'::text, 'tenant_purge'::text]))
+policy scf.seal_leaves jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['daily_seal'::text]))
+policy scf.seal_leaves jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['daily_seal'::text, 'tenant_purge'::text]))
+policy scf.seal_leaves tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.seal_leaves tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.sealed_audit_anchors jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = 'daily_seal'::text)
+policy scf.sealed_audit_anchors jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['daily_seal'::text, 'audit_verify'::text]))
+policy scf.sealed_audit_anchors read_all permissive r {scf_app} USING true
+policy scf.settings migrator_seed permissive * {scf_migrator} USING true CHECK true
+policy scf.settings settings_read permissive r {scf_app,scf_definer,scf_jobs,scf_metrics_ro,scf_op_definer,scf_writer} USING true
+policy scf.settings settings_write permissive w {scf_app} USING ((( SELECT scf.platform_role() AS platform_role) = 'operator_admin'::text) AND ( SELECT scf.audited_in_tx() AS audited_in_tx)) CHECK ((( SELECT scf.platform_role() AS platform_role) = 'operator_admin'::text) AND ( SELECT scf.audited_in_tx() AS audited_in_tx))
+policy scf.share_keys app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.share_keys app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.share_keys app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.share_keys definer_lookup permissive * {scf_definer} USING true CHECK true
+policy scf.share_keys jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.share_keys jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.share_keys tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.share_keys tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.site_domains app_delete permissive d {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.site_domains app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.site_domains app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.site_domains definer_dispute permissive w {scf_definer} USING true CHECK true
+policy scf.site_domains definer_select permissive r {scf_definer} USING true
+policy scf.site_domains jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.site_domains jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['edge_snapshot'::text, 'domain_verification'::text, 'registry_sync'::text, 'tenant_purge'::text]))
+policy scf.site_domains jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['domain_verification'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['domain_verification'::text]))
+policy scf.site_domains op_definer_select permissive r {scf_op_definer} USING true
+policy scf.site_domains op_definer_update permissive w {scf_op_definer} USING true CHECK true
+policy scf.site_domains tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.site_domains tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.sites app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.sites app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.sites app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.sites jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.sites jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['edge_snapshot'::text, 'web_rollup'::text, 'trust_scoring'::text, 'erasure'::text, 'tenant_purge'::text, 'public_metrics'::text, 'umami_reconcile'::text, 'retention'::text, 'durability_reconcile'::text]))
+policy scf.sites jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text, 'umami_reconcile'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text, 'umami_reconcile'::text]))
+policy scf.sites op_definer_select permissive r {scf_op_definer} USING true
+policy scf.sites op_definer_update permissive w {scf_op_definer} USING true CHECK true
+policy scf.sites tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.sites tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.stellar_client_1d app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_1d jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.stellar_client_1d jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.stellar_client_1d tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.stellar_client_1d tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.stellar_client_1d writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_1d writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_1d writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_1h app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_1h jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.stellar_client_1h jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.stellar_client_1h tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.stellar_client_1h tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.stellar_client_1h writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_1h writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_1h writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_1m app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_1m jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.stellar_client_1m jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.stellar_client_1m tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.stellar_client_1m tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.stellar_client_1m writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_1m writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_1m writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_stream_state jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['stream_gc'::text]))
+policy scf.stellar_client_stream_state jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['stream_gc'::text]))
+policy scf.stellar_client_stream_state tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.stellar_client_stream_state tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.stellar_client_stream_state writer_insert permissive a {scf_writer} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_stream_state writer_select permissive r {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.stellar_client_stream_state writer_update permissive w {scf_writer} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.tenant_invitations app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.tenant_invitations app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.tenant_invitations app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.tenant_invitations definer_accept permissive * {scf_definer} USING true CHECK true
+policy scf.tenant_invitations jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text, 'tenant_purge'::text]))
+policy scf.tenant_invitations jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text, 'tenant_purge'::text]))
+policy scf.tenant_invitations tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.tenant_invitations tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.tenant_registry_links app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.tenant_registry_links definer_select permissive r {scf_definer} USING true
+policy scf.tenant_registry_links jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.tenant_registry_links jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['registry_sync'::text]))
+policy scf.tenant_registry_links jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['registry_sync'::text, 'tenant_purge'::text, 'retention'::text, 'public_metrics'::text]))
+policy scf.tenant_registry_links jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['registry_sync'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['registry_sync'::text]))
+policy scf.tenant_registry_links op_definer_insert permissive a {scf_op_definer} CHECK true
+policy scf.tenant_registry_links op_definer_select permissive r {scf_op_definer} USING true
+policy scf.tenant_registry_links op_definer_update permissive w {scf_op_definer} USING true CHECK true
+policy scf.tenant_registry_links tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.tenant_registry_links tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.tenants app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.tenants app_select permissive r {scf_app} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) OR (EXISTS ( SELECT 1 FROM scf.memberships m WHERE ((m.tenant_id = tenants.tenant_id) AND (m.user_id = ( SELECT scf.current_actor_user() AS current_actor_user))))))
+policy scf.tenants app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.tenants definer_select permissive r {scf_definer} USING true
+policy scf.tenants jobs_protocol_usage permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'protocol_usage'::text)
+policy scf.tenants jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) IS NOT NULL)
+policy scf.tenants jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'tenant_purge'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'tenant_purge'::text)
+policy scf.tenants op_definer_select permissive r {scf_op_definer} USING true
+policy scf.tenants op_definer_update permissive w {scf_op_definer} USING true CHECK true
+policy scf.tenants tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok) OR (( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok) AND (EXISTS ( SELECT 1 FROM scf.memberships m WHERE ((m.tenant_id = tenants.tenant_id) AND (m.user_id = ( SELECT scf.current_actor_user() AS current_actor_user))))))) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.tenants tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.traction_snapshots app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.traction_snapshots app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.traction_snapshots app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.traction_snapshots definer_public permissive r {scf_definer} USING true
+policy scf.traction_snapshots jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.traction_snapshots jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text, 'public_metrics'::text, 'daily_seal'::text]))
+policy scf.traction_snapshots jobs_update permissive w {scf_jobs} USING ((( SELECT scf.current_job() AS current_job) = 'public_metrics'::text) AND (signature IS NULL)) CHECK (( SELECT scf.current_job() AS current_job) = 'public_metrics'::text)
+policy scf.traction_snapshots tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.traction_snapshots tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.trust_annotations app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.trust_annotations app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.trust_annotations jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.trust_annotations jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'tenant_purge'::text, 'public_metrics'::text]))
+policy scf.trust_annotations op_definer_insert permissive a {scf_op_definer} CHECK true
+policy scf.trust_annotations op_definer_select permissive r {scf_op_definer} USING true
+policy scf.trust_annotations tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.trust_annotations tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.umami_credentials app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.umami_credentials jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.umami_credentials jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['umami_reconcile'::text]))
+policy scf.umami_credentials jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['umami_reconcile'::text, 'erasure'::text, 'tenant_purge'::text, 'durability_reconcile'::text]))
+policy scf.umami_credentials jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['umami_reconcile'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['umami_reconcile'::text]))
+policy scf.umami_credentials tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.umami_credentials tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.umami_websites definer_ids permissive * {scf_definer} USING true CHECK true
+policy scf.umami_websites tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.umami_websites tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.usage_map_contract_daily jobs_usage_map permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'usage_map'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'usage_map'::text)
+policy scf.usage_map_contract_daily op_definer_select permissive r {scf_op_definer} USING true
+policy scf.usage_map_contract_daily tenant_claimed permissive r {scf_app} USING (scf.tenant_ctx_ok() AND (EXISTS ( SELECT 1 FROM (scf.tenant_registry_links l JOIN scf.registry_projects p USING (registry_project_id)) WHERE ((l.tenant_id = scf.current_tenant()) AND (l.status = 'confirmed'::text) AND (usage_map_contract_daily.contract_id = ANY (p.contract_ids))))))
+policy scf.usage_map_days jobs_usage_map permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'usage_map'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'usage_map'::text)
+policy scf.usage_map_days op_definer_select permissive r {scf_op_definer} USING true
+policy scf.usage_map_days tenant_days permissive r {scf_app} USING (scf.tenant_ctx_ok() AND (scf.current_tenant() IS NOT NULL))
+policy scf.usage_map_function_daily jobs_usage_map permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'usage_map'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'usage_map'::text)
+policy scf.usage_map_function_daily op_definer_select permissive r {scf_op_definer} USING true
+policy scf.usage_map_function_daily tenant_claimed permissive r {scf_app} USING (scf.tenant_ctx_ok() AND (EXISTS ( SELECT 1 FROM (scf.tenant_registry_links l JOIN scf.registry_projects p USING (registry_project_id)) WHERE ((l.tenant_id = scf.current_tenant()) AND (l.status = 'confirmed'::text) AND (usage_map_function_daily.contract_id = ANY (p.contract_ids))))))
+policy scf.usage_map_project_daily jobs_usage_map permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'usage_map'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'usage_map'::text)
+policy scf.usage_map_project_daily op_definer_select permissive r {scf_op_definer} USING true
+policy scf.usage_map_project_daily tenant_claimed permissive r {scf_app} USING (scf.tenant_ctx_ok() AND (EXISTS ( SELECT 1 FROM scf.tenant_registry_links l WHERE ((l.tenant_id = scf.current_tenant()) AND (l.registry_project_id = usage_map_project_daily.registry_project_id) AND (l.status = 'confirmed'::text)))))
+policy scf.usage_map_project_weekly jobs_usage_map permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'usage_map'::text) CHECK (( SELECT scf.current_job() AS current_job) = 'usage_map'::text)
+policy scf.usage_map_project_weekly op_definer_select permissive r {scf_op_definer} USING true
+policy scf.usage_map_project_weekly tenant_claimed permissive r {scf_app} USING (scf.tenant_ctx_ok() AND (EXISTS ( SELECT 1 FROM scf.tenant_registry_links l WHERE ((l.tenant_id = scf.current_tenant()) AND (l.registry_project_id = usage_map_project_weekly.registry_project_id) AND (l.status = 'confirmed'::text)))))
+policy scf.users app_global permissive * {scf_app} USING true CHECK true
+policy scf.users definer_select permissive r {scf_definer} USING true
+policy scf.users jobs_retention permissive * {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = 'retention'::text)
+policy scf.users op_definer_select permissive r {scf_op_definer} USING true
+policy scf.verification_evidence app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.verification_evidence app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.verification_evidence app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.verification_evidence definer_lapse permissive w {scf_definer} USING true CHECK true
+policy scf.verification_evidence definer_select permissive r {scf_definer} USING true
+policy scf.verification_evidence jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.verification_evidence jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['domain_verification'::text, 'registry_sync'::text]))
+policy scf.verification_evidence jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['domain_verification'::text, 'registry_sync'::text, 'contract_verification'::text, 'trust_scoring'::text, 'edge_snapshot'::text, 'public_metrics'::text, 'tenant_purge'::text]))
+policy scf.verification_evidence jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['domain_verification'::text, 'registry_sync'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['domain_verification'::text, 'registry_sync'::text]))
+policy scf.verification_evidence op_definer_insert permissive a {scf_op_definer} CHECK true
+policy scf.verification_evidence op_definer_select permissive r {scf_op_definer} USING true
+policy scf.verification_evidence op_definer_update permissive w {scf_op_definer} USING true CHECK true
+policy scf.verification_evidence tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.verification_evidence tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_daily_breakdowns app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_daily_breakdowns jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'erasure'::text, 'tenant_purge'::text]))
+policy scf.web_daily_breakdowns jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'erasure'::text]))
+policy scf.web_daily_breakdowns jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'trust_scoring'::text, 'erasure'::text, 'tenant_purge'::text]))
+policy scf.web_daily_breakdowns jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'erasure'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'erasure'::text]))
+policy scf.web_daily_breakdowns op_definer_select permissive r {scf_op_definer} USING true
+policy scf.web_daily_breakdowns tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_daily_breakdowns tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_daily_totals app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_daily_totals jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'erasure'::text, 'tenant_purge'::text]))
+policy scf.web_daily_totals jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'erasure'::text]))
+policy scf.web_daily_totals jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'trust_scoring'::text, 'erasure'::text, 'public_metrics'::text, 'tenant_purge'::text]))
+policy scf.web_daily_totals jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'erasure'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'erasure'::text]))
+policy scf.web_daily_totals op_definer_select permissive r {scf_op_definer} USING true
+policy scf.web_daily_totals tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_daily_totals tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_dev_events app_delete permissive d {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_dev_events app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_dev_events app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_dev_events jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text, 'tenant_purge'::text, 'erasure'::text]))
+policy scf.web_dev_events jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text, 'tenant_purge'::text, 'erasure'::text]))
+policy scf.web_dev_events tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_dev_events tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_edge_counters app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_edge_counters app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_edge_counters app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_edge_counters jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text, 'tenant_purge'::text]))
+policy scf.web_edge_counters jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'edge_snapshot'::text, 'retention'::text, 'tenant_purge'::text, 'public_metrics'::text]))
+policy scf.web_edge_counters op_definer_select permissive r {scf_op_definer} USING true
+policy scf.web_edge_counters tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_edge_counters tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_event_property_daily app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_event_property_daily app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_event_property_daily app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_event_property_daily jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['tenant_purge'::text]))
+policy scf.web_event_property_daily jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'public_metrics'::text, 'tenant_purge'::text]))
+policy scf.web_event_property_daily op_definer_select permissive r {scf_op_definer} USING true
+policy scf.web_event_property_daily tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_event_property_daily tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_hourly_totals app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_hourly_totals jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'tenant_purge'::text]))
+policy scf.web_hourly_totals jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text]))
+policy scf.web_hourly_totals jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text, 'tenant_purge'::text, 'trust_scoring'::text]))
+policy scf.web_hourly_totals jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['web_rollup'::text]))
+policy scf.web_hourly_totals tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_hourly_totals tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_rpc_client_daily app_insert permissive a {scf_app} CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_rpc_client_daily app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_rpc_client_daily app_update permissive w {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) CHECK (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_rpc_client_daily jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.web_rpc_client_daily jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['retention'::text]))
+policy scf.web_rpc_client_daily tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_rpc_client_daily tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_trust_scores app_select permissive r {scf_app} USING (tenant_id = ( SELECT scf.current_tenant() AS current_tenant))
+policy scf.web_trust_scores jobs_delete permissive d {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'tenant_purge'::text]))
+policy scf.web_trust_scores jobs_insert permissive a {scf_jobs} CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text]))
+policy scf.web_trust_scores jobs_select permissive r {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text, 'public_metrics'::text, 'tenant_purge'::text]))
+policy scf.web_trust_scores jobs_update permissive w {scf_jobs} USING (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text])) CHECK (( SELECT scf.current_job() AS current_job) = ANY (ARRAY['trust_scoring'::text]))
+policy scf.web_trust_scores op_definer_select permissive r {scf_op_definer} USING true
+policy scf.web_trust_scores tenant_backstop RESTRICTIVE * {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING (((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok)) OR ( SELECT scf.cross_tenant_read_ok() AS cross_tenant_read_ok)) CHECK ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+policy scf.web_trust_scores tenant_backstop_delete RESTRICTIVE d {scf_app,scf_jobs,scf_metrics_ro,scf_writer} USING ((tenant_id = ( SELECT scf.current_tenant() AS current_tenant)) AND ( SELECT scf.tenant_ctx_ok() AS tenant_ctx_ok))
+schema scf scf_app USAGE
+schema scf scf_audit_definer USAGE
+schema scf scf_definer USAGE
+schema scf scf_jobs USAGE
+schema scf scf_metrics_ro USAGE
+schema scf scf_op_definer USAGE
+schema scf scf_writer USAGE
+table scf.api_ingest_counters scf_app INSERT
+table scf.api_ingest_counters scf_app SELECT
+table scf.api_ingest_counters scf_app UPDATE
+table scf.api_ingest_counters scf_jobs DELETE
+table scf.api_ingest_counters scf_jobs SELECT
+table scf.api_ingest_counters scf_op_definer SELECT
+table scf.api_ingest_counters scf_writer INSERT
+table scf.api_ingest_counters scf_writer SELECT
+table scf.api_ingest_counters scf_writer UPDATE
+table scf.api_ingest_ledger scf_jobs DELETE
+table scf.api_ingest_ledger scf_jobs SELECT
+table scf.api_ingest_ledger scf_writer INSERT
+table scf.api_ingest_ledger scf_writer SELECT
+table scf.api_metrics_1d scf_app SELECT
+table scf.api_metrics_1d scf_jobs DELETE
+table scf.api_metrics_1d scf_jobs SELECT
+table scf.api_metrics_1d scf_op_definer SELECT
+table scf.api_metrics_1d scf_writer INSERT
+table scf.api_metrics_1d scf_writer SELECT
+table scf.api_metrics_1d scf_writer UPDATE
+table scf.api_metrics_1d_pref scf_app SELECT
+table scf.api_metrics_1d_pref scf_jobs SELECT
+table scf.api_metrics_1d_pref scf_op_definer SELECT
+table scf.api_metrics_1h scf_app SELECT
+table scf.api_metrics_1h scf_jobs DELETE
+table scf.api_metrics_1h scf_jobs SELECT
+table scf.api_metrics_1h scf_op_definer SELECT
+table scf.api_metrics_1h scf_writer INSERT
+table scf.api_metrics_1h scf_writer SELECT
+table scf.api_metrics_1h scf_writer UPDATE
+table scf.api_metrics_1h_pref scf_app SELECT
+table scf.api_metrics_1h_pref scf_jobs SELECT
+table scf.api_metrics_1h_pref scf_op_definer SELECT
+table scf.api_metrics_1m scf_app SELECT
+table scf.api_metrics_1m scf_jobs DELETE
+table scf.api_metrics_1m scf_jobs SELECT
+table scf.api_metrics_1m scf_op_definer SELECT
+table scf.api_metrics_1m scf_writer INSERT
+table scf.api_metrics_1m scf_writer SELECT
+table scf.api_metrics_1m scf_writer UPDATE
+table scf.api_metrics_1m_pref scf_app SELECT
+table scf.api_metrics_1m_pref scf_jobs SELECT
+table scf.api_metrics_1m_pref scf_op_definer SELECT
+table scf.api_route_day scf_jobs DELETE
+table scf.api_route_day scf_jobs SELECT
+table scf.api_route_day scf_writer INSERT
+table scf.api_route_day scf_writer SELECT
+table scf.api_routes scf_app SELECT
+table scf.api_routes scf_jobs DELETE
+table scf.api_routes scf_jobs SELECT
+table scf.api_routes scf_op_definer SELECT
+table scf.api_routes scf_writer INSERT
+table scf.api_routes scf_writer SELECT
+table scf.api_routes scf_writer UPDATE
+table scf.api_service_assurance scf_app SELECT
+table scf.api_service_assurance scf_jobs DELETE
+table scf.api_service_assurance scf_jobs INSERT
+table scf.api_service_assurance scf_jobs SELECT
+table scf.api_service_assurance scf_jobs UPDATE
+table scf.api_service_assurance scf_op_definer SELECT
+table scf.api_service_day_groups scf_app SELECT
+table scf.api_service_day_groups scf_jobs DELETE
+table scf.api_service_day_groups scf_jobs SELECT
+table scf.api_service_day_groups scf_op_definer SELECT
+table scf.api_service_day_groups scf_writer INSERT
+table scf.api_service_day_groups scf_writer SELECT
+table scf.api_service_preferred_groups scf_app SELECT
+table scf.api_service_preferred_groups scf_jobs SELECT
+table scf.api_service_preferred_groups scf_op_definer SELECT
+table scf.api_services scf_app INSERT
+table scf.api_services scf_app SELECT
+table scf.api_services scf_app UPDATE
+table scf.api_services scf_jobs DELETE
+table scf.api_services scf_jobs SELECT
+table scf.api_services scf_op_definer SELECT
+table scf.api_services scf_writer INSERT
+table scf.api_services scf_writer SELECT
+table scf.api_stream_groups scf_app SELECT
+table scf.api_stream_groups scf_jobs DELETE
+table scf.api_stream_groups scf_jobs SELECT
+table scf.api_stream_groups scf_op_definer SELECT
+table scf.api_stream_groups scf_writer INSERT
+table scf.api_stream_groups scf_writer SELECT
+table scf.api_stream_state scf_jobs DELETE
+table scf.api_stream_state scf_jobs SELECT
+table scf.api_stream_state scf_writer INSERT
+table scf.api_stream_state scf_writer SELECT
+table scf.api_stream_state scf_writer UPDATE
+table scf.app_event_daily scf_app INSERT
+table scf.app_event_daily scf_app SELECT
+table scf.app_event_daily scf_app UPDATE
+table scf.audit_actions scf_app SELECT
+table scf.audit_actions scf_definer SELECT
+table scf.audit_actions scf_jobs SELECT
+table scf.audit_actions scf_metrics_ro SELECT
+table scf.audit_actions scf_op_definer SELECT
+table scf.audit_actions scf_writer SELECT
+table scf.audit_chain_heads scf_audit_definer INSERT
+table scf.audit_chain_heads scf_audit_definer SELECT
+table scf.audit_chain_heads scf_audit_definer UPDATE
+table scf.audit_chain_heads scf_jobs SELECT
+table scf.audit_log scf_app INSERT
+table scf.audit_log scf_app SELECT
+table scf.audit_log scf_definer SELECT
+table scf.audit_log scf_jobs INSERT
+table scf.audit_log scf_jobs SELECT
+table scf.audit_log scf_metrics_ro INSERT
+table scf.audit_log scf_metrics_ro SELECT
+table scf.audit_log scf_op_definer INSERT
+table scf.audit_log scf_op_definer SELECT
+table scf.audit_log scf_writer INSERT
+table scf.audit_log scf_writer SELECT
+table scf.auth_challenges scf_app INSERT
+table scf.auth_challenges scf_app SELECT
+table scf.auth_challenges scf_app UPDATE
+table scf.auth_challenges scf_jobs DELETE
+table scf.auth_challenges scf_jobs SELECT
+table scf.auth_challenges scf_op_definer SELECT
+table scf.auth_sessions scf_app DELETE
+table scf.auth_sessions scf_app INSERT
+table scf.auth_sessions scf_app SELECT
+table scf.auth_sessions scf_app UPDATE
+table scf.auth_sessions scf_jobs DELETE
+table scf.auth_sessions scf_jobs SELECT
+table scf.auth_sessions scf_op_definer SELECT
+table scf.declared_contracts scf_app SELECT
+table scf.declared_contracts scf_jobs DELETE
+table scf.declared_contracts scf_jobs SELECT
+table scf.declared_contracts scf_jobs UPDATE
+table scf.declared_contracts scf_op_definer SELECT
+table scf.domain_verifications scf_app INSERT
+table scf.domain_verifications scf_app SELECT
+table scf.domain_verifications scf_app UPDATE
+table scf.domain_verifications scf_jobs DELETE
+table scf.domain_verifications scf_jobs SELECT
+table scf.domain_verifications scf_jobs UPDATE
+table scf.domain_verifications scf_op_definer SELECT
+table scf.durability_reports scf_app SELECT
+table scf.durability_reports scf_jobs DELETE
+table scf.durability_reports scf_jobs INSERT
+table scf.durability_reports scf_jobs SELECT
+table scf.durability_reports scf_jobs UPDATE
+table scf.edge_report_ledger scf_app INSERT
+table scf.edge_report_ledger scf_app SELECT
+table scf.edge_report_ledger scf_jobs DELETE
+table scf.edge_report_ledger scf_jobs SELECT
+table scf.edge_snapshots scf_app SELECT
+table scf.edge_snapshots scf_jobs DELETE
+table scf.edge_snapshots scf_jobs INSERT
+table scf.edge_snapshots scf_jobs SELECT
+table scf.edge_spool_accounting scf_app INSERT
+table scf.edge_spool_accounting scf_app SELECT
+table scf.edge_spool_accounting scf_app UPDATE
+table scf.edge_spool_accounting scf_jobs DELETE
+table scf.edge_spool_accounting scf_jobs SELECT
+table scf.enrollment_tombstones scf_app SELECT
+table scf.enrollment_tombstones scf_definer INSERT
+table scf.enrollment_tombstones scf_definer SELECT
+table scf.enrollment_tombstones scf_definer UPDATE
+table scf.enrollment_tombstones scf_jobs INSERT
+table scf.enrollment_tombstones scf_jobs SELECT
+table scf.enrollment_tombstones scf_op_definer INSERT
+table scf.enrollment_tombstones scf_op_definer SELECT
+table scf.enrollment_tombstones scf_op_definer UPDATE
+table scf.erasure_requests scf_app INSERT
+table scf.erasure_requests scf_app SELECT
+table scf.erasure_requests scf_app UPDATE
+table scf.erasure_requests scf_definer SELECT
+table scf.erasure_requests scf_jobs DELETE
+table scf.erasure_requests scf_jobs SELECT
+table scf.erasure_requests scf_jobs UPDATE
+table scf.erasure_requests scf_op_definer SELECT
+table scf.external_identities scf_app DELETE
+table scf.external_identities scf_app INSERT
+table scf.external_identities scf_app SELECT
+table scf.external_identities scf_app UPDATE
+table scf.external_identities scf_jobs DELETE
+table scf.external_identities scf_jobs SELECT
+table scf.external_identities scf_op_definer SELECT
+table scf.footprint_items scf_app INSERT
+table scf.footprint_items scf_app SELECT
+table scf.footprint_items scf_app UPDATE
+table scf.footprint_items scf_jobs DELETE
+table scf.footprint_items scf_jobs SELECT
+table scf.footprint_items scf_jobs UPDATE
+table scf.footprint_items scf_op_definer SELECT
+table scf.footprint_items scf_op_definer UPDATE
+table scf.footprint_keys scf_app SELECT
+table scf.footprint_keys scf_definer SELECT
+table scf.footprint_keys scf_jobs DELETE
+table scf.footprint_keys scf_jobs SELECT
+table scf.hist_exp3_map scf_app SELECT
+table scf.hist_exp3_map scf_jobs SELECT
+table scf.hist_exp3_map scf_op_definer SELECT
+table scf.hist_exp3_map scf_writer SELECT
+table scf.host_claims scf_app SELECT
+table scf.host_claims scf_definer DELETE
+table scf.host_claims scf_definer INSERT
+table scf.host_claims scf_definer SELECT
+table scf.host_claims scf_definer UPDATE
+table scf.host_claims scf_jobs SELECT
+table scf.host_claims scf_op_definer INSERT
+table scf.host_claims scf_op_definer SELECT
+table scf.host_claims scf_op_definer UPDATE
+table scf.ingest_tokens scf_app INSERT
+table scf.ingest_tokens scf_app SELECT
+table scf.ingest_tokens scf_app UPDATE
+table scf.ingest_tokens scf_jobs DELETE
+table scf.ingest_tokens scf_jobs SELECT
+table scf.ingest_tokens scf_op_definer SELECT
+table scf.integration_metrics_1d scf_app SELECT
+table scf.integration_metrics_1d scf_jobs DELETE
+table scf.integration_metrics_1d scf_jobs SELECT
+table scf.integration_metrics_1d scf_writer INSERT
+table scf.integration_metrics_1d scf_writer SELECT
+table scf.integration_metrics_1d scf_writer UPDATE
+table scf.integration_metrics_1h scf_app SELECT
+table scf.integration_metrics_1h scf_jobs DELETE
+table scf.integration_metrics_1h scf_jobs SELECT
+table scf.integration_metrics_1h scf_writer INSERT
+table scf.integration_metrics_1h scf_writer SELECT
+table scf.integration_metrics_1h scf_writer UPDATE
+table scf.integration_stream_state scf_jobs DELETE
+table scf.integration_stream_state scf_jobs SELECT
+table scf.integration_stream_state scf_writer INSERT
+table scf.integration_stream_state scf_writer SELECT
+table scf.integration_stream_state scf_writer UPDATE
+table scf.memberships scf_app DELETE
+table scf.memberships scf_app INSERT
+table scf.memberships scf_app SELECT
+table scf.memberships scf_app UPDATE
+table scf.memberships scf_definer INSERT
+table scf.memberships scf_definer SELECT
+table scf.memberships scf_jobs DELETE
+table scf.memberships scf_jobs SELECT
+table scf.memberships scf_op_definer SELECT
+table scf.oauth_clients scf_app DELETE
+table scf.oauth_clients scf_app INSERT
+table scf.oauth_clients scf_app SELECT
+table scf.oauth_clients scf_app UPDATE
+table scf.oauth_clients scf_jobs DELETE
+table scf.oauth_clients scf_jobs SELECT
+table scf.oauth_codes scf_app DELETE
+table scf.oauth_codes scf_app INSERT
+table scf.oauth_codes scf_app SELECT
+table scf.oauth_codes scf_app UPDATE
+table scf.oauth_codes scf_jobs DELETE
+table scf.oauth_codes scf_jobs SELECT
+table scf.oauth_grants scf_app DELETE
+table scf.oauth_grants scf_app INSERT
+table scf.oauth_grants scf_app SELECT
+table scf.oauth_grants scf_app UPDATE
+table scf.oauth_grants scf_jobs DELETE
+table scf.oauth_grants scf_jobs SELECT
+table scf.oauth_requests scf_app DELETE
+table scf.oauth_requests scf_app INSERT
+table scf.oauth_requests scf_app SELECT
+table scf.oauth_requests scf_app UPDATE
+table scf.oauth_requests scf_jobs DELETE
+table scf.oauth_requests scf_jobs SELECT
+table scf.oauth_tokens scf_app DELETE
+table scf.oauth_tokens scf_app INSERT
+table scf.oauth_tokens scf_app SELECT
+table scf.oauth_tokens scf_app UPDATE
+table scf.oauth_tokens scf_jobs DELETE
+table scf.oauth_tokens scf_jobs SELECT
+table scf.onchain_daily scf_app SELECT
+table scf.onchain_daily scf_jobs DELETE
+table scf.onchain_daily scf_jobs INSERT
+table scf.onchain_daily scf_jobs SELECT
+table scf.onchain_daily scf_jobs UPDATE
+table scf.onchain_daily scf_op_definer SELECT
+table scf.operator_api_keys scf_app INSERT
+table scf.operator_api_keys scf_app SELECT
+table scf.operator_api_keys scf_app UPDATE
+table scf.operator_api_keys scf_metrics_ro SELECT
+table scf.operator_api_keys scf_op_definer SELECT
+table scf.passkey_credentials scf_app DELETE
+table scf.passkey_credentials scf_app INSERT
+table scf.passkey_credentials scf_app SELECT
+table scf.passkey_credentials scf_app UPDATE
+table scf.passkey_credentials scf_jobs DELETE
+table scf.passkey_credentials scf_jobs SELECT
+table scf.passkey_credentials scf_op_definer SELECT
+table scf.platform_operators scf_app INSERT
+table scf.platform_operators scf_app SELECT
+table scf.platform_operators scf_app UPDATE
+table scf.platform_operators scf_definer SELECT
+table scf.protocol_usage_days scf_app SELECT
+table scf.protocol_usage_days scf_jobs DELETE
+table scf.protocol_usage_days scf_jobs INSERT
+table scf.protocol_usage_days scf_jobs SELECT
+table scf.protocol_usage_days scf_op_definer SELECT
+table scf.protocol_usage_network_daily scf_jobs DELETE
+table scf.protocol_usage_network_daily scf_jobs INSERT
+table scf.protocol_usage_network_daily scf_jobs SELECT
+table scf.protocol_usage_network_daily scf_op_definer SELECT
+table scf.protocol_usage_project_daily scf_jobs DELETE
+table scf.protocol_usage_project_daily scf_jobs INSERT
+table scf.protocol_usage_project_daily scf_jobs SELECT
+table scf.protocol_usage_project_daily scf_op_definer SELECT
+table scf.protocol_usage_tenant_daily scf_app SELECT
+table scf.protocol_usage_tenant_daily scf_jobs DELETE
+table scf.protocol_usage_tenant_daily scf_jobs INSERT
+table scf.protocol_usage_tenant_daily scf_jobs SELECT
+table scf.protocol_usage_tenant_daily scf_op_definer SELECT
+table scf.public_metrics_documents scf_app SELECT
+table scf.public_metrics_documents scf_definer SELECT
+table scf.public_metrics_documents scf_jobs DELETE
+table scf.public_metrics_documents scf_jobs INSERT
+table scf.public_metrics_documents scf_jobs SELECT
+table scf.public_metrics_documents scf_jobs UPDATE
+table scf.public_metrics_documents scf_op_definer SELECT
+table scf.rate_limit_buckets scf_app DELETE
+table scf.rate_limit_buckets scf_app INSERT
+table scf.rate_limit_buckets scf_app SELECT
+table scf.rate_limit_buckets scf_app UPDATE
+table scf.registry_projects scf_app SELECT
+table scf.registry_projects scf_definer SELECT
+table scf.registry_projects scf_jobs DELETE
+table scf.registry_projects scf_jobs INSERT
+table scf.registry_projects scf_jobs SELECT
+table scf.registry_projects scf_jobs UPDATE
+table scf.registry_projects scf_metrics_ro SELECT
+table scf.registry_projects scf_op_definer SELECT
+table scf.registry_sync_runs scf_app SELECT
+table scf.registry_sync_runs scf_jobs DELETE
+table scf.registry_sync_runs scf_jobs INSERT
+table scf.registry_sync_runs scf_jobs SELECT
+table scf.registry_sync_runs scf_jobs UPDATE
+table scf.registry_sync_runs scf_metrics_ro SELECT
+table scf.registry_sync_runs scf_op_definer SELECT
+table scf.seal_days scf_app SELECT
+table scf.seal_days scf_definer SELECT
+table scf.seal_days scf_jobs INSERT
+table scf.seal_days scf_jobs SELECT
+table scf.seal_days scf_jobs UPDATE
+table scf.seal_days scf_metrics_ro SELECT
+table scf.seal_leaves scf_app SELECT
+table scf.seal_leaves scf_definer SELECT
+table scf.seal_leaves scf_jobs DELETE
+table scf.seal_leaves scf_jobs INSERT
+table scf.seal_leaves scf_jobs SELECT
+table scf.sealed_audit_anchors scf_app SELECT
+table scf.sealed_audit_anchors scf_jobs INSERT
+table scf.sealed_audit_anchors scf_jobs SELECT
+table scf.settings scf_app SELECT
+table scf.settings scf_definer SELECT
+table scf.settings scf_jobs SELECT
+table scf.settings scf_metrics_ro SELECT
+table scf.settings scf_op_definer SELECT
+table scf.settings scf_writer SELECT
+table scf.share_keys scf_app INSERT
+table scf.share_keys scf_app SELECT
+table scf.share_keys scf_app UPDATE
+table scf.share_keys scf_definer SELECT
+table scf.share_keys scf_definer UPDATE
+table scf.share_keys scf_jobs DELETE
+table scf.share_keys scf_jobs SELECT
+table scf.site_domains scf_app DELETE
+table scf.site_domains scf_app SELECT
+table scf.site_domains scf_definer SELECT
+table scf.site_domains scf_jobs DELETE
+table scf.site_domains scf_jobs SELECT
+table scf.site_domains scf_jobs UPDATE
+table scf.site_domains scf_op_definer SELECT
+table scf.site_domains scf_op_definer UPDATE
+table scf.sites scf_app SELECT
+table scf.sites scf_jobs DELETE
+table scf.sites scf_jobs SELECT
+table scf.sites scf_jobs UPDATE
+table scf.sites scf_op_definer SELECT
+table scf.sites scf_op_definer UPDATE
+table scf.stellar_client_1d scf_app SELECT
+table scf.stellar_client_1d scf_jobs DELETE
+table scf.stellar_client_1d scf_jobs SELECT
+table scf.stellar_client_1d scf_writer INSERT
+table scf.stellar_client_1d scf_writer SELECT
+table scf.stellar_client_1d scf_writer UPDATE
+table scf.stellar_client_1h scf_app SELECT
+table scf.stellar_client_1h scf_jobs DELETE
+table scf.stellar_client_1h scf_jobs SELECT
+table scf.stellar_client_1h scf_writer INSERT
+table scf.stellar_client_1h scf_writer SELECT
+table scf.stellar_client_1h scf_writer UPDATE
+table scf.stellar_client_1m scf_app SELECT
+table scf.stellar_client_1m scf_jobs DELETE
+table scf.stellar_client_1m scf_jobs SELECT
+table scf.stellar_client_1m scf_writer INSERT
+table scf.stellar_client_1m scf_writer SELECT
+table scf.stellar_client_1m scf_writer UPDATE
+table scf.stellar_client_stream_state scf_jobs DELETE
+table scf.stellar_client_stream_state scf_jobs SELECT
+table scf.stellar_client_stream_state scf_writer INSERT
+table scf.stellar_client_stream_state scf_writer SELECT
+table scf.stellar_client_stream_state scf_writer UPDATE
+table scf.tenant_invitations scf_app INSERT
+table scf.tenant_invitations scf_app SELECT
+table scf.tenant_invitations scf_app UPDATE
+table scf.tenant_invitations scf_definer SELECT
+table scf.tenant_invitations scf_definer UPDATE
+table scf.tenant_invitations scf_jobs DELETE
+table scf.tenant_invitations scf_jobs SELECT
+table scf.tenant_registry_links scf_app SELECT
+table scf.tenant_registry_links scf_definer SELECT
+table scf.tenant_registry_links scf_jobs DELETE
+table scf.tenant_registry_links scf_jobs INSERT
+table scf.tenant_registry_links scf_jobs SELECT
+table scf.tenant_registry_links scf_jobs UPDATE
+table scf.tenant_registry_links scf_op_definer INSERT
+table scf.tenant_registry_links scf_op_definer SELECT
+table scf.tenant_registry_links scf_op_definer UPDATE
+table scf.tenants scf_app SELECT
+table scf.tenants scf_definer SELECT
+table scf.tenants scf_jobs SELECT
+table scf.tenants scf_op_definer SELECT
+table scf.traction_snapshots scf_app SELECT
+table scf.traction_snapshots scf_definer SELECT
+table scf.traction_snapshots scf_jobs DELETE
+table scf.traction_snapshots scf_jobs SELECT
+table scf.trust_annotations scf_app INSERT
+table scf.trust_annotations scf_app SELECT
+table scf.trust_annotations scf_jobs DELETE
+table scf.trust_annotations scf_jobs SELECT
+table scf.trust_annotations scf_op_definer INSERT
+table scf.trust_annotations scf_op_definer SELECT
+table scf.umami_credentials scf_app SELECT
+table scf.umami_credentials scf_jobs DELETE
+table scf.umami_credentials scf_jobs INSERT
+table scf.umami_credentials scf_jobs SELECT
+table scf.umami_credentials scf_jobs UPDATE
+table scf.umami_websites scf_definer INSERT
+table scf.umami_websites scf_definer SELECT
+table scf.usage_map_contract_daily scf_app SELECT
+table scf.usage_map_contract_daily scf_jobs DELETE
+table scf.usage_map_contract_daily scf_jobs INSERT
+table scf.usage_map_contract_daily scf_jobs SELECT
+table scf.usage_map_contract_daily scf_op_definer SELECT
+table scf.usage_map_days scf_app SELECT
+table scf.usage_map_days scf_jobs DELETE
+table scf.usage_map_days scf_jobs INSERT
+table scf.usage_map_days scf_jobs SELECT
+table scf.usage_map_days scf_op_definer SELECT
+table scf.usage_map_function_daily scf_app SELECT
+table scf.usage_map_function_daily scf_jobs DELETE
+table scf.usage_map_function_daily scf_jobs INSERT
+table scf.usage_map_function_daily scf_jobs SELECT
+table scf.usage_map_function_daily scf_op_definer SELECT
+table scf.usage_map_project_daily scf_app SELECT
+table scf.usage_map_project_daily scf_jobs DELETE
+table scf.usage_map_project_daily scf_jobs INSERT
+table scf.usage_map_project_daily scf_jobs SELECT
+table scf.usage_map_project_daily scf_op_definer SELECT
+table scf.usage_map_project_weekly scf_app SELECT
+table scf.usage_map_project_weekly scf_jobs DELETE
+table scf.usage_map_project_weekly scf_jobs INSERT
+table scf.usage_map_project_weekly scf_jobs SELECT
+table scf.usage_map_project_weekly scf_op_definer SELECT
+table scf.users scf_app INSERT
+table scf.users scf_app SELECT
+table scf.users scf_app UPDATE
+table scf.users scf_jobs DELETE
+table scf.users scf_jobs SELECT
+table scf.users scf_op_definer SELECT
+table scf.verification_evidence scf_app INSERT
+table scf.verification_evidence scf_app SELECT
+table scf.verification_evidence scf_app UPDATE
+table scf.verification_evidence scf_definer SELECT
+table scf.verification_evidence scf_jobs DELETE
+table scf.verification_evidence scf_jobs INSERT
+table scf.verification_evidence scf_jobs SELECT
+table scf.verification_evidence scf_jobs UPDATE
+table scf.verification_evidence scf_op_definer INSERT
+table scf.verification_evidence scf_op_definer SELECT
+table scf.verification_evidence scf_op_definer UPDATE
+table scf.web_daily_breakdowns scf_app SELECT
+table scf.web_daily_breakdowns scf_jobs DELETE
+table scf.web_daily_breakdowns scf_jobs INSERT
+table scf.web_daily_breakdowns scf_jobs SELECT
+table scf.web_daily_breakdowns scf_jobs UPDATE
+table scf.web_daily_breakdowns scf_op_definer SELECT
+table scf.web_daily_totals scf_app SELECT
+table scf.web_daily_totals scf_jobs DELETE
+table scf.web_daily_totals scf_jobs INSERT
+table scf.web_daily_totals scf_jobs SELECT
+table scf.web_daily_totals scf_jobs UPDATE
+table scf.web_daily_totals scf_op_definer SELECT
+table scf.web_dev_events scf_app DELETE
+table scf.web_dev_events scf_app INSERT
+table scf.web_dev_events scf_app SELECT
+table scf.web_dev_events scf_jobs DELETE
+table scf.web_dev_events scf_jobs SELECT
+table scf.web_edge_counters scf_app INSERT
+table scf.web_edge_counters scf_app SELECT
+table scf.web_edge_counters scf_app UPDATE
+table scf.web_edge_counters scf_jobs DELETE
+table scf.web_edge_counters scf_jobs SELECT
+table scf.web_edge_counters scf_op_definer SELECT
+table scf.web_event_property_daily scf_app INSERT
+table scf.web_event_property_daily scf_app SELECT
+table scf.web_event_property_daily scf_app UPDATE
+table scf.web_event_property_daily scf_jobs DELETE
+table scf.web_event_property_daily scf_jobs SELECT
+table scf.web_event_property_daily scf_op_definer SELECT
+table scf.web_hourly_totals scf_app SELECT
+table scf.web_hourly_totals scf_jobs DELETE
+table scf.web_hourly_totals scf_jobs INSERT
+table scf.web_hourly_totals scf_jobs SELECT
+table scf.web_hourly_totals scf_jobs UPDATE
+table scf.web_rpc_client_daily scf_app INSERT
+table scf.web_rpc_client_daily scf_app SELECT
+table scf.web_rpc_client_daily scf_app UPDATE
+table scf.web_rpc_client_daily scf_jobs DELETE
+table scf.web_rpc_client_daily scf_jobs SELECT
+table scf.web_trust_scores scf_app SELECT
+table scf.web_trust_scores scf_jobs DELETE
+table scf.web_trust_scores scf_jobs INSERT
+table scf.web_trust_scores scf_jobs SELECT
+table scf.web_trust_scores scf_jobs UPDATE
+table scf.web_trust_scores scf_op_definer SELECT
