@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Fixture title — wallet dApp (never sent)</title>
+  </head>
+  <body>
+    <h1>Wallet dApp fixture</h1>
+    <p>Mock wallets only: the Stellar Wallets Kit, Freighter and the RPC server below are in-page mocks.</p>
+    <section aria-label="Wallets Kit">
+      <button id="kit-connect" type="button">Connect (Wallets Kit)</button>
+      <button id="kit-sign" type="button">Sign (Wallets Kit)</button>
+      <button id="kit-reject" type="button">Sign, user rejects (Wallets Kit)</button>
+      <button id="kit-disconnect" type="button">Disconnect (Wallets Kit)</button>
+    </section>
+    <section aria-label="Freighter">
+      <button id="fr-connect" type="button">Connect Freighter</button>
+      <button id="fr-sign" type="button">Sign with Freighter</button>
+      <button id="fr-submit" type="button">Submit via RPC</button>
+      <button id="fr-connect-rejected" type="button">Connect Freighter, user rejects</button>
+    </section>
+    <section aria-label="RPC telemetry">
+      <button id="rpc-calls" type="button">Three RPC calls</button>
+    </section>
+    <output id="log"></output>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
