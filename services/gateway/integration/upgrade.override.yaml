@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Test-only override for upgrade.sh: the gateway runs a given image tag — the previous release built from
+# git, or the current tree — on the same state volume, never built or pulled by Compose.
+services:
+  gateway:
+    image: ${WSB_GW_IMAGE:?}
+    pull_policy: never

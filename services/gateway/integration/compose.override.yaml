@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+# Test-only override (gateway integration, run.sh): turns the `gateway` stub of infra/compose into the real gateway on
+# host ports 56200 (ingest, TLS) and 56201 (metrics, health). WSB_WORK holds the test listener certificate and the
+# snapshot verification key derived from .secrets/edge_signing_key.pem.
+services:
+  gateway:
+    profiles: !reset []
+    environment:
+      GW_NODE_ID: edge-a1
+      GW_LISTEN_ADDR: ":8443"
+      GW_TLS_CERT: /run/gw-tls/cert.pem
+      GW_TLS_KEY: /run/gw-tls/key.pem
+      GW_METRICS_ADDR: ":9464"
+      GW_NODE_CERT: /run/secrets/edge_a1_cert
+      GW_NODE_KEY: /run/secrets/edge_a1_key
+      GW_CA: /run/secrets/scf_ca
+      GW_CORES: core-a=https://engine-proxy:8443
+      GW_SNAPSHOT_KEYS: edge-1=/run/gw-snapshot/edge-1.pub.pem
+      GW_SNAPSHOT_INTERVAL: 5s
+      GW_COUNTER_PERIOD: 5s
+      GW_LOG_LEVEL: info
+      GW_OTLP_ENABLED: "0" # the web-path run has no pepper_ing secret; the OTLP door is covered by cmd/gateway/otlp_e2e_test.go
+    volumes:
+      - gwstate:/var/lib/scf-gateway
+      - ${WSB_WORK:?}/tls:/run/gw-tls:ro
+      - ${WSB_WORK:?}/snapshot:/run/gw-snapshot:ro
+    tmpfs: ["/tmp:size=8m,mode=1777"]
+    ulimits: { core: 0 }
+    ports: ["127.0.0.1:${WSB_INGEST_PORT:-56200}:8443", "127.0.0.1:${WSB_METRICS_PORT:-56201}:9464"]
+    depends_on:
+      control-plane: { condition: service_healthy }
+volumes:
+  gwstate:
