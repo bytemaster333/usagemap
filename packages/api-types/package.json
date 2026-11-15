@@ -1,0 +1,28 @@
+{
+  "name": "@usagemap/api-types",
+  "version": "0.1.0",
+  "description": "TypeScript types and parsed OpenAPI documents generated from docs/api/*.openapi.yaml.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=24.19.0"
+  },
+  "scripts": {
+    "generate": "node scripts/generate.ts",
+    "check:generated": "node scripts/generate.ts --check",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "biome check .",
+    "test": "node scripts/generate.ts --check && vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0",
+    "yaml": "2.9.1"
+  }
+}
