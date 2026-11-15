@@ -1,0 +1,3 @@
+# Playwright fixture-app builds (e2e/apps/build.ts) and the filter-list download cache (scripts/filter-list-check.ts)
+e2e/.build/
+.filter-lists/

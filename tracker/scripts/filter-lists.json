@@ -1,0 +1,222 @@
+{
+  "$comment": "Filter lists for scripts/filter-list-check.ts (web.adblock-safe-script-name, web.adblock-safe-endpoints). Pinned by repository commit and per-file SHA-256; update with `node scripts/filter-list-check.ts --repin` and review the diff. EasyList and EasyPrivacy are pinned through uBlock Origin's mirror in uAssets (the EasyList repository holds only the unassembled sources); live mode reads them from easylist.to. maxBytes is per file.",
+  "maxBytes": 33554432,
+  "timeoutMs": 60000,
+  "lists": [
+    {
+      "name": "EasyList",
+      "usedBy": "Adblock Plus, AdBlock, uBlock Origin, Brave, AdGuard (default)",
+      "repo": "uBlockOrigin/uAssets",
+      "branch": "master",
+      "commit": "fdbb55098eba181229e6b1249b5accc45193abcf",
+      "entry": "thirdparties/easylist/easylist.txt",
+      "live": "https://easylist.to/easylist/easylist.txt",
+      "files": {
+        "thirdparties/easylist/easylist.txt": {
+          "sha256": "10100f3514309e4a18282726c4f864c902617fefe1edcff39fc77621b29c80c3",
+          "bytes": 2044063
+        }
+      }
+    },
+    {
+      "name": "EasyPrivacy",
+      "usedBy": "uBlock Origin, Brave (default); Adblock Plus, AdGuard (optional)",
+      "repo": "uBlockOrigin/uAssets",
+      "branch": "master",
+      "commit": "fdbb55098eba181229e6b1249b5accc45193abcf",
+      "entry": "thirdparties/easylist/easyprivacy.txt",
+      "live": "https://easylist.to/easylist/easyprivacy.txt",
+      "files": {
+        "thirdparties/easylist/easyprivacy.txt": {
+          "sha256": "351dd45e680b0111567dee736e64d7bd4186df0149853054a52c946c61256760",
+          "bytes": 1505338
+        }
+      }
+    },
+    {
+      "name": "uBlock filters",
+      "usedBy": "uBlock Origin, Brave (default)",
+      "repo": "uBlockOrigin/uAssets",
+      "branch": "master",
+      "commit": "fdbb55098eba181229e6b1249b5accc45193abcf",
+      "entry": "filters/filters.txt",
+      "files": {
+        "filters/filters.txt": {
+          "sha256": "73d674807c88016fef58ba055381efea22585faab1a262a6d5fbab3a0bb62ccd",
+          "bytes": 469901
+        },
+        "filters/filters-general.txt": {
+          "sha256": "efcbfa3e13984af4a67ce17cc71d2be6114461bf5b2b80e06ab784ea1dcd79fc",
+          "bytes": 721986
+        },
+        "filters/filters-2020.txt": {
+          "sha256": "f68b1fceccba46ae349f9db803b3fcd3b8b71234d9d80d0cc0259b9672340d96",
+          "bytes": 133246
+        },
+        "filters/filters-2021.txt": {
+          "sha256": "0772b56c297919bbbd70caece419b3ff889a209b333f8ab12bf564747bf39059",
+          "bytes": 166428
+        },
+        "filters/filters-2022.txt": {
+          "sha256": "135a3adc233c6a86f63c51b869c364e396f0dae59796cee65284f72b6e725430",
+          "bytes": 156645
+        },
+        "filters/filters-2023.txt": {
+          "sha256": "a7297bb83f0bbc228210c32be82e3e892d8c7f3f3f87953196fd6c0d77b71cbd",
+          "bytes": 214006
+        },
+        "filters/filters-2024.txt": {
+          "sha256": "49ab832758616055a3bfccac24b48ce6819c75801fe5d7f3985efd037dcd430f",
+          "bytes": 231259
+        },
+        "filters/filters-2025.txt": {
+          "sha256": "04c238cbb699238a7853f63f33dca0594775e89b75e113de2609666688c9117d",
+          "bytes": 170210
+        },
+        "filters/filters-2026.txt": {
+          "sha256": "b6a8deb2e407e57db94ef5e5b0f2935c482cedc73ba7bec5a8eeea85c88afda5",
+          "bytes": 114656
+        },
+        "filters/ubo-link-shorteners.txt": {
+          "sha256": "638c46011ce4b016cfcf5cde37b26c704fd1cc720e280b12daad88e56a692bbb",
+          "bytes": 122678
+        },
+        "filters/filters-mobile.txt": {
+          "sha256": "d47b240a3305d4ff5d401dbe13297cac4500cb60c4758b46e33cc118e6cbe81e",
+          "bytes": 20903
+        }
+      }
+    },
+    {
+      "name": "uBlock filters – Privacy",
+      "usedBy": "uBlock Origin, Brave (default)",
+      "repo": "uBlockOrigin/uAssets",
+      "branch": "master",
+      "commit": "fdbb55098eba181229e6b1249b5accc45193abcf",
+      "entry": "filters/privacy.txt",
+      "files": {
+        "filters/privacy.txt": {
+          "sha256": "b9ef0a446d4d90c5bd00e4b0586c70414d6364c859dc022f6ee81833fc0781f0",
+          "bytes": 185855
+        },
+        "filters/resource-abuse.txt": {
+          "sha256": "aaf7c0fdfbcc05aad0d53905d2a73dd8a36f71f05c9285e133c4e76ac61761d8",
+          "bytes": 9317
+        }
+      }
+    },
+    {
+      "name": "uBlock filters – Badware risks",
+      "usedBy": "uBlock Origin (default)",
+      "repo": "uBlockOrigin/uAssets",
+      "branch": "master",
+      "commit": "fdbb55098eba181229e6b1249b5accc45193abcf",
+      "entry": "filters/badware.txt",
+      "files": {
+        "filters/badware.txt": {
+          "sha256": "4c2348fb66ade9ee63ea7984d9c6435393b2e9065d0241ecaba7352f12f4b88f",
+          "bytes": 274011
+        }
+      }
+    },
+    {
+      "name": "uBlock filters – Quick fixes",
+      "usedBy": "uBlock Origin (default)",
+      "repo": "uBlockOrigin/uAssets",
+      "branch": "master",
+      "commit": "fdbb55098eba181229e6b1249b5accc45193abcf",
+      "entry": "filters/quick-fixes.txt",
+      "files": {
+        "filters/quick-fixes.txt": {
+          "sha256": "7bff2be1aed676a8ceb2208ce680367b86e10e579b4cbcc0a0f1003813dffc57",
+          "bytes": 86326
+        }
+      }
+    },
+    {
+      "name": "Peter Lowe’s Ad and tracking server list",
+      "usedBy": "uBlock Origin (default)",
+      "repo": "uBlockOrigin/uAssets",
+      "branch": "master",
+      "commit": "fdbb55098eba181229e6b1249b5accc45193abcf",
+      "entry": "thirdparties/pgl.yoyo.org/as/serverlist",
+      "live": "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=1&mimetype=plaintext",
+      "files": {
+        "thirdparties/pgl.yoyo.org/as/serverlist": {
+          "sha256": "6a8c8a5cb275aa5e45cf77b09223e20616c97085498397786c2edaeddba1d41d",
+          "bytes": 95291
+        }
+      }
+    },
+    {
+      "name": "AdGuard Base filter",
+      "usedBy": "AdGuard (default)",
+      "repo": "AdguardTeam/FiltersRegistry",
+      "branch": "master",
+      "commit": "a41d16a033d24ba1a2a9eac54db22ff42baf209a",
+      "entry": "platforms/extension/ublock/filters/2.txt",
+      "files": {
+        "platforms/extension/ublock/filters/2.txt": {
+          "sha256": "efec2a70c8f4ff41c2ebe026c64a3608f2d67654dec55924ea08dd53b2d89eae",
+          "bytes": 6465474
+        }
+      }
+    },
+    {
+      "name": "AdGuard Tracking Protection filter",
+      "usedBy": "AdGuard (default)",
+      "repo": "AdguardTeam/FiltersRegistry",
+      "branch": "master",
+      "commit": "a41d16a033d24ba1a2a9eac54db22ff42baf209a",
+      "entry": "platforms/extension/ublock/filters/3.txt",
+      "files": {
+        "platforms/extension/ublock/filters/3.txt": {
+          "sha256": "ccecadc669afa6b9c33bfbed5c892f4b2eac96907c1b6863c287a79192d3f2ba",
+          "bytes": 15125942
+        }
+      }
+    },
+    {
+      "name": "Brave-specific",
+      "usedBy": "Brave (default)",
+      "repo": "brave/adblock-lists",
+      "branch": "master",
+      "commit": "a190fe07fe27b697dc796d54a54b58dfd75e7b1c",
+      "entry": "brave-lists/brave-specific.txt",
+      "files": {
+        "brave-lists/brave-specific.txt": {
+          "sha256": "f2fa61e972136c51b052cf1e832480cbba22adf03c1210eaff5a654b8e0935a1",
+          "bytes": 10831
+        }
+      }
+    },
+    {
+      "name": "Brave first-party",
+      "usedBy": "Brave (default)",
+      "repo": "brave/adblock-lists",
+      "branch": "master",
+      "commit": "a190fe07fe27b697dc796d54a54b58dfd75e7b1c",
+      "entry": "brave-lists/brave-firstparty.txt",
+      "files": {
+        "brave-lists/brave-firstparty.txt": {
+          "sha256": "ea61ac33974c3f71712ad2862bb53da0d7de6638551fd3ba322b7f5f5f0f2135",
+          "bytes": 220777
+        }
+      }
+    },
+    {
+      "name": "Brave first-party CNAME",
+      "usedBy": "Brave (default)",
+      "repo": "brave/adblock-lists",
+      "branch": "master",
+      "commit": "a190fe07fe27b697dc796d54a54b58dfd75e7b1c",
+      "entry": "brave-lists/brave-firstparty-cname.txt",
+      "files": {
+        "brave-lists/brave-firstparty-cname.txt": {
+          "sha256": "62686ce875274a636b8e8b40fb05d64ce6f49e9b1ab77099877ba7d140aebac4",
+          "bytes": 428475
+        }
+      }
+    }
+  ]
+}

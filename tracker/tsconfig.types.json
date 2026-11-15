@@ -1,0 +1,22 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "types": [],
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "sourceMap": false,
+    "declarationMap": false,
+    "rootDir": "src"
+  },
+  "files": [
+    "src/npm.ts",
+    "src/wallets-kit.ts",
+    "src/wallets.ts",
+    "src/passkey.ts",
+    "src/privy.ts",
+    "src/stellar-rpc.ts",
+    "src/debug.ts"
+  ]
+}

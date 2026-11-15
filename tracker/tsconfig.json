@@ -1,0 +1,23 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@usagemap/tracker": ["./src/npm.ts"],
+      "@usagemap/tracker/strict": ["./src/npm.ts"],
+      "@usagemap/tracker/wallets-kit": ["./src/wallets-kit.ts"],
+      "@usagemap/tracker/wallets": ["./src/wallets.ts"],
+      "@usagemap/tracker/passkey": ["./src/passkey.ts"],
+      "@usagemap/tracker/privy": ["./src/privy.ts"],
+      "@usagemap/tracker/stellar-rpc": ["./src/stellar-rpc.ts"],
+      "@usagemap/tracker/debug": ["./src/debug.ts"]
+    }
+  },
+  "include": ["src", "scripts", "test", "e2e", "vitest.config.ts", "playwright.config.ts"]
+}
