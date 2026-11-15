@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://<domain-a>/schemas/v1/event-batch.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "s", "p", "tv", "e"],
+  "properties": {
+    "v": { "const": 1 },
+    "s": { "type": "string", "pattern": "^[0-9A-Za-z]{22}$" },
+    "p": { "enum": ["standard", "strict"] },
+    "tv": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "t": {
+      "type": "string",
+      "description": "challenge token, 123 b64u characters ^[A-Za-z0-9_-]{123}$; absent or malformed is NOT a schema error: rejected/challenge_missing, answered 202 (C-118)"
+    },
+    "c": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 524287,
+      "description": "proof-of-work counter; null/absent = no proof"
+    },
+    "sg": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "client signal booleans — standard profile only (C-33)",
+      "properties": {
+        "wd": { "enum": [0, 1], "description": "navigator.webdriver === true" },
+        "vis": {
+          "enum": ["v", "h", "p"],
+          "description": "visible / hidden / prerendering at send time"
+        },
+        "act": { "enum": [0, 1], "description": "navigator.userActivation.hasBeenActive" }
+      }
+    },
+    "e": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "$ref": "#/$defs/event" } }
+  },
+  "$defs": {
+    "eventId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22}$",
+      "description": "random 128-bit per-event id, memory only (C-37)"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "^/",
+      "description": "location.pathname only"
+    },
+    "event": {
+      "type": "object",
+      "required": ["id", "k", "u"],
+      "properties": {
+        "id": { "$ref": "#/$defs/eventId" },
+        "k": { "enum": ["pv", "ev", "wl"] },
+        "u": { "$ref": "#/$defs/path" }
+      },
+      "oneOf": [
+        { "$ref": "#/$defs/pageview" },
+        { "$ref": "#/$defs/custom" },
+        { "$ref": "#/$defs/wallet" },
+        { "$ref": "#/$defs/stellar" },
+        { "$ref": "#/$defs/stellarAggregate" }
+      ]
+    },
+    "pageview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "k", "u"],
+      "properties": {
+        "id": true,
+        "u": true,
+        "k": { "const": "pv" },
+        "r": {
+          "type": "string",
+          "maxLength": 253,
+          "pattern": "^[a-z0-9.-]+$",
+          "description": "referrer host (standard only; first page view of a page load only, C-100)"
+        },
+        "w": { "enum": ["s", "m", "l", "x"], "description": "screen-width class (standard only)" },
+        "l": {
+          "type": "string",
+          "pattern": "^[a-z]{2,3}$",
+          "description": "primary language subtag (standard only)"
+        },
+        "wk": {
+          "const": true,
+          "description": "Stellar Wallets Kit present on the page (standard only, C-93); counted, never forwarded; absent = not detected"
+        }
+      }
+    },
+    "custom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "k", "u", "n"],
+      "properties": {
+        "id": true,
+        "u": true,
+        "k": { "const": "ev" },
+        "n": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "d": {
+          "type": "object",
+          "maxProperties": 10,
+          "propertyNames": { "pattern": "^[a-z][a-z0-9_]{0,31}$" },
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string", "maxLength": 100 },
+              { "type": "number", "minimum": -1e15, "maximum": 1e15 },
+              { "type": "boolean" }
+            ]
+          }
+        }
+      }
+    },
+    "wallet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "k", "u", "n"],
+      "properties": {
+        "id": true,
+        "u": true,
+        "k": { "const": "wl" },
+        "n": {
+          "enum": [
+            "wallet_modal_opened",
+            "wallet_modal_closed",
+            "wallet_selected",
+            "wallet_connected",
+            "wallet_session_restored",
+            "wallet_disconnected",
+            "sign_requested",
+            "sign_completed",
+            "sign_failed"
+          ]
+        },
+        "wid": {
+          "enum": [
+            "albedo",
+            "varial",
+            "fordefi",
+            "rabet",
+            "xbull",
+            "lobstr",
+            "hana",
+            "klever",
+            "onekey",
+            "bitget",
+            "cactuslink",
+            "dcent",
+            "scopuly",
+            "metamask",
+            "ghostsig",
+            "ledger",
+            "trezor",
+            "wallet_connect",
+            "hot_wallet",
+            "other"
+          ],
+          "description": "wallet id; 'freighter' is sent as 'varial'; unknown ids as 'other'"
+        },
+        "sk": {
+          "enum": ["tx", "auth_entry", "message", "tx_submit"],
+          "description": "sign kind (sign_* only)"
+        },
+        "net": { "enum": ["public", "testnet", "futurenet", "other"] },
+        "out": {
+          "enum": ["connected", "dismissed", "error"],
+          "description": "modal outcome (wallet_modal_closed only)"
+        },
+        "dur": {
+          "enum": ["lt5s", "5_30s", "gt30s"],
+          "description": "duration bucket (sign_completed/failed only)"
+        },
+        "err": {
+          "enum": ["rejected", "timeout", "unsupported", "other"],
+          "description": "error class (sign_failed only)"
+        }
+      }
+    },
+    "stellar": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Stellar event schema v1 (§a.3.1, C-136); a `wl` event WITH `sv` — the legacy `wallet` shape has no `sv`",
+      "required": ["id", "k", "u", "n", "sv"],
+      "properties": {
+        "id": true,
+        "u": true,
+        "k": { "const": "wl" },
+        "sv": { "const": 1, "description": "Stellar event schema version" },
+        "n": {
+          "enum": [
+            "wallet_modal_opened",
+            "wallet_modal_closed",
+            "wallet_selected",
+            "wallet_connect",
+            "wallet_disconnect",
+            "sign_requested",
+            "sign_approved",
+            "sign_rejected",
+            "tx_submitted",
+            "smart_wallet_created",
+            "passkey_used",
+            "wallet_connect_failed",
+            "walletconnect_session",
+            "walletconnect_request"
+          ]
+        },
+        "wt": {
+          "enum": [
+            "freighter",
+            "albedo",
+            "xbull",
+            "lobstr",
+            "hana",
+            "hot",
+            "rabet",
+            "walletconnect",
+            "ledger",
+            "trezor",
+            "fordefi",
+            "klever",
+            "onekey",
+            "bitget",
+            "cactuslink",
+            "dcent",
+            "scopuly",
+            "metamask",
+            "ghostsig",
+            "passkey",
+            "privy",
+            "injected_other",
+            "unknown"
+          ],
+          "description": "wallet type"
+        },
+        "net": {
+          "enum": ["mainnet", "testnet", "futurenet", "local", "unknown"],
+          "description": "network, mapped in memory from the passphrase"
+        },
+        "ck": { "enum": ["new", "restored"], "description": "connect kind (wallet_connect)" },
+        "sk": {
+          "enum": ["tx", "auth_entry", "message", "tx_submit"],
+          "description": "sign kind (sign_*)"
+        },
+        "ec": {
+          "enum": [
+            "user_rejected",
+            "invalid_request",
+            "external_service",
+            "internal",
+            "timeout",
+            "unsupported",
+            "unknown"
+          ],
+          "description": "SEP-43 error class (sign_rejected)"
+        },
+        "rc": {
+          "enum": ["success", "failed", "pending", "try_again_later", "error"],
+          "description": "submit result class (tx_submitted)"
+        },
+        "dur": {
+          "enum": ["lt5s", "5_30s", "gt30s"],
+          "description": "duration bucket (sign_approved, sign_rejected)"
+        },
+        "out": {
+          "enum": ["connected", "dismissed", "error"],
+          "description": "modal outcome (wallet_modal_closed)"
+        },
+        "po": {
+          "enum": ["register", "authenticate", "sign"],
+          "description": "passkey operation (passkey_used)"
+        },
+        "fr": {
+          "enum": [
+            "user_rejected",
+            "wallet_not_installed",
+            "wallet_locked",
+            "network_mismatch",
+            "timeout",
+            "error_other"
+          ],
+          "description": "connect-failure reason (wallet_connect_failed)"
+        },
+        "wc": {
+          "enum": [
+            "none",
+            "varial_inapp",
+            "dcent_inapp",
+            "scopuly_inapp",
+            "other_inapp",
+            "unknown"
+          ],
+          "description": "wallet context from window.stellar.provider/platform and window.scopuly.platform only (wallet_connect, wallet_connect_failed, walletconnect_session)"
+        },
+        "ws": {
+          "enum": ["proposed", "approved", "rejected"],
+          "description": "WalletConnect session or request state (walletconnect_session, walletconnect_request)"
+        },
+        "wm": {
+          "enum": ["sign_xdr", "sign_submit_xdr", "sign_message", "sign_auth_entry"],
+          "description": "WalletConnect Stellar method (walletconnect_request)"
+        }
+      }
+    },
+    "stellarAggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Browser RPC/Horizon telemetry (tracker /stellar-rpc, §a.3.2): one aggregate per page lifecycle and UTC day, counts per cell only; `u` is ignored by the gateway, never stored",
+      "required": ["id", "k", "u", "n", "sv", "c"],
+      "properties": {
+        "id": true,
+        "u": true,
+        "k": { "const": "wl" },
+        "sv": { "const": 1 },
+        "n": { "const": "stellar_rpc" },
+        "c": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "description": "cells [api, operation, network, outcome, latency bucket, count]",
+          "items": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 6,
+            "prefixItems": [
+              { "enum": ["rpc", "horizon"] },
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9_]{1,40}$",
+                "description": "RPC method or Horizon route template (closed lists, §a.3.2)"
+              },
+              { "enum": ["mainnet", "testnet", "futurenet", "local", "unknown"] },
+              {
+                "enum": [
+                  "ok",
+                  "rpc_error",
+                  "http_4xx",
+                  "http_429",
+                  "http_5xx",
+                  "timeout",
+                  "network_error"
+                ]
+              },
+              { "enum": ["lt100ms", "100_500ms", "500_2000ms", "gt2000ms"] },
+              { "type": "integer", "minimum": 1, "maximum": 1000000 }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
