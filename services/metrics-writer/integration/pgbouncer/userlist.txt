@@ -1,0 +1,2 @@
+"scf_app" "wsd-test"
+"scf_writer" "wsd-test"

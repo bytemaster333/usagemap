@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: Apache-2.0
+# Test stack of the metrics-writer integration tests (services/metrics-writer/integration). Compose project scf-wsd;
+# host ports 56180 (PostgreSQL 18.6, direct) and 56181 (PgBouncer 1.26.1, transaction mode), loopback only. Started
+# and removed by the Go tests (TestMain); `KEEP=1 go test ./integration/...` leaves it running. Passwords are
+# throwaway values of these disposable containers. fsync and synchronous_commit stay ON (the load test measures the
+# real commit path, as S-05 did); the data directory is an anonymous volume removed by `down -v`. The tests pass
+# SCF_WSD_PG_PORT / SCF_WSD_PGB_PORT / SCF_WSD_MIGRATE_IMAGE (from SCF_WSD_PROJECT, SCF_WSD_PORT_BASE).
+name: scf-wsd
+services:
+  pg:
+    image: postgres:18.6-alpine@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
+    environment:
+      POSTGRES_PASSWORD: wsd-test-super
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command:
+      [
+        "postgres",
+        "-c",
+        "shared_preload_libraries=pg_stat_statements",
+        "-c",
+        "pg_stat_statements.track=all",
+        "-c",
+        "max_connections=200",
+        "-c",
+        "shared_buffers=1GB",
+        "-c",
+        "log_min_messages=warning",
+      ]
+    ports: ["127.0.0.1:${SCF_WSD_PG_PORT:-56180}:5432"]
+    volumes: ["pgdata:/var/lib/postgresql"]
+    shm_size: 1g
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 1s
+      retries: 60
+  bouncer:
+    image: edoburu/pgbouncer@sha256:8638aa563607256d3c7440437534195f1066a92b68015d89ae9d6b935b444a6d
+    volumes:
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    entrypoint: ["pgbouncer", "/etc/pgbouncer/pgbouncer.ini"]
+    ports: ["127.0.0.1:${SCF_WSD_PGB_PORT:-56181}:6432"]
+    depends_on:
+      pg: { condition: service_healthy }
+  # the migration image (db/Dockerfile), used read-only: run one-shot by the tests.
+  migrate:
+    build: { context: ../../../db, dockerfile: Dockerfile }
+    image: ${SCF_WSD_MIGRATE_IMAGE:-scf-wsd-db-migrate:test}
+    profiles: ["tools"]
+    environment:
+      PGHOST: pg
+      PGPORT: "5432"
+      SCF_DB_SUPERUSER: postgres
+      SCF_DB_SUPERUSER_PASSWORD: wsd-test-super
+      SCF_DB_BOOTSTRAP: "1"
+      SCF_MIGRATOR_PASSWORD: wsd-test
+      SCF_APP_PASSWORD: wsd-test
+      SCF_WRITER_PASSWORD: wsd-test
+      SCF_JOBS_PASSWORD: wsd-test
+      SCF_METRICS_RO_PASSWORD: wsd-test
+    depends_on:
+      pg: { condition: service_healthy }
+volumes:
+  pgdata:
