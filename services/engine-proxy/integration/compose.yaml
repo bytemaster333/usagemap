@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: Apache-2.0
+# Test-only stack for the engine-proxy integration test (run.sh): PostgreSQL 18 + our Umami image, with Umami
+# published on loopback so the in-process engine proxy under test can reach it. Never used outside tests — the real
+# stack (infra/compose/compose.yaml) publishes no Umami port at all.
+name: scf-wsi-it
+
+x-hardened: &hardened
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
+services:
+  postgres:
+    image: postgres:18.6-alpine@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
+    init: true
+    environment:
+      POSTGRES_PASSWORD: ${IT_PG_PASSWORD:?run via run.sh}
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami_app
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami_app -d umami"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  umami-migrate:
+    <<: *hardened
+    image: ${UMAMI_MIGRATE_IMAGE:-usagemap/umami-migrate:3.5.0-d3c62a8}
+    environment:
+      DATABASE_URL: postgresql://umami_app:${IT_PG_PASSWORD}@postgres:5432/umami
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  umami:
+    <<: *hardened
+    image: ${UMAMI_IMAGE:-usagemap/umami:3.5.0-d3c62a8}
+    environment:
+      DATABASE_URL: postgresql://umami_app:${IT_PG_PASSWORD}@postgres:5432/umami
+      APP_SECRET: ${IT_APP_SECRET:?run via run.sh}
+      DISABLE_TELEMETRY: "1"
+      DISABLE_UPDATES: "1"
+      PRIVATE_MODE: "1"
+      SKIP_DB_MIGRATION: "1"
+      SALT_ROTATION: day
+      TZ: UTC
+      CLIENT_IP_HEADER: x-scf-surrogate-ip
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /app/.next/cache:size=64m,uid=1001,gid=1001,mode=0700
+    ports: ["127.0.0.1:${IT_UMAMI_PORT:-56123}:3000"]
+    depends_on:
+      umami-migrate: { condition: service_completed_successfully }
