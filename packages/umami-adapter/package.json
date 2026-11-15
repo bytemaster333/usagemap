@@ -1,0 +1,28 @@
+{
+  "name": "@usagemap/umami-adapter",
+  "version": "0.1.0",
+  "description": "The only code that talks to Umami (wire-formats §j): bootstrap, provisioning, live-window reads.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=24.19.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "biome check .",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:contract": "vitest run --project contract",
+    "contract:upstream": "SCF_UMAMI_IMAGE=${SCF_UMAMI_UPSTREAM_IMAGE:-ghcr.io/umami-software/umami:latest} vitest run --project contract"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}
