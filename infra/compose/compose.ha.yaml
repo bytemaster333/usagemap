@@ -1,0 +1,514 @@
+# SPDX-License-Identifier: Apache-2.0
+# HA overlay (ADR-0020, ADR-0021, C-108, C-110): PostgreSQL primary + synchronous streaming standby under
+# Patroni with a three-member etcd, pgBackRest 2.60.0 to two Azure Blob repositories (two Azurite "storage accounts"),
+# scheduled full/differential backups, the weekly logical dump, the restore drill, and a primary-following proxy so
+# that PgBouncer, the migrators and Umami follow a failover. Use it on top of compose.yaml:
+#
+#   infra/compose/ha/scripts/ha-init.sh                      # once: HA secrets next to the base ones
+#   docker compose -p scf-ha -f infra/compose/compose.yaml -f infra/compose/compose.dev.yaml \
+#     -f infra/compose/compose.ha.yaml up -d --build --wait                  # compose.dev.yaml: the local fixtures
+#   infra/compose/ha/scripts/restore-drill.sh -p scf-ha       # weekly drill (also: make restore-drill)
+#
+# The service `postgres` of compose.yaml is replaced here by HAProxy (same name, same networks), so every client
+# keeps its `postgres:5432` and reaches the current primary. The database nodes are `pg-a` and `pg-b`.
+# What Azurite cannot emulate (blob versioning, soft delete, lifecycle rules, immutability — S-08 O9) is configured by
+# infra/opentofu on Azure and is verified there; see infra/compose/ha/README.md.
+
+x-pg-image: &pg-image usagemap/postgres-ha:18.7-pgbr2.60.0-patroni4.1.5
+x-etcd-image: &etcd-image gcr.io/etcd-development/etcd:v3.6.16@sha256:b29d816b546a1966fe7034a33b34e231fa98c47ce4d2883f70b0555020b22132
+x-azurite-image: &azurite-image mcr.microsoft.com/azure-storage/azurite@sha256:830430c1da1a2d537e08f3e6764dd1f5ae00cf0346bcaf625b968ec3f0971fd5 # 3.37.0
+
+x-etcd: &etcd
+  image: *etcd-image
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  networks: [dcs]
+  secrets: [dcs_ca]
+  healthcheck:
+    test:
+      [
+        "CMD",
+        "etcdctl",
+        "--endpoints=https://localhost:2379",
+        "--cacert=/run/secrets/dcs_ca",
+        "--cert=/run/secrets/etcd_peer_cert",
+        "--key=/run/secrets/etcd_peer_key",
+        "endpoint",
+        "health",
+      ]
+    interval: 3s
+    timeout: 3s
+    retries: 20
+  restart: unless-stopped
+
+x-pg-node: &pg-node
+  image: *pg-image
+  build: { context: ./ha, dockerfile: postgres/Dockerfile }
+  init: true # C-108: pgBackRest's async archiver needs an init process as PID 1 (S-08 O3)
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  shm_size: 256m
+  stop_grace_period: 60s
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+    - /var/run/postgresql:size=1m,uid=999,gid=999,mode=2775
+    - /var/spool/pgbackrest:size=256m,uid=999,gid=999,mode=0750
+    - /var/log/pgbackrest:size=8m,uid=999,gid=999,mode=0750
+  networks: [db, dcs, backup]
+  healthcheck:
+    test: ["CMD", "/usr/local/bin/scf-pg-healthcheck"]
+    interval: 3s
+    timeout: 5s
+    retries: 60
+    start_period: 20s
+  depends_on:
+    etcd-a: { condition: service_healthy }
+    etcd-b: { condition: service_healthy }
+    etcd-c: { condition: service_healthy }
+    azurite-init: { condition: service_completed_successfully }
+  restart: unless-stopped
+
+x-pg-env: &pg-env
+  PATRONI_ETCD3_HOSTS: etcd-a:2379,etcd-b:2379,etcd-c:2379 # TLS + client certificate (patroni.yml, F15)
+  SCF_PATRONI_URL: https://localhost:8008
+  SCF_AZ_CA: /run/secrets/azurite_ca
+  # Weekly logical dump to repository 2's container (ADR-0021, handover.data-migration): age recipient only; the identity never
+  # reaches a database node.
+  SCF_DUMP_BASEURL: https://azurite-b:10000/scfbackupb
+  SCF_DUMP_CONTAINER: pgbackrest
+  SCF_DUMP_AGE_RECIPIENT_FILE: /run/secrets/dump_age_recipient
+  # Production schedule (C-29): weekly full, daily differential, hourly check, weekly dump. Tests shorten these.
+  SCF_BACKUP_FULL_EVERY: ${SCF_BACKUP_FULL_EVERY:-604800}
+  SCF_BACKUP_DIFF_EVERY: ${SCF_BACKUP_DIFF_EVERY:-86400}
+  SCF_BACKUP_CHECK_EVERY: ${SCF_BACKUP_CHECK_EVERY:-3600}
+  SCF_DUMP_EVERY: ${SCF_DUMP_EVERY:-604800}
+  SCF_BACKUP_TICK: ${SCF_BACKUP_TICK:-60}
+
+x-azurite: &azurite
+  image: *azurite-image
+  read_only: true
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: ["/tmp:size=16m"]
+  networks: [backup]
+  healthcheck:
+    test: ["CMD-SHELL", "nc -z 127.0.0.1 10000"]
+    interval: 2s
+    timeout: 2s
+    retries: 30
+  restart: unless-stopped
+
+networks:
+  dcs: { internal: true } # Patroni ↔ etcd: TLS with client certificates (F15); production adds the WireGuard mesh
+  backup: { internal: true } # database nodes ↔ the two blob stores (production: private endpoints, infra/opentofu)
+
+volumes:
+  pgdata-a:
+  pgdata-b:
+  pgbr-a:
+  pgbr-b:
+  metrics-a:
+  metrics-b:
+  etcd-a:
+  etcd-b:
+  etcd-c:
+  azurite-a:
+  azurite-b:
+  drill:
+  drill-metrics:
+  dump-verify:
+  gwstate-b:
+
+secrets:
+  engine_proxy_b_cert: { file: ./.secrets/ha/engine-proxy-b.pem }
+  engine_proxy_b_key: { file: ./.secrets/ha/engine-proxy-b-key.pem }
+  engine_proxy_b_cp_client_cert: { file: ./.secrets/ha/core-b-engine-proxy.pem }
+  engine_proxy_b_cp_client_key: { file: ./.secrets/ha/core-b-engine-proxy-key.pem }
+  edge_a2_cert: { file: ./.secrets/pki/edge-a2.pem }
+  edge_a2_key: { file: ./.secrets/pki/edge-a2-key.pem }
+  pg_replication_password: { file: ./.secrets/ha/pg_replication_password }
+  pg_rewind_password: { file: ./.secrets/ha/pg_rewind_password }
+  patroni_restapi_password: { file: ./.secrets/ha/patroni_restapi_password }
+  pgbackrest_repo1_key: { file: ./.secrets/ha/pgbackrest_repo1_key } # SAS racwdl (C-108)
+  pgbackrest_repo2_key: { file: ./.secrets/ha/pgbackrest_repo2_key } # SAS racwdl (C-108)
+  pgbackrest_repo1_cipher_pass: { file: ./.secrets/ha/pgbackrest_repo1_cipher_pass }
+  pgbackrest_repo2_cipher_pass: { file: ./.secrets/ha/pgbackrest_repo2_cipher_pass }
+  pgbackrest_repo2_drill_sas: { file: ./.secrets/ha/pgbackrest_repo2_drill_sas } # SAS rl (drill host only)
+  azurite_ca: { file: ./.secrets/ha/azurite_ca.pem }
+  azurite_cert: { file: ./.secrets/ha/azurite.pem }
+  azurite_key: { file: ./.secrets/ha/azurite-key.pem }
+  azurite_a_key: { file: ./.secrets/ha/azurite_a_key }
+  azurite_b_key: { file: ./.secrets/ha/azurite_b_key }
+  azurite_a_init_sas: { file: ./.secrets/ha/azurite_a_init_sas }
+  azurite_b_init_sas: { file: ./.secrets/ha/azurite_b_init_sas }
+  dump_age_recipient: { file: ./.secrets/ha/dump_age_recipient }
+  dump_age_identity: { file: ./.secrets/ha/dump_age_identity }
+  # DCS TLS (F15): etcd client + peer TLS with client-certificate auth, Patroni REST API over TLS (ha-init.sh)
+  dcs_ca: { file: ./.secrets/ha/dcs/ca.pem }
+  etcd_client_cert: { file: ./.secrets/ha/dcs/patroni-etcd-client.pem }
+  etcd_client_key: { file: ./.secrets/ha/dcs/patroni-etcd-client-key.pem }
+  etcd_a_cert: { file: ./.secrets/ha/dcs/etcd-a.pem }
+  etcd_a_key: { file: ./.secrets/ha/dcs/etcd-a-key.pem }
+  etcd_b_cert: { file: ./.secrets/ha/dcs/etcd-b.pem }
+  etcd_b_key: { file: ./.secrets/ha/dcs/etcd-b-key.pem }
+  etcd_c_cert: { file: ./.secrets/ha/dcs/etcd-c.pem }
+  etcd_c_key: { file: ./.secrets/ha/dcs/etcd-c-key.pem }
+  pg_a_rest_cert: { file: ./.secrets/ha/dcs/pg-a-rest.pem }
+  pg_a_rest_key: { file: ./.secrets/ha/dcs/pg-a-rest-key.pem }
+  pg_b_rest_cert: { file: ./.secrets/ha/dcs/pg-b-rest.pem }
+  pg_b_rest_key: { file: ./.secrets/ha/dcs/pg-b-rest-key.pem }
+
+services:
+  # ------------------------------------------------------------------ primary-following proxy (replaces `postgres`)
+  postgres:
+    image: haproxy:3.2.26-alpine@sha256:1c3568e520453cc8ba98c39501febcf450429c80e6cc27ecad779961d76e597c
+    entrypoint: ["haproxy", "-W", "-db", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+    command: !reset []
+    environment: !reset {}
+    secrets: !reset []
+    volumes: !override
+      - ./ha/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./.secrets/ha/dcs/ca.pem:/usr/local/etc/haproxy/dcs-ca.pem:ro # verifies Patroni's REST API (F15)
+    healthcheck: !override
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8404/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 90
+      start_period: 5s
+    depends_on:
+      pg-a: { condition: service_started }
+      pg-b: { condition: service_started }
+
+  # ------------------------------------------------------------------ database nodes (Patroni)
+  pg-a:
+    <<: *pg-node
+    hostname: pg-a
+    environment:
+      <<: *pg-env
+      PATRONI_NAME: pg-a
+      PATRONI_RESTAPI_CONNECT_ADDRESS: pg-a:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: pg-a:5432
+    secrets:
+      - pg_superuser_password
+      - umami_db_password
+      - pg_replication_password
+      - pg_rewind_password
+      - patroni_restapi_password
+      - pgbackrest_repo1_key
+      - pgbackrest_repo2_key
+      - pgbackrest_repo1_cipher_pass
+      - pgbackrest_repo2_cipher_pass
+      - azurite_ca
+      - dump_age_recipient
+      - dcs_ca
+      - etcd_client_cert
+      - etcd_client_key
+      - source: pg_a_rest_cert
+        target: patroni_rest_cert
+      - source: pg_a_rest_key
+        target: patroni_rest_key
+    volumes:
+      - pgdata-a:/var/lib/postgresql
+      - pgbr-a:/var/lib/pgbackrest
+      - metrics-a:/var/lib/scf-metrics
+      - ./ha/pgbackrest/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+
+  pg-b:
+    <<: *pg-node
+    hostname: pg-b
+    environment:
+      <<: *pg-env
+      PATRONI_NAME: pg-b
+      PATRONI_RESTAPI_CONNECT_ADDRESS: pg-b:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: pg-b:5432
+    secrets:
+      - pg_superuser_password
+      - umami_db_password
+      - pg_replication_password
+      - pg_rewind_password
+      - patroni_restapi_password
+      - pgbackrest_repo1_key
+      - pgbackrest_repo2_key
+      - pgbackrest_repo1_cipher_pass
+      - pgbackrest_repo2_cipher_pass
+      - azurite_ca
+      - dump_age_recipient
+      - dcs_ca
+      - etcd_client_cert
+      - etcd_client_key
+      - source: pg_b_rest_cert
+        target: patroni_rest_cert
+      - source: pg_b_rest_key
+        target: patroni_rest_key
+    volumes:
+      - pgdata-b:/var/lib/postgresql
+      - pgbr-b:/var/lib/pgbackrest
+      - metrics-b:/var/lib/scf-metrics
+      - ./ha/pgbackrest/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+
+  # ------------------------------------------------------------------ DCS: three etcd members (core-a, core-b, mon-c)
+  etcd-a:
+    <<: *etcd
+    command:
+      - etcd
+      - --name=etcd-a
+      - --data-dir=/var/lib/etcd
+      - --listen-client-urls=https://0.0.0.0:2379
+      - --advertise-client-urls=https://etcd-a:2379
+      - --listen-peer-urls=https://0.0.0.0:2380
+      - --initial-advertise-peer-urls=https://etcd-a:2380
+      - --initial-cluster=etcd-a=https://etcd-a:2380,etcd-b=https://etcd-b:2380,etcd-c=https://etcd-c:2380
+      - --initial-cluster-state=new
+      - --initial-cluster-token=scf-etcd
+      - --log-level=warn
+      # F15: client and peer TLS, both with client-certificate authentication against the DCS CA
+      - --cert-file=/run/secrets/etcd_peer_cert
+      - --key-file=/run/secrets/etcd_peer_key
+      - --client-cert-auth
+      - --trusted-ca-file=/run/secrets/dcs_ca
+      - --peer-cert-file=/run/secrets/etcd_peer_cert
+      - --peer-key-file=/run/secrets/etcd_peer_key
+      - --peer-client-cert-auth
+      - --peer-trusted-ca-file=/run/secrets/dcs_ca
+      - --cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+    secrets:
+      - dcs_ca
+      - { source: etcd_a_cert, target: etcd_peer_cert }
+      - { source: etcd_a_key, target: etcd_peer_key }
+    volumes: ["etcd-a:/var/lib/etcd"]
+  etcd-b:
+    <<: *etcd
+    command:
+      - etcd
+      - --name=etcd-b
+      - --data-dir=/var/lib/etcd
+      - --listen-client-urls=https://0.0.0.0:2379
+      - --advertise-client-urls=https://etcd-b:2379
+      - --listen-peer-urls=https://0.0.0.0:2380
+      - --initial-advertise-peer-urls=https://etcd-b:2380
+      - --initial-cluster=etcd-a=https://etcd-a:2380,etcd-b=https://etcd-b:2380,etcd-c=https://etcd-c:2380
+      - --initial-cluster-state=new
+      - --initial-cluster-token=scf-etcd
+      - --log-level=warn
+      # F15: client and peer TLS, both with client-certificate authentication against the DCS CA
+      - --cert-file=/run/secrets/etcd_peer_cert
+      - --key-file=/run/secrets/etcd_peer_key
+      - --client-cert-auth
+      - --trusted-ca-file=/run/secrets/dcs_ca
+      - --peer-cert-file=/run/secrets/etcd_peer_cert
+      - --peer-key-file=/run/secrets/etcd_peer_key
+      - --peer-client-cert-auth
+      - --peer-trusted-ca-file=/run/secrets/dcs_ca
+      - --cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+    secrets:
+      - dcs_ca
+      - { source: etcd_b_cert, target: etcd_peer_cert }
+      - { source: etcd_b_key, target: etcd_peer_key }
+    volumes: ["etcd-b:/var/lib/etcd"]
+  etcd-c:
+    <<: *etcd
+    command:
+      - etcd
+      - --name=etcd-c
+      - --data-dir=/var/lib/etcd
+      - --listen-client-urls=https://0.0.0.0:2379
+      - --advertise-client-urls=https://etcd-c:2379
+      - --listen-peer-urls=https://0.0.0.0:2380
+      - --initial-advertise-peer-urls=https://etcd-c:2380
+      - --initial-cluster=etcd-a=https://etcd-a:2380,etcd-b=https://etcd-b:2380,etcd-c=https://etcd-c:2380
+      - --initial-cluster-state=new
+      - --initial-cluster-token=scf-etcd
+      - --log-level=warn
+      # F15: client and peer TLS, both with client-certificate authentication against the DCS CA
+      - --cert-file=/run/secrets/etcd_peer_cert
+      - --key-file=/run/secrets/etcd_peer_key
+      - --client-cert-auth
+      - --trusted-ca-file=/run/secrets/dcs_ca
+      - --peer-cert-file=/run/secrets/etcd_peer_cert
+      - --peer-key-file=/run/secrets/etcd_peer_key
+      - --peer-client-cert-auth
+      - --peer-trusted-ca-file=/run/secrets/dcs_ca
+      - --cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+    secrets:
+      - dcs_ca
+      - { source: etcd_c_cert, target: etcd_peer_cert }
+      - { source: etcd_c_key, target: etcd_peer_key }
+    volumes: ["etcd-c:/var/lib/etcd"]
+
+  # ------------------------------------------------------------------ backup repositories (Azurite stand-ins)
+  azurite-a: # repository 1: storage account scfbackupa ("region 1")
+    <<: *azurite
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        AZURITE_ACCOUNTS="scfbackupa:$$(cat /run/secrets/azurite_a_key)"
+        exec azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data
+        --cert /run/secrets/azurite_cert --key /run/secrets/azurite_key --disableTelemetry --skipApiVersionCheck --silent
+    secrets: [azurite_a_key, azurite_cert, azurite_key]
+    volumes: ["azurite-a:/data"]
+  azurite-b: # repository 2: storage account scfbackupb ("region 2"); also the weekly dumps and the drill's source
+    <<: *azurite
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        AZURITE_ACCOUNTS="scfbackupb:$$(cat /run/secrets/azurite_b_key)"
+        exec azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data
+        --cert /run/secrets/azurite_cert --key /run/secrets/azurite_key --disableTelemetry --skipApiVersionCheck --silent
+    secrets: [azurite_b_key, azurite_cert, azurite_key]
+    volumes: ["azurite-b:/data"]
+
+  # One-shot: the two containers (on Azure, infra/opentofu creates them with versioning and the lifecycle rule).
+  azurite-init:
+    image: *pg-image
+    build: { context: ./ha, dockerfile: postgres/Dockerfile }
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >-
+        set -e;
+        scf-azblob mkcontainer https://azurite-a:10000/scfbackupa pgbackrest "$$(cat /run/secrets/azurite_a_init_sas)";
+        scf-azblob mkcontainer https://azurite-b:10000/scfbackupb pgbackrest "$$(cat /run/secrets/azurite_b_init_sas)"
+    environment:
+      SCF_AZ_CA: /run/secrets/azurite_ca
+    secrets: [azurite_ca, azurite_a_init_sas, azurite_b_init_sas]
+    networks: [backup]
+    restart: "no"
+    depends_on:
+      azurite-a: { condition: service_healthy }
+      azurite-b: { condition: service_healthy }
+
+  # ------------------------------------------------------------------ weekly restore drill (profile `drill`)
+  # Scratch instance: repository 2 only, read+list SAS only, no route to the database nodes (C-56, C-108).
+  # Run through infra/compose/ha/scripts/restore-drill.sh, which also removes it and its volume.
+  pg-drill:
+    image: *pg-image
+    build: { context: ./ha, dockerfile: postgres/Dockerfile }
+    profiles: [drill]
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    shm_size: 256m
+    entrypoint:
+      [
+        "/bin/bash",
+        "-c",
+        'export PGBACKREST_REPO2_AZURE_KEY=$$(cat /run/secrets/pgbackrest_repo2_drill_sas) PGBACKREST_REPO2_CIPHER_PASS=$$(cat /run/secrets/pgbackrest_repo2_cipher_pass); exec scf-restore-drill "$$@"',
+        "scf-restore-drill",
+      ]
+    environment:
+      SCF_METRICS_DIR: /var/lib/scf-metrics
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+      - /var/run/postgresql:size=1m,uid=999,gid=999,mode=2775
+      - /var/spool/pgbackrest:size=64m,uid=999,gid=999,mode=0750
+      - /var/log/pgbackrest:size=8m,uid=999,gid=999,mode=0750
+    secrets: [pgbackrest_repo2_drill_sas, pgbackrest_repo2_cipher_pass, azurite_ca]
+    volumes:
+      - drill:/var/lib/postgresql
+      - drill-metrics:/var/lib/scf-metrics
+      - ./ha/pgbackrest/pgbackrest-drill.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - ${SCF_DRILL_DB_SRC:-../../db}:/db:ro # db/migrate.sh gates + gates/*.sql + allow-lists
+    networks: [backup]
+    restart: "no"
+
+  # ------------------------------------------------------------------ logical-dump migration check (profile `migration`)
+  # Restores a weekly dump into an empty scratch instance and compares the row-count/checksum manifest (handover.data-migration). The
+  # age identity is mounted only here, never on a database node. `docker compose … --profile migration run --rm
+  # dump-verify [NAME]`; the same `scf-backup dump-restore` imports into a new operator's server (handover).
+  dump-verify:
+    image: *pg-image
+    build: { context: ./ha, dockerfile: postgres/Dockerfile }
+    profiles: [migration]
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    shm_size: 256m
+    entrypoint:
+      [
+        "/bin/bash",
+        "-c",
+        'export PGBACKREST_REPO2_AZURE_KEY=$$(cat /run/secrets/pgbackrest_repo2_drill_sas); exec scf-dump-verify "$$@"',
+        "scf-dump-verify",
+      ]
+    environment:
+      SCF_AZ_CA: /run/secrets/azurite_ca
+      SCF_DUMP_BASEURL: https://azurite-b:10000/scfbackupb
+      SCF_DUMP_CONTAINER: pgbackrest
+      SCF_DUMP_AGE_IDENTITY_FILE: /run/secrets/dump_age_identity
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+      - /var/run/postgresql:size=1m,uid=999,gid=999,mode=2775
+    secrets: [pgbackrest_repo2_drill_sas, dump_age_identity, azurite_ca]
+    volumes: ["dump-verify:/var/lib/postgresql"]
+    networks: [backup]
+    restart: "no"
+
+  # ------------------------------------------------------------------ multi-node profile (`--profile multinode`)
+  # A second core (Umami + engine proxy, `core-b`) and a second edge (`edge-a2`) on top of the HA database, so that the
+  # forwarders' consistent-hash failover between two cores (C-74) and two gateways can run on one machine. Same
+  # images and settings as the first instances (extends), own identities. The first gateway (edge-a1, compose.yaml)
+  # learns about core-b and its key-exchange peer edge-a2 from three variables; run the profile as
+  #
+  #   SCF_GW_CORES_EXTRA=,core-b=https://engine-proxy-b:8443 SCF_GW_KEYX_ADDR=:9443 \
+  #   SCF_GW_KEYX_PEERS=edge-a2=https://edge-a2:9443 \
+  #   docker compose -p scf-mn -f infra/compose/compose.yaml -f infra/compose/compose.dev.yaml \
+  #     -f infra/compose/compose.ha.yaml --profile multinode up -d
+  #
+  # (docs/guides/self-hosting.md, "Multi-node"). The key exchange (C-110) runs over `core`; each edge's alias there
+  # is the node name in its certificate.
+  umami-b:
+    extends: { file: compose.yaml, service: umami }
+    profiles: [multinode]
+    depends_on:
+      umami-migrate: { condition: service_completed_successfully }
+
+  engine-proxy-b:
+    extends: { file: compose.yaml, service: engine-proxy }
+    profiles: [multinode]
+    environment:
+      EP_UMAMI_URL: http://umami-b:3000
+      EP_TLS_CERT: /run/secrets/engine_proxy_b_cert
+      EP_TLS_KEY: /run/secrets/engine_proxy_b_key
+      EP_CONTROL_PLANE_TLS_CERT: /run/secrets/engine_proxy_b_cp_client_cert
+      EP_CONTROL_PLANE_TLS_KEY: /run/secrets/engine_proxy_b_cp_client_key
+    secrets: !override
+      - engine_proxy_b_cert
+      - engine_proxy_b_key
+      - scf_ca
+      - engine_proxy_b_cp_client_cert
+      - engine_proxy_b_cp_client_key
+      - umami_provisioner_password
+    depends_on: !override
+      umami-b: { condition: service_healthy }
+
+  gateway-b:
+    extends: { file: compose.yaml, service: gateway }
+    profiles: [multinode]
+    environment:
+      GW_NODE_ID: edge-a2
+      GW_NODE_CERT: /run/secrets/edge_a2_cert
+      GW_NODE_KEY: /run/secrets/edge_a2_key
+      GW_CORES: core-a=https://engine-proxy:8443,core-b=https://engine-proxy-b:8443
+      GW_KEYX_ADDR: ":9443"
+      GW_KEYX_PEERS: edge-a1=https://edge-a1:9443
+    secrets:
+      !override [
+        scf_ca,
+        edge_a2_cert,
+        edge_a2_key,
+        ingest_cert,
+        ingest_key,
+        edge_snapshot_pub,
+        edge_snapshot_pub_next,
+        pepper_ing,
+      ]
+    volumes: !override ["gwstate-b:/var/lib/scf-gateway"]
+    networks: !override
+      core: { aliases: [edge-a2] }
+      public: {}
+    ports: !override ["127.0.0.1:${SCF_INGEST_PORT_B:-56341}:8443"]

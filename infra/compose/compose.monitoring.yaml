@@ -1,0 +1,331 @@
+# SPDX-License-Identifier: Apache-2.0
+# Monitoring overlay (ADR-0022, ADR-0031, C-30, C-71, C-78, C-92, C-93). Used together with the base file:
+#
+#   infra/compose/scripts/init.sh && ops/e2e/secrets.sh           # once: dev secrets, PKI, monitoring secrets
+#   docker compose -f infra/compose/compose.yaml -f infra/compose/compose.monitoring.yaml up -d --build --wait
+#
+# Adds: Prometheus (13-month retention, C-71), Alertmanager, Grafana (dashboards D1–D14 provisioned read-only from
+# ops/dashboards), VictoriaLogs (30-day retention, C-71) fed by the Docker syslog driver of the application services,
+# the log scanner, three probe sources (mon-c, probe-d, edge-b1: 30-second rounds, 60-second signed-in journeys), the
+# status page with the dead-man's-switch heartbeat receiver, two health-controller instances elected through etcd,
+# and two fake DNS providers. In production the monitoring components run on mon-c, the probes also on probe-d and
+# the edges, and the status page outside the monitored failure domain (ops/README.md "Placement").
+#
+# Host ports (127.0.0.1 only, override with the variables): Prometheus ${SCF_PROMETHEUS_PORT:-9090}, Alertmanager
+# ${SCF_ALERTMANAGER_PORT:-9093}, Grafana ${SCF_GRAFANA_PORT:-3000}, status page ${SCF_STATUS_PORT:-8090},
+# VictoriaLogs syslog ${SCF_SYSLOG_PORT:-5140}/udp (the Docker daemon sends container logs there).
+#
+# Images are pinned by digest; Grafana OSS is AGPL-3.0, run unmodified as its own container (supply-chain.md §5.1,
+# licence exception entry); everything else is Apache-2.0.
+
+x-hardened-mon: &hardened-mon
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+
+x-syslog: &syslog
+  logging:
+    driver: syslog
+    options:
+      syslog-address: "udp://127.0.0.1:${SCF_SYSLOG_PORT:-5140}"
+      syslog-format: rfc5424micro
+      tag: "{{.Name}}"
+
+x-ops-image: &ops-image
+  build: { context: ../.., dockerfile: ops/Dockerfile }
+  image: usagemap/ops:dev
+
+x-hc-image: &hc-image
+  build: { context: ../.., dockerfile: services/health-controller/Dockerfile }
+  image: usagemap/health-controller:dev
+
+networks:
+  # Internal: scrape targets, Alertmanager, Grafana, the health controllers and their providers. Probes join `public`
+  # as well, because they act as outside clients of the ingest hostnames and the public API.
+  monitoring: { internal: true }
+  # Docker publishes no port of a container that is only on internal networks: the services with a host port
+  # (127.0.0.1 only) also join this bridge, which nothing else uses.
+  monitoring-ports: {}
+
+volumes:
+  promdata: {}
+  amdata: {}
+  grafanadata: {}
+  vlogsdata: {}
+  probestore: {}
+  statuswww: {}
+
+secrets:
+  grafana_admin_password: { file: ./.secrets/grafana_admin_password }
+  heartbeat_token: { file: ./.secrets/heartbeat_token }
+  dns_token: { file: ./.secrets/dns_token }
+  journey_seed: { file: ./.secrets/journey_seed }
+  scf_monitor_password: { file: ./.secrets/scf_monitor_password }
+
+services:
+  # ---------------------------------------------------------------- existing services: scrape access and logs
+  gateway:
+    <<: *syslog
+    networks:
+      monitoring: {}
+      public: { aliases: [ingest-a.example-analytics.org, ingest-b.example-analytics.net] }
+  collector:
+    <<: *syslog
+    networks:
+      monitoring: { aliases: [collector-metrics] }
+    environment:
+      SCF_SELF_METRICS_HOST: collector-metrics # self-metrics on its `monitoring` address only (Prometheus: collector-metrics:8888)
+  engine-proxy: { <<: *syslog, networks: [monitoring] }
+  metrics-writer: { <<: *syslog, networks: [monitoring] }
+  jobs: { <<: *syslog, networks: [monitoring] }
+  control-plane: { <<: *syslog, networks: [monitoring] } # /metrics on :9464 (scf_cp_*), internal only
+  portal: { <<: *syslog }
+
+  # ---------------------------------------------------------------- metrics, alerts, dashboards, logs
+  prometheus:
+    <<: *hardened-mon
+    image: prom/prometheus:v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06
+    user: "65534:65534"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=395d # 13 months (C-71)
+      - --web.listen-address=:9090
+    volumes:
+      - ../../ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../ops/alerts:/etc/prometheus/rules:ro
+      - promdata:/prometheus
+    networks: [monitoring, monitoring-ports]
+    ports: ["127.0.0.1:${SCF_PROMETHEUS_PORT:-9090}:9090"]
+    healthcheck:
+      test: ["CMD", "/bin/promtool", "check", "healthy", "--url=http://127.0.0.1:9090"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  alertmanager:
+    <<: *hardened-mon
+    image: prom/alertmanager:v0.35.0@sha256:e638797febd034838eca8b98cdbd46f951e9bf7f178777aa8669167406a9946c
+    user: "65534:65534"
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --cluster.listen-address= # single instance, no gossip port
+    volumes:
+      - ../../ops/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - amdata:/alertmanager
+    secrets: [heartbeat_token]
+    networks: [monitoring, monitoring-ports]
+    ports: ["127.0.0.1:${SCF_ALERTMANAGER_PORT:-9093}:9093"]
+    healthcheck:
+      test: ["CMD", "/bin/amtool", "check-config", "/etc/alertmanager/alertmanager.yml"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    <<: *hardened-mon
+    image: grafana/grafana:13.3.1@sha256:0615ec4fbd4072004b7d86b46ded63013a74b7d6eb1119273dd89e8fa25c13cf
+    user: "472:0"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_SECURITY_COOKIE_SECURE: "false" # local http; production sets true behind TLS
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      GF_LOG_MODE: console
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - ../../ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../ops/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanadata:/var/lib/grafana
+    tmpfs: ["/tmp:size=16m"]
+    secrets: [grafana_admin_password]
+    networks: [monitoring, monitoring-ports]
+    ports: ["127.0.0.1:${SCF_GRAFANA_PORT:-3000}:3000"]
+    depends_on: { prometheus: { condition: service_healthy } }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  # PostgreSQL server statistics for the connection, replication-lag and vacuum alerts (ops/alerts/platform.rules.yaml).
+  # prometheus-community postgres_exporter (Apache-2.0). Logs in as scf_monitor (predefined role pg_monitor only, to the
+  # maintenance database `postgres`; no CONNECT on scf and no table privilege, so no tenant data and no personal data).
+  # Its default collectors export server counters and settings only — no query text, client address or user agent.
+  postgres-exporter:
+    <<: *hardened-mon
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1@sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e
+    user: "65534:65534"
+    environment:
+      DATA_SOURCE_URI: postgres:5432/postgres?sslmode=disable
+      DATA_SOURCE_USER: scf_monitor
+      DATA_SOURCE_PASS_FILE: /run/secrets/scf_monitor_password
+    command: ["--web.listen-address=:9187"]
+    secrets: [scf_monitor_password]
+    networks: [db, monitoring]
+    depends_on: { db-migrate: { condition: service_completed_successfully } }
+    # Distroless-style image without a shell or HTTP client: Prometheus scrapes it (job postgres, `pg_up`).
+
+  victorialogs:
+    <<: *hardened-mon
+    image: victoriametrics/victoria-logs:v1.54.0@sha256:ee4e820cac3721f5f5d91641b950c22439593adc4224f9655e5333d5a84c1dfe
+    user: "65534:65534"
+    command:
+      - -storageDataPath=/vlogs
+      - -retentionPeriod=30d # C-71
+      - -syslog.listenAddr.udp=:5140
+      - -httpListenAddr=:9428
+    volumes: ["vlogsdata:/vlogs"]
+    networks: [monitoring, monitoring-ports]
+    ports: ["127.0.0.1:${SCF_SYSLOG_PORT:-5140}:5140/udp"]
+    depends_on: { vlogs-init: { condition: service_completed_successfully } }
+    # The image has no shell or HTTP client for a healthcheck; Prometheus scrapes it (job victorialogs) and
+    # ops/e2e/run.sh queries it.
+  # One-shot: the named volume is created root-owned; hand it to the unprivileged VictoriaLogs user (only CAP_CHOWN,
+  # no network). Our own usagemap/ops image (`scf-ops chown`, static Go binary on distroless) instead of a third-party
+  # Alpine image, so no OS packages ride along (images gate 2026-11-18: zlib/OpenSSL advisories in alpine:3.24.4).
+  vlogs-init:
+    <<: *ops-image
+    user: "0:0" # chown needs uid 0; CAP_CHOWN is its only capability
+    command: [chown, -owner, "65534:65534", /vlogs]
+    healthcheck: { disable: true }
+    volumes: ["vlogsdata:/vlogs"]
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN]
+    security_opt: ["no-new-privileges:true"]
+
+  logscan:
+    <<: [*hardened-mon, *ops-image]
+    command: [logscan, -victorialogs, "http://victorialogs:9428", -interval, 5m, -metrics, ":9480"]
+    networks: [monitoring]
+    depends_on: { victorialogs: { condition: service_started } }
+
+  # ---------------------------------------------------------------- probe sources (C-30, C-78, C-93)
+  probe-mon-c: &probe
+    <<: [*hardened-mon, *ops-image, *syslog]
+    command: [probe, -config, /etc/scf-ops/probe.json]
+    volumes:
+      - ../../ops/probes/compose-mon-c.json:/etc/scf-ops/probe.json:ro
+      - probestore:/var/lib/scf-probes
+    secrets: [scf_ca, journey_seed]
+    networks: [monitoring, public]
+    depends_on: { gateway: { condition: service_started } }
+  probe-probe-d:
+    <<: *probe
+    volumes:
+      - ../../ops/probes/compose-probe-d.json:/etc/scf-ops/probe.json:ro
+      - probestore:/var/lib/scf-probes
+  probe-edge:
+    <<: *probe
+    volumes:
+      - ../../ops/probes/compose-edge.json:/etc/scf-ops/probe.json:ro
+      - probestore:/var/lib/scf-probes
+
+  # ---------------------------------------------------------------- status page and dead-man's-switch heartbeat
+  status:
+    <<: [*hardened-mon, *ops-image, *syslog]
+    command:
+      [
+        status-page,
+        -store,
+        /var/lib/scf-probes,
+        -out,
+        /var/lib/scf-status/www,
+        -listen,
+        ":8080",
+        -heartbeat-token-file,
+        /run/secrets/heartbeat_token,
+      ]
+    volumes:
+      - probestore:/var/lib/scf-probes:ro
+      - statuswww:/var/lib/scf-status/www
+    secrets: [heartbeat_token]
+    networks: [monitoring, monitoring-ports]
+    ports: ["127.0.0.1:${SCF_STATUS_PORT:-8090}:8080"]
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/scf-ops", "healthcheck", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  # ---------------------------------------------------------------- health controller (C-92) with etcd and fake DNS
+  etcd:
+    <<: *hardened-mon
+    image: gcr.io/etcd-development/etcd:v3.6.16@sha256:b29d816b546a1966fe7034a33b34e231fa98c47ce4d2883f70b0555020b22132
+    user: "65534:65534"
+    command:
+      [
+        etcd,
+        --name,
+        e1,
+        --data-dir,
+        /etcd-data,
+        --listen-client-urls,
+        "http://0.0.0.0:2379",
+        --advertise-client-urls,
+        "http://etcd:2379",
+        --listen-peer-urls,
+        "http://127.0.0.1:2380",
+        --initial-advertise-peer-urls,
+        "http://127.0.0.1:2380",
+        --initial-cluster,
+        "e1=http://127.0.0.1:2380",
+      ]
+    tmpfs: ["/etcd-data:size=256m,uid=65534,gid=65534,mode=0700"] # etcd preallocates 64 MB WAL files
+    networks: [monitoring]
+  dns-a: &fakedns
+    <<: [*hardened-mon, *hc-image]
+    entrypoint: [/usr/local/bin/fake-dns-provider]
+    command:
+      [
+        -listen,
+        ":8053",
+        -token-file,
+        /run/secrets/dns_token,
+        -seed,
+        "example-analytics.org|ingest-a.example-analytics.org|A|60|192.0.2.11,192.0.2.12",
+        -seed,
+        "example-analytics.net|ingest-b.example-analytics.net|A|60|192.0.2.11,192.0.2.12",
+      ]
+    secrets: [dns_token]
+    networks: [monitoring]
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/fake-dns-provider", "healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+  dns-b: *fakedns
+  hc-mon-c: &hc
+    <<: [*hardened-mon, *hc-image, *syslog]
+    command:
+      [
+        -config,
+        /etc/scf-hc/config.json,
+        -etcd,
+        "http://etcd:2379",
+        -etcd-ttl,
+        15s,
+        -ingest-ca,
+        /run/secrets/scf_ca,
+      ]
+    volumes: ["../../ops/health-controller/compose-mon-c.json:/etc/scf-hc/config.json:ro"]
+    secrets: [dns_token, scf_ca]
+    networks: [monitoring, public]
+    depends_on:
+      etcd: { condition: service_started }
+      dns-a: { condition: service_healthy }
+      dns-b: { condition: service_healthy }
+  hc-core-b:
+    <<: *hc
+    volumes: ["../../ops/health-controller/compose-core-b.json:/etc/scf-hc/config.json:ro"]

@@ -1,0 +1,83 @@
+# SPDX-License-Identifier: Apache-2.0
+# Development and test fixtures of the local stack, on top of compose.yaml (+ any other overlay). Never part of a
+# deployment: the production lean profile (infra/ansible role compose_stack) runs compose.yaml, compose.monitoring.yaml
+# and its own override only, and the fixture image is built from this file alone. Every script that brings up a local stack adds it:
+#
+#   docker compose -f infra/compose/compose.yaml -f infra/compose/compose.dev.yaml up -d --build --wait   # make up
+#   infra/compose/scripts/smoke.sh, ops/e2e/run.sh, tests/stack/up.sh, tests/quickstarts/stack/up.sh,
+#   services/gateway/integration/run.sh, apps/portal/e2e/real/run.sh, infra/compose/ha/tests/run.sh
+#
+# The volume `ledgers` and jobs' SCF_ONCHAIN_LEDGER_DIR (/srv/ledgers) are defined in compose.yaml; this file fills the
+# volume with a synthetic mirror and makes it read-only in jobs. It also holds the local stacks' platform settings
+# (`dev-settings`) and their test range lists (rangelists/, documentation ranges only), and switches off the weekly
+# range-list download (the local stacks have no egress).
+
+services:
+  # The on-chain correlation's ledger-file mirror (plan A1, wire-formats §p.1) without a live download (the local stack
+  # has no egress): a synthetic testnet lake (services/onchain-reader `lakegen -demo-days`, image target `lakegen`)
+  # covering the 8 UTC days before today, every day complete, regenerated on every start so the dates stay current.
+  # Contracts "smoke-contract" (3 invocations a day, 2 successful, 2 invokers) and "smoke-conflict" (1 a day); their
+  # strkeys are in this service's log. No network.
+  onchain-fixture:
+    build: { context: ../../services/onchain-reader, target: lakegen }
+    image: usagemap/onchain-lakegen:dev
+    command: ["-network", "testnet", "-demo-days", "8", "/ledgers"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    network_mode: none
+    volumes: ["ledgers:/ledgers"]
+    restart: "no"
+
+  # Platform settings the local stacks run with (postgres/dev-settings.sql), applied as the superuser after the
+  # migrations on every start: edge_counter_features = ["props","dev"] (C-137, wire-formats §d.3/§e.3; every control
+  # plane here runs C-136). Never in a deployment (C-139): it carries the superuser password and a development image
+  # tag, and it would reset what an operator_admin set. A deployment sets the value once through
+  # `PATCH /v1/operator/settings/edge_counter_features` (operatorUpdateSetting, step-up, audited; runbook deploy-verify).
+  dev-settings:
+    build: { context: ../../db, target: migrate }
+    image: usagemap/db-migrate:dev
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    networks: [db]
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        PGPASSWORD="$$(cat /run/secrets/pg_superuser_password)"
+        exec psql -X -q -v ON_ERROR_STOP=1 -h postgres -U postgres -d scf -f /seed/dev-settings.sql
+    volumes: ["./postgres/dev-settings.sql:/seed/dev-settings.sql:ro"]
+    secrets: [pg_superuser_password]
+    depends_on:
+      postgres: { condition: service_healthy }
+      db-migrate: { condition: service_completed_successfully }
+
+  # No range-list download in the local stacks (no egress): the updater stays off unless asked for
+  # (`--profile rangelist-fetch`), and the gateway reads the test lists of rangelists/ (documentation ranges only).
+  rangelist-updater:
+    profiles: [rangelist-fetch]
+  gateway:
+    volumes:
+      - ./rangelists:/var/lib/scf-rangelists:ro
+
+  # jobs counts the fixture: the mirror read-only (replaces compose.yaml's writable mount of the same target; the job
+  # has no SCF_ONCHAIN_LEDGER_SOURCE_URL here, so no fetch step writes) and only once it is complete. `nocopy`: Compose
+  # creates the jobs container before the fixture runs, and without it Docker would seed the new volume from the jobs
+  # image's /srv/ledgers (uid 1000), which the fixture (uid 65532) then could not write; the volume takes its owner
+  # from the fixture image's /ledgers instead.
+  jobs:
+    environment:
+      # The synthetic testnet ledger fixture has no Horizon anchors to compare with (C-144 day-anchor check):
+      # development and test stacks only, never a deployment.
+      SCF_ONCHAIN_LEDGER_HASH_CHECK: "off"
+    volumes:
+      - type: volume
+        source: ledgers
+        target: /srv/ledgers
+        read_only: true
+        volume: { nocopy: true }
+    depends_on:
+      onchain-fixture: { condition: service_completed_successfully } # the ledger mirror is complete
+      dev-settings: { condition: service_completed_successfully } # edge_snapshot copies edge_counter_features

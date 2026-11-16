@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Test range list of the local stacks (compose.dev.yaml mounts this directory as the gateway's GW_RANGELISTS_DIR):
+# documentation ranges only (RFC 5737, RFC 3849), so no real visitor or test client is ever classified by it. Real
+# lists come from rangelist-updater in a deployment and are never committed (C-38).
+192.0.2.0/24
+2001:db8:dc::/48

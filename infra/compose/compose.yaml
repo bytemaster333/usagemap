@@ -1,0 +1,718 @@
+# SPDX-License-Identifier: Apache-2.0
+# The whole platform on one machine (ADR-0019, C-96).
+#
+#   infra/compose/scripts/init.sh                       # once: development secrets + PKI in .secrets/ (git-ignored)
+#   make up                                             # compose.yaml + compose.dev.yaml (below)
+#
+# Services of a plain `up`: postgres → db-migrate, pgbouncer; umami-views-drop → umami-migrate → umami-views → umami;
+# engine-proxy → umami-bootstrap; control-plane; portal; jobs; metrics-writer; gateway (edge node a1), its range-list
+# updater and its Collector on the private `otlp` network (C-130). No profiles: a plain `up` runs the web and the API paths end to end. The
+# control plane serves the tracker release from tracker/dist (built by scripts/init.sh). Ports are published on 127.0.0.1 only; Umami publishes none.
+#
+# This file is also the base of the production lean profile (infra/ansible role compose_stack + its prod override), so
+# it holds no synthetic data, test fixture or development setting. Development and test fixtures (the on-chain ledger
+# fixture `onchain-fixture`, the platform settings of `dev-settings`, test range lists) are in compose.dev.yaml, which
+# every local, smoke and test stack adds and no deployment loads:
+#
+#   docker compose -f infra/compose/compose.yaml -f infra/compose/compose.dev.yaml up -d --build --wait   # = make up
+#
+# Networks (hardening.md §3, one per trust zone):
+#   engine  internal, no egress: Umami, PostgreSQL, the engine proxy's inner side, Umami's one-shot steps
+#   db      internal, no egress: PostgreSQL, PgBouncer and the steps that connect directly (migrators, superuser steps);
+#           also the control plane, whose LISTEN sessions (scf_edge, scf_verify, scf_umami) need a direct connection —
+#           they only ever run LISTEN as scf_jobs, every query goes through PgBouncer (C-117)
+#   data    internal, no egress: PgBouncer and the runtime services that use the databases through it
+#   core    internal, no egress: the engine proxy's mTLS listener and its node callers (edge forwarders, the
+#           bootstrap one-shot, the jobs service's tenant purge) — the local stand-in for the WireGuard mesh —
+#           and the metrics writer (alias writers.mesh.local, mTLS OTLP from the edge Collectors, C-107)
+#   otlp    internal, no egress: ONLY the gateway and its Collector — the OTLP front door → Collector hop (C-130). The
+#           Collector's receivers bind to its address on this network (alias otlp-collector) and nowhere else
+#   cpi     internal, no egress: ONLY the engine proxy and the control plane — the proxy → internal edge API hop
+#           (mutual TLS, C-114) and the control plane's adapter calls to the proxy
+#   public  bridge: services that publish a port to the host or need egress allowed by C-10 (control plane: domain
+#           verifier, Horizon, GitHub), and the portal, which fronts the control plane's API on the same origin
+name: scf
+
+x-hardened: &hardened
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
+x-umami-image: &umami-image usagemap/umami:3.5.0-d3c62a8
+x-umami-migrate-image: &umami-migrate-image usagemap/umami-migrate:3.5.0-d3c62a8
+# Our clean PostgreSQL image (C-119): the `server` target of db/Dockerfile — the pinned 18.6-alpine digest with patched
+# krb5-libs/libxslt/zlib and without gosu, so it must run as uid 70 from the start (`user: "70:70"` below).
+x-postgres-image: &postgres-image usagemap/postgres:dev
+
+# Superuser steps of db/migrate.sh (bootstrap, umami-views, umami-views-drop): the database's one-shot image (the `migrate`
+# target of db/Dockerfile, built FROM the `server` stage, so its psql matches the server).
+x-db-tool: &db-tool
+  <<: *hardened
+  build: { context: ../../db, target: migrate }
+  image: usagemap/db-migrate:dev
+  tmpfs: ["/tmp:size=16m,mode=1777"]
+  networks: [db]
+  restart: "no"
+  depends_on:
+    postgres: { condition: service_healthy }
+
+networks:
+  engine: { internal: true }
+  db: { internal: true }
+  data: { internal: true }
+  core: { internal: true }
+  cpi: { internal: true }
+  otlp: { internal: true }
+  public: {}
+
+secrets:
+  pg_superuser_password: { file: ./.secrets/pg_superuser_password }
+  umami_db_password: { file: ./.secrets/umami_db_password }
+  umami_app_secret: { file: ./.secrets/umami_app_secret }
+  umami_seed_admin_password: { file: ./.secrets/umami_seed_admin_password }
+  umami_provisioner_password: { file: ./.secrets/umami_provisioner_password }
+  scf_migrator_password: { file: ./.secrets/scf_migrator_password }
+  scf_app_password: { file: ./.secrets/scf_app_password }
+  scf_writer_password: { file: ./.secrets/scf_writer_password }
+  scf_jobs_password: { file: ./.secrets/scf_jobs_password }
+  scf_metrics_ro_password: { file: ./.secrets/scf_metrics_ro_password }
+  scf_dump_login_password: { file: ./.secrets/scf_dump_login_password }
+  scf_monitor_password: { file: ./.secrets/scf_monitor_password }
+  scf_umami_ro_password: { file: ./.secrets/scf_umami_ro_password }
+  scf_umami_maint_password: { file: ./.secrets/scf_umami_maint_password }
+  pgbouncer_userlist: { file: ./.secrets/pgbouncer_userlist }
+  control_plane_database_url: { file: ./.secrets/control_plane_database_url }
+  jobs_database_url: { file: ./.secrets/jobs_database_url }
+  metrics_ro_database_url: { file: ./.secrets/metrics_ro_database_url }
+  jobs_listen_database_url: { file: ./.secrets/jobs_listen_database_url }
+  umami_creds_keys: { file: ./.secrets/umami_creds_keys }
+  pepper_ing: { file: ./.secrets/pepper_ing }
+  pepper_op: { file: ./.secrets/pepper_op }
+  pepper_pub: { file: ./.secrets/pepper_pub }
+  edge_signing_key: { file: ./.secrets/edge_signing_key.pem }
+  edge_snapshot_pub: { file: ./.secrets/edge_snapshot_pub.pem } # its public half, for the gateways (kid edge-1)
+  # Second verification slot (kid edge-2) for an outage-free key rotation: holds the next key's public half during a
+  # rotation, otherwise a copy of the current one (scripts/dev-secrets.sh; README "To rotate").
+  edge_snapshot_pub_next: { file: ./.secrets/edge_snapshot_pub_next.pem }
+  snapshot_signing_key: { file: ./.secrets/snapshot_signing_key.pem } # traction snapshots (kid snap-1, C-47); jobs only
+  snapshot_pub: { file: ./.secrets/snapshot_pub.pem } # its public half, published by the control plane
+  sep10_signing_seed: { file: ./.secrets/sep10_signing_seed } # SEP-10 server key (C-15; dev: random, never printed)
+  scf_ca: { file: ./.secrets/pki/ca.pem }
+  engine_proxy_cert: { file: ./.secrets/pki/engine-proxy.pem }
+  engine_proxy_key: { file: ./.secrets/pki/engine-proxy-key.pem }
+  control_plane_internal_cert: { file: ./.secrets/pki/control-plane.pem } # internal edge API listener
+  control_plane_internal_key: { file: ./.secrets/pki/control-plane-key.pem }
+  engine_proxy_cp_client_cert: { file: ./.secrets/pki/core-a-engine-proxy.pem } # proxy → internal edge API
+  engine_proxy_cp_client_key: { file: ./.secrets/pki/core-a-engine-proxy-key.pem }
+  bootstrap_cert: { file: ./.secrets/pki/core-a-umami-bootstrap.pem } # umami-bootstrap one-shot
+  bootstrap_key: { file: ./.secrets/pki/core-a-umami-bootstrap-key.pem }
+  jobs_cert: { file: ./.secrets/pki/core-a-jobs.pem } # reader identity of the smoke test
+  jobs_key: { file: ./.secrets/pki/core-a-jobs-key.pem }
+  jobs_provisioner_cert: { file: ./.secrets/pki/core-a-jobs-provisioner.pem } # jobs (tenant_purge, umami_reconcile)
+  jobs_provisioner_key: { file: ./.secrets/pki/core-a-jobs-provisioner-key.pem }
+  jobs_reader_cert: { file: ./.secrets/pki/core-a-jobs-reader.pem } # jobs (umami_reconcile: reads after rotation)
+  jobs_reader_key: { file: ./.secrets/pki/core-a-jobs-reader-key.pem }
+  reader_cert: { file: ./.secrets/pki/core-a-control-plane.pem }
+  reader_key: { file: ./.secrets/pki/core-a-control-plane-key.pem }
+  edge_a1_cert: { file: ./.secrets/pki/edge-a1.pem }
+  edge_a1_key: { file: ./.secrets/pki/edge-a1-key.pem }
+  ingest_cert: { file: ./.secrets/pki/ingest.pem } # gateway's public listener (ingest host names)
+  ingest_key: { file: ./.secrets/pki/ingest-key.pem }
+  writer_cert: { file: ./.secrets/pki/core-a-writer.pem }
+  writer_key: { file: ./.secrets/pki/core-a-writer-key.pem }
+
+volumes:
+  pgdata:
+  gwstate: # the gateway's snapshot copy and spool (fsync'd, C-18)
+  colqueue: # the Collector's persistent queue (the only writable path of its image)
+  jobshome: # the jobs service's home (uid 1000): audit anchors in audit-anchors/ (C-63; never overwritten)
+  # The on-chain correlation's ledger-file mirror (SCF_ONCHAIN_LEDGER_DIR of jobs). Writable here: in a deployment the
+  # job's fetch step fills it from SCF_ONCHAIN_LEDGER_SOURCE_URL (wire-formats §p.1). compose.dev.yaml fills it with a
+  # synthetic testnet fixture instead (onchain-fixture) and mounts it read-only in jobs.
+  ledgers:
+  # The network-class range lists (C-38, bot.ip-multiplicity): written by rangelist-updater, read by the gateway (GW_RANGELISTS_DIR).
+  # Never in an image or the repository (no clear redistribution licence); compose.dev.yaml mounts test ranges instead.
+  rangelists:
+
+services:
+  # ------------------------------------------------------------------ database
+  postgres:
+    build: { context: ../../db, target: server }
+    image: *postgres-image
+    init: true # C-108: an init process as PID 1 (pgBackRest's archiver needs it)
+    # Runs as the image's postgres user from the start (no root entrypoint, so no chown/setuid capabilities needed):
+    # every capability is dropped.
+    user: "70:70"
+    read_only: true
+    cap_drop: [ALL]
+    tmpfs: ["/tmp:size=64m,mode=1777", "/var/run/postgresql:size=1m,uid=70,gid=70,mode=2775"]
+    security_opt: ["no-new-privileges:true"]
+    shm_size: 256m
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_superuser_password
+      # SCRAM for TCP and for the local socket alike: no trust authentication anywhere.
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    secrets: [pg_superuser_password, umami_db_password]
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./postgres/initdb:/docker-entrypoint-initdb.d:ro
+      - ./postgres/healthcheck.sh:/usr/local/bin/scf-pg-healthcheck:ro
+    networks: [engine, db]
+    healthcheck:
+      # pg_isready, plus one CHECKPOINT after every start (C-108)
+      test: ["CMD", "/usr/local/bin/scf-pg-healthcheck"]
+      interval: 3s
+      timeout: 10s
+      retries: 40
+      start_period: 10s
+    restart: unless-stopped
+
+  # Database scf: bootstrap of roles and database (idempotent), then the migrations (db/README.md).
+  db-migrate:
+    <<: *db-tool
+    command: ["migrate"]
+    environment:
+      PGHOST: postgres
+      SCF_DB_BOOTSTRAP: "1"
+      SCF_DB_SUPERUSER: postgres
+      SCF_DB_SUPERUSER_PASSWORD_FILE: /run/secrets/pg_superuser_password
+      SCF_MIGRATOR_PASSWORD_FILE: /run/secrets/scf_migrator_password
+      SCF_APP_PASSWORD_FILE: /run/secrets/scf_app_password
+      SCF_WRITER_PASSWORD_FILE: /run/secrets/scf_writer_password
+      SCF_JOBS_PASSWORD_FILE: /run/secrets/scf_jobs_password
+      SCF_METRICS_RO_PASSWORD_FILE: /run/secrets/scf_metrics_ro_password
+      SCF_DUMP_LOGIN_PASSWORD_FILE: /run/secrets/scf_dump_login_password
+      SCF_MONITOR_PASSWORD_FILE: /run/secrets/scf_monitor_password
+    secrets:
+      [
+        pg_superuser_password,
+        scf_migrator_password,
+        scf_app_password,
+        scf_writer_password,
+        scf_jobs_password,
+        scf_metrics_ro_password,
+        scf_dump_login_password,
+        scf_monitor_password,
+      ]
+
+  # PgBouncer in transaction mode between the runtime roles and PostgreSQL (ADR-0013, C-103). Runtime services sit on
+  # `data` with PgBouncer and have no route to PostgreSQL itself.
+  pgbouncer:
+    <<: *hardened
+    image: edoburu/pgbouncer:latest@sha256:8638aa563607256d3c7440437534195f1066a92b68015d89ae9d6b935b444a6d # 1.26.1
+    user: "70:70"
+    entrypoint: ["/usr/bin/pgbouncer", "/etc/pgbouncer-scf/pgbouncer.ini"] # not the image's config generator
+    volumes: ["./pgbouncer/pgbouncer.ini:/etc/pgbouncer-scf/pgbouncer.ini:ro"]
+    secrets: [pgbouncer_userlist]
+    networks: [db, data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-h", "127.0.0.1", "-p", "6432", "-d", "scf"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      db-migrate: { condition: service_completed_successfully } # the roles exist
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ engine (Umami, ADR-0003, C-104)
+  # Upgrade procedure (data-model §16.3) on every start: drop the scf_ro views, run Umami's migrations, recreate them.
+  umami-views-drop:
+    <<: *db-tool
+    command: ["umami-views-drop"]
+    environment:
+      PGHOST: postgres
+      SCF_DB_SUPERUSER: postgres
+      SCF_DB_SUPERUSER_PASSWORD_FILE: /run/secrets/pg_superuser_password
+    secrets: [pg_superuser_password]
+
+  # One-shot `prisma migrate deploy` as umami_app (C-40, C-104); never at app start.
+  umami-migrate:
+    <<: *hardened
+    build: { context: ../../vendor/umami, target: migrate }
+    image: *umami-migrate-image
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        DATABASE_URL="postgresql://umami_app:$$(cat /run/secrets/umami_db_password)@postgres:5432/umami"
+        exec node node_modules/prisma/build/index.js migrate deploy
+    environment:
+      CHECKPOINT_DISABLE: "1"
+      PRISMA_HIDE_UPDATE_MESSAGE: "1"
+    secrets: [umami_db_password]
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    networks: [engine]
+    restart: "no"
+    depends_on:
+      umami-views-drop: { condition: service_completed_successfully }
+
+  # The scf_ro rollup views and our roles in the umami database (db/umami/scf_ro.sql, C-112(12)).
+  umami-views:
+    <<: *db-tool
+    command: ["umami-views"]
+    environment:
+      PGHOST: postgres
+      SCF_DB_SUPERUSER: postgres
+      SCF_DB_SUPERUSER_PASSWORD_FILE: /run/secrets/pg_superuser_password
+      SCF_UMAMI_RO_PASSWORD_FILE: /run/secrets/scf_umami_ro_password
+      SCF_UMAMI_MAINT_PASSWORD_FILE: /run/secrets/scf_umami_maint_password
+    secrets: [pg_superuser_password, scf_umami_ro_password, scf_umami_maint_password]
+    depends_on:
+      umami-migrate: { condition: service_completed_successfully }
+
+  umami:
+    <<: *hardened
+    build: { context: ../../vendor/umami, target: app }
+    image: *umami-image
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        DATABASE_URL="postgresql://umami_app:$$(cat /run/secrets/umami_db_password)@postgres:5432/umami"
+        APP_SECRET="$$(cat /run/secrets/umami_app_secret)"
+        exec node server.js
+    environment: # hardening.md §5.2 (also baked into the image); never set the variables listed there as unset
+      DISABLE_TELEMETRY: "1"
+      DISABLE_UPDATES: "1"
+      PRIVATE_MODE: "1"
+      SKIP_DB_MIGRATION: "1"
+      SALT_ROTATION: day
+      TZ: UTC
+      CLIENT_IP_HEADER: x-scf-surrogate-ip
+    secrets: [umami_db_password, umami_app_secret]
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /app/.next/cache:size=64m,uid=1001,gid=1001,mode=0700
+    pids_limit: 256
+    mem_limit: 1g
+    networks: [engine] # internal only; no published port: reachable only through the engine proxy
+    # Through umami-views, every (re)start of Umami re-runs the whole chain umami-views-drop → umami-migrate →
+    # umami-views: a migration never leaves the scf_ro views dropped (`up umami`, `start umami`, upgrades).
+    depends_on:
+      umami-views: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  # Internal front of Umami (C-60, C-74, C-99, C-112; services/engine-proxy/README.md).
+  engine-proxy:
+    <<: *hardened
+    build: { context: ../../services/engine-proxy }
+    image: usagemap/engine-proxy:dev
+    environment:
+      EP_LISTEN_ADDR: ":8443"
+      EP_METRICS_ADDR: ":9464"
+      EP_TLS_CERT: /run/secrets/engine_proxy_cert
+      EP_TLS_KEY: /run/secrets/engine_proxy_key
+      EP_CLIENT_CA: /run/secrets/scf_ca
+      EP_UMAMI_URL: http://umami:3000
+      # The control plane's internal edge API, over the dedicated `cpi` network with mutual TLS (C-114).
+      EP_CONTROL_PLANE_URL: https://control-plane:8081
+      EP_CONTROL_PLANE_TLS_CERT: /run/secrets/engine_proxy_cp_client_cert
+      EP_CONTROL_PLANE_TLS_KEY: /run/secrets/engine_proxy_cp_client_key
+      EP_CONTROL_PLANE_TLS_CA: /run/secrets/scf_ca
+      # Own bootstrap probe (C-114): the gate opens only when admin/umami is refused AND this identity signs in.
+      EP_PROVISIONER_USER: scf-provisioner
+      EP_PROVISIONER_PASSWORD_FILE: /run/secrets/umami_provisioner_password
+      EP_LOG_LEVEL: info
+    secrets:
+      [
+        engine_proxy_cert,
+        engine_proxy_key,
+        scf_ca,
+        engine_proxy_cp_client_cert,
+        engine_proxy_cp_client_key,
+        umami_provisioner_password,
+      ]
+    networks: [engine, core, cpi]
+    depends_on:
+      umami: { condition: service_healthy }
+    restart: unless-stopped
+
+  # One-shot, restartable Umami bootstrap B1–B5 through the engine proxy (C-112(7)); its B5 opens the proxy's gate.
+  umami-bootstrap:
+    <<: *hardened
+    image: usagemap/engine-proxy:dev
+    entrypoint: ["/usr/local/bin/umami-bootstrap"]
+    environment:
+      UB_PROXY_URL: https://engine-proxy:8443
+      UB_CA: /run/secrets/scf_ca
+      UB_TLS_CERT: /run/secrets/bootstrap_cert
+      UB_TLS_KEY: /run/secrets/bootstrap_key
+      UB_SEED_PASSWORD_FILE: /run/secrets/umami_seed_admin_password
+      UB_PROVISIONER_PASSWORD_FILE: /run/secrets/umami_provisioner_password
+      UB_PROVISIONER_USER: scf-provisioner
+    secrets:
+      [scf_ca, bootstrap_cert, bootstrap_key, umami_seed_admin_password, umami_provisioner_password]
+    healthcheck: { disable: true }
+    networks: [core]
+    restart: "no"
+    depends_on:
+      engine-proxy: { condition: service_healthy } # (umami-views ran before Umami started)
+
+  # ------------------------------------------------------------------ control plane
+  control-plane:
+    <<: *hardened
+    build: { context: ../.., dockerfile: services/control-plane/Dockerfile }
+    image: usagemap/control-plane:dev
+    environment:
+      SCF_LISTEN_HOST: 0.0.0.0
+      SCF_PUBLIC_PORT: "8080"
+      SCF_INTERNAL_PORT: "8081" # internal edge API, reached only through the engine proxy
+      # Mutual TLS on the internal listener (C-114): only the engine proxy's client certificate is accepted, so the
+      # X-Scf-Edge-Node header is trusted only from it. The listener is reachable on the `cpi` network only from the
+      # engine proxy; on `public` and `data` a caller without that certificate is refused in the handshake.
+      SCF_INTERNAL_TLS_CERT_FILE: /run/secrets/control_plane_internal_cert
+      SCF_INTERNAL_TLS_KEY_FILE: /run/secrets/control_plane_internal_key
+      SCF_INTERNAL_TLS_CA_FILE: /run/secrets/scf_ca
+      # core-b-engine-proxy: the second core's proxy of the HA overlay's `multinode` profile (compose.ha.yaml); without
+      # that profile no such certificate exists, so the name admits nobody.
+      SCF_INTERNAL_ALLOWED_CLIENTS: core-a-engine-proxy,core-b-engine-proxy
+      # The public API is reached directly (127.0.0.1 published port; no reverse proxy in front), so no
+      # X-Forwarded-For is trusted. When the portal fronts the API (day 2), set this to the portal's address on the
+      # network it shares with the control plane (a fixed IP or CIDR), never `true`.
+      SCF_TRUST_PROXY: "false"
+      SCF_DATABASE_URL_FILE: /run/secrets/control_plane_database_url # scf_app via PgBouncer
+      # Review finding F16: no background job runs here and no jobs-only secret is mounted (scf_jobs, scf_umami_maint,
+      # the provisioner identity, both snapshot-signing keys) — the process refuses to start with one. Work is handed
+      # to the jobs service by NOTIFY (scf_edge, scf_umami, scf_verify, scf_erasure, scf_snapshot).
+      SCF_METRICS_DATABASE_URL_FILE: /run/secrets/metrics_ro_database_url # operator metrics API (/op/v1)
+      SCF_PORTAL_ORIGIN: http://localhost:${SCF_PORTAL_PORT:-5173}
+      SCF_EDGE_NODE_HEADER: x-scf-edge-node # set by the engine proxy from the edge's certificate
+      SCF_LOG_LEVEL: info
+      # Prometheus /metrics (scf_cp_*) on its own listener, never published (the public listener has no /metrics).
+      SCF_METRICS_LISTEN_HOST: 0.0.0.0
+      SCF_METRICS_PORT: "9464"
+      # Umami through the engine proxy: live reads only, with the reader identity and the tenant's view-only key.
+      SCF_ENGINE_PROXY_URL: https://engine-proxy:8443
+      SCF_ENGINE_PROXY_CA_FILE: /run/secrets/scf_ca
+      SCF_ENGINE_PROXY_READER_CERT_FILE: /run/secrets/reader_cert
+      SCF_ENGINE_PROXY_READER_KEY_FILE: /run/secrets/reader_key
+      SCF_UMAMI_CREDS_KEYS_FILE: /run/secrets/umami_creds_keys # K_umami_creds (C-40, C-85): decrypts view-only keys
+      SCF_WEB_LIVE_TIMEOUT_MS: "5000" # C-112(6)
+      # Key peppers (wire-formats §k, C-81): ingest tokens, operator API keys, share keys.
+      SCF_PEPPER_ING_FILE: /run/secrets/pepper_ing
+      SCF_PEPPER_OP_FILE: /run/secrets/pepper_op
+      SCF_PEPPER_PUB_FILE: /run/secrets/pepper_pub
+      # The released tracker (C-100): build output `<semver>/manifest.json` + the release list, so the snippet carries
+      # the real SRI hashes. scripts/init.sh builds tracker/dist when it is missing.
+      SCF_TRACKER_MANIFEST_DIR: /srv/tracker
+      SCF_TRACKER_RELEASES_FILE: /srv/tracker-releases.json
+      # Traction snapshots (C-47): the PUBLIC key only, published at /.well-known/scf-snapshot-keys.json; the jobs
+      # service signs (F16). Rate limits are shared through PostgreSQL (F21), keyed by an HMAC derived from the peppers.
+      SCF_SNAPSHOT_PUBLIC_KEY_FILE: /run/secrets/snapshot_pub
+      SCF_SNAPSHOT_KID: snap-1
+      # SEP-10 sign-in and Stellar-account linking (C-15); its public key is SIGNING_KEY in stellar.toml.
+      SCF_SEP10_SIGNING_SEED_FILE: /run/secrets/sep10_signing_seed
+      # health_endpoint: the two ingest host names and the edge node behind each (one node locally).
+      SCF_HEALTH_INGEST_HOSTS: ingest-a.example-analytics.org=edge-a1,ingest-b.example-analytics.net=edge-a1
+      SCF_STATUS_PAGE_URL: https://status.example-analytics.org # placeholder: no status page exists yet
+    volumes:
+      - ../../tracker/dist:/srv/tracker:ro
+      - ./tracker-releases.json:/srv/tracker-releases.json:ro
+    secrets:
+      [
+        control_plane_database_url,
+        metrics_ro_database_url,
+        umami_creds_keys,
+        pepper_ing,
+        pepper_op,
+        pepper_pub,
+        scf_ca,
+        control_plane_internal_cert,
+        control_plane_internal_key,
+        reader_cert,
+        reader_key,
+        snapshot_pub,
+        sep10_signing_seed,
+      ]
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    ports: ["127.0.0.1:${SCF_CONTROL_PLANE_PORT:-8080}:8080"]
+    # data: PgBouncer; cpi: engine proxy (both directions); public: published port, the portal, egress (C-10: the
+    # stellar.toml fetch of the L2 proof). Not on `db` (no direct session since F16) nor `core` (edge nodes).
+    networks: [data, cpi, public]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    depends_on:
+      pgbouncer: { condition: service_healthy }
+      engine-proxy: { condition: service_healthy }
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ portal (ADR-0024)
+  # The SPA served by Caddy, which reverse-proxies the control plane's API on the same origin. SCF_PORTAL_SCHEME=http
+  # only because the local stack runs on http://localhost (no HSTS / upgrade-insecure-requests there). The control
+  # plane keeps SCF_TRUST_PROXY=false: without a fixed address for the portal, every browser request carries the
+  # portal's address, so the per-subnet sign-in rate limits share one bucket locally (production: a fixed address).
+  portal:
+    <<: *hardened
+    build: { context: ../.., dockerfile: apps/portal/Dockerfile }
+    image: usagemap/portal:dev
+    environment:
+      SCF_PORTAL_SCHEME: http
+      SCF_CONTROL_PLANE_UPSTREAM: control-plane:8080
+    tmpfs: ["/tmp:size=16m,uid=65532,gid=65532,mode=0700"] # Caddy's XDG dirs (it writes nothing else)
+    networks: [public]
+    ports: ["127.0.0.1:${SCF_PORTAL_PORT:-5173}:8080"]
+    depends_on:
+      control-plane: { condition: service_healthy }
+    restart: unless-stopped
+
+  # Hosted MCP server (services/mcp): Streamable HTTP at /mcp, fronted by the portal's Caddy in the lean profile
+  # (Caddyfile.j2). Holds no key: every tool call goes to the control plane's public API with the caller's own Bearer
+  # key (tenant isolation, scopes, audit and privacy rules are the control plane's). Only on `public`, where it reaches
+  # control-plane:8080 and the portal reaches it. No host port.
+  mcp:
+    <<: *hardened
+    build: { context: ../.., dockerfile: services/mcp/Dockerfile }
+    image: usagemap/mcp:dev
+    environment:
+      MCP_CONTROL_PLANE_URL: http://control-plane:8080
+      MCP_ALLOW_INSECURE_UPSTREAM: "true" # plain http on the internal `public` bridge only
+      MCP_LISTEN_HOST: 0.0.0.0
+      MCP_PORT: "8080"
+    networks: [public]
+    depends_on:
+      control-plane: { condition: service_healthy }
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ jobs
+  # Rollups (Umami read only through the scf_ro view as scf_umami_ro), partitions, retention (Umami pruning as
+  # scf_umami_maint), stream GC, tenant purge, durability reconciliation, trust scoring, audit anchoring and
+  # verification — database through PgBouncer (services/jobs/README.md). tenant_purge purges the engine through the
+  # engine proxy on `core` with its own provisioner certificate (OU provisioner, CN core-a-jobs-provisioner); `cpi`
+  # stays the engine proxy's and the control plane's alone.
+  # Left unset on purpose (local stack has no egress): SCF_REGISTRY_SOURCES (registry_sync), SCF_HORIZON_URL /
+  # SCF_STELLAR_RPC_URL (contract_verification), SCF_AUDIT_ANCHOR_STELLAR_SECRET (ledger anchor; the file anchor runs),
+  # SCF_DURABILITY_PROMETHEUS_URL (canary half of durability_reconcile; the node half runs),
+  # SCF_ONCHAIN_LEDGER_SOURCE_URL (no `onchain-reader fetch` on testnet: onchain_correlation counts what the `ledgers`
+  # mirror holds — with compose.dev.yaml the synthetic fixture of onchain-fixture), SCF_SEAL_HORIZON_URL /
+  # SCF_SEAL_SECRET_FILE (daily_seal). A deployment adds them, the shared SCF_AUDIT_ANCHOR_DIR and egress to the ledger
+  # store, Horizon and, on testnet, friendbot (C-10, C-138); the `ledgers` mirror is already writable. Jobs without
+  # their settings are logged once as `job_disabled` at start.
+  jobs:
+    <<: *hardened
+    build: { context: ../.., dockerfile: services/jobs/Dockerfile }
+    image: usagemap/jobs:dev
+    environment:
+      SCF_JOBS_DATABASE_URL_FILE: /run/secrets/jobs_database_url
+      SCF_UMAMI_RO_URL: postgresql://scf_umami_ro@pgbouncer:6432/umami
+      SCF_UMAMI_RO_PASSWORD_FILE: /run/secrets/scf_umami_ro_password
+      SCF_UMAMI_MAINT_URL: postgresql://scf_umami_maint@pgbouncer:6432/umami
+      SCF_UMAMI_MAINT_PASSWORD_FILE: /run/secrets/scf_umami_maint_password
+      SCF_JOBS_NODE: core-a
+      # tenant_purge: the engine through the engine proxy (P13 + P9/P11, visit-token purge on every core's proxy)
+      SCF_ENGINE_PROXY_URL: https://engine-proxy:8443
+      SCF_ENGINE_PROXY_URLS: https://engine-proxy:8443 # one core here
+      SCF_ENGINE_PROXY_CA_FILE: /run/secrets/scf_ca
+      SCF_ENGINE_PROXY_PROVISIONER_CERT_FILE: /run/secrets/jobs_provisioner_cert
+      SCF_ENGINE_PROXY_PROVISIONER_KEY_FILE: /run/secrets/jobs_provisioner_key
+      SCF_UMAMI_PROVISIONER_USER: scf-provisioner
+      SCF_UMAMI_PROVISIONER_PASSWORD_FILE: /run/secrets/umami_provisioner_password
+      # audit_anchor (file publisher): a writable volume; the job creates the directory
+      SCF_AUDIT_ANCHOR_DIR: /home/node/audit-anchors
+      # Core workers moved out of the internet-facing control plane (review finding F16): edge_snapshot (signs the
+      # edge snapshot), umami_reconcile (same provisioner identity as tenant_purge), domain_verification (egress over
+      # `public`), erasure (scf_umami_maint above), public_metrics (+ signing of traction snapshots). Their LISTEN
+      # sessions connect directly (network db) and run nothing but LISTEN (C-117).
+      SCF_JOBS_LISTEN_DATABASE_URL_FILE: /run/secrets/jobs_listen_database_url
+      SCF_EDGE_SIGNING_KEY_FILE: /run/secrets/edge_signing_key
+      SCF_EDGE_SIGNING_KID: ${SCF_EDGE_SIGNING_KID:-edge-1} # edge-2 while the rotation slot holds the new key
+      SCF_EDGE_SNAPSHOT_MAX_AGE_S: "86400" # payload expires_at (F12, wire-formats §e.4)
+      SCF_TRACKER_MANIFEST_DIR: /srv/tracker
+      SCF_TRACKER_RELEASES_FILE: /srv/tracker-releases.json
+      SCF_ENGINE_PROXY_READER_CERT_FILE: /run/secrets/jobs_reader_cert
+      SCF_ENGINE_PROXY_READER_KEY_FILE: /run/secrets/jobs_reader_key
+      SCF_UMAMI_CREDS_KEYS_FILE: /run/secrets/umami_creds_keys # K_umami_creds: encrypts new tenant credentials
+      SCF_UMAMI_RECONCILE_INTERVAL_MS: "300000"
+      SCF_DOMAIN_VERIFY_INTERVAL_MS: "300000"
+      SCF_PORTAL_ORIGIN: http://localhost:${SCF_PORTAL_PORT:-5173}
+      SCF_SNAPSHOT_SIGNING_KEY_FILE: /run/secrets/snapshot_signing_key
+      SCF_SNAPSHOT_KID: snap-1
+      # onchain_correlation (C-136, plan A1): ledger files are the primary source (volume `ledgers`; locally the
+      # testnet fixture mirror of compose.dev.yaml)
+      SCF_STELLAR_NETWORK: testnet
+      SCF_ONCHAIN_LEDGER_DIR: /srv/ledgers
+      SCF_ONCHAIN_LOOKBACK_DAYS: "3"
+    secrets:
+      [
+        jobs_database_url,
+        jobs_listen_database_url,
+        scf_umami_ro_password,
+        scf_umami_maint_password,
+        scf_ca,
+        jobs_provisioner_cert,
+        jobs_provisioner_key,
+        jobs_reader_cert,
+        jobs_reader_key,
+        umami_provisioner_password,
+        umami_creds_keys,
+        edge_signing_key,
+        snapshot_signing_key,
+      ]
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    # The volume is mounted on the image's /home/node (uid 1000): a new named volume takes that directory's owner, so
+    # the read-only root needs no chown step.
+    volumes:
+      - jobshome:/home/node
+      - ledgers:/srv/ledgers # the image's /srv/ledgers is uid 1000, so a new volume is writable for the fetch step
+      - ../../tracker/dist:/srv/tracker:ro
+      - ./tracker-releases.json:/srv/tracker-releases.json:ro
+    # data: PgBouncer; core: the engine proxy (tenant_purge, umami_reconcile); db: only the LISTEN sessions (C-117);
+    # public: egress of domain_verification (C-10). It publishes no port.
+    networks: [data, core, db, public]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    depends_on:
+      pgbouncer: { condition: service_healthy }
+      db-migrate: { condition: service_completed_successfully }
+      umami-views: { condition: service_completed_successfully }
+      engine-proxy: { condition: service_healthy }
+      umami-bootstrap: { condition: service_completed_successfully } # the provisioning admin exists (B1–B5)
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ metrics writer
+  # OTLP from the edge Collectors over mutual TLS (OU edge) → PostgreSQL as scf_writer through PgBouncer. On `core`
+  # it answers to writers.mesh.local, the one name every Collector dials (C-107; in production both writers' address
+  # records). Its certificate carries that name (scripts/dev-pki.sh, core-a-writer). Admin :9464 (/healthz, /readyz,
+  # /metrics) is unpublished.
+  metrics-writer:
+    <<: *hardened
+    build: { context: ../../services/metrics-writer }
+    image: usagemap/metrics-writer:dev
+    environment:
+      SCF_WRITER_LISTEN_ADDR: ":4319"
+      SCF_WRITER_ADMIN_ADDR: ":9464"
+      SCF_WRITER_DATABASE_URL: postgres://scf_writer@pgbouncer:6432/scf?sslmode=disable
+      SCF_WRITER_DB_PASSWORD_FILE: /run/secrets/scf_writer_password
+      SCF_WRITER_TLS_CERT_FILE: /run/secrets/writer_cert
+      SCF_WRITER_TLS_KEY_FILE: /run/secrets/writer_key
+      SCF_WRITER_TLS_CLIENT_CA_FILE: /run/secrets/scf_ca
+      SCF_WRITER_ALLOWED_CLIENT_OUS: edge
+      SCF_WRITER_LOG_LEVEL: info
+    secrets: [scf_writer_password, scf_ca, writer_cert, writer_key]
+    networks:
+      core: { aliases: [writers.mesh.local] }
+      data: {}
+    depends_on:
+      pgbouncer: { condition: service_healthy }
+      db-migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ edge node a1
+  # The web ingest gateway (services/gateway/README.md): the only public entry — TLS on the ingest host names, tracker
+  # files (built into the image), challenge, collect, verdicts, fsync'd spool, forwarder to the engine proxy with the
+  # node certificate (OU edge), signed snapshots and counter uploads through the engine proxy (C-113, C-114).
+  gateway:
+    <<: *hardened
+    build: { context: ../.., dockerfile: services/gateway/Dockerfile }
+    image: usagemap/gateway:dev
+    environment:
+      GW_NODE_ID: edge-a1
+      GW_LISTEN_ADDR: ":8443"
+      GW_METRICS_ADDR: ":9464" # unpublished: /metrics, /healthz, /readyz
+      GW_TLS_CERT: /run/secrets/ingest_cert # ingest-a/ingest-b host names (dev CA; the IaC issues the real ones)
+      GW_TLS_KEY: /run/secrets/ingest_key
+      GW_NODE_CERT: /run/secrets/edge_a1_cert
+      GW_NODE_KEY: /run/secrets/edge_a1_key
+      GW_CA: /run/secrets/scf_ca
+      # Single node: core-a only. The HA overlay's `multinode` profile adds core-b and the edge-a1 <-> edge-a2 key
+      # exchange through these variables (infra/compose/README.md, "Multi-node"); unset, nothing changes.
+      GW_CORES: core-a=https://engine-proxy:8443${SCF_GW_CORES_EXTRA:-}
+      GW_KEYX_ADDR: ${SCF_GW_KEYX_ADDR:-}
+      GW_KEYX_PEERS: ${SCF_GW_KEYX_PEERS:-}
+      # Two slots (the gateway accepts one or two): the jobs service signs with SCF_EDGE_SIGNING_KID (edge-1); edge-2 is
+      # the rotation slot, so a new key is trusted by every gateway before the signer switches to it.
+      GW_SNAPSHOT_KEYS: edge-1=/run/secrets/edge_snapshot_pub,edge-2=/run/secrets/edge_snapshot_pub_next
+      GW_LOG_LEVEL: info
+      # OTLP front door (wire-formats §f): ingest tokens checked with the pepper shared with the control plane; requests
+      # go to the Collector over the private `otlp` network (C-130: no shared network namespace, so a restarted gateway
+      # finds the Collector again).
+      GW_PEPPER_ING_FILE: /run/secrets/pepper_ing
+      GW_COLLECTOR_HTTP: http://otlp-collector:4318
+      GW_COLLECTOR_GRPC: http://otlp-collector:4317
+    secrets:
+      [
+        scf_ca,
+        edge_a1_cert,
+        edge_a1_key,
+        ingest_cert,
+        ingest_key,
+        edge_snapshot_pub,
+        edge_snapshot_pub_next,
+        pepper_ing,
+      ]
+    volumes:
+      - gwstate:/var/lib/scf-gateway # snapshot.json and the spool; never key material
+      - rangelists:/var/lib/scf-rangelists:ro # re-read every minute (netclass.Watch); written by rangelist-updater
+    tmpfs: ["/tmp:size=8m,mode=1777"]
+    ulimits: { core: 0 }
+    # core: engine proxy (forwarder, snapshot, counters), the writer, the peer edge (key exchange: the alias is the
+    # node name in its certificate); otlp: its Collector; public: the published ingest port
+    networks:
+      core: { aliases: [edge-a1] }
+      otlp: {}
+      public: {}
+    ports: ["127.0.0.1:${SCF_INGEST_PORT:-8443}:8443"]
+    depends_on:
+      control-plane: { condition: service_healthy }
+    restart: unless-stopped
+
+  # Weekly fetch of the cloud-provider, Private Relay and Tor-exit range lists (C-38, bot.ip-multiplicity; services/gateway README
+  # `rangelist-updater`): the gateway image's updater, one long-running process per edge node, into the `rangelists`
+  # volume the gateway reads. A failed source keeps its previous list. Egress over `public` (80/443 only in the lean
+  # profile's host firewall; HTTPS_PROXY where an egress proxy exists, C-10). compose.dev.yaml switches it off (the
+  # local stacks have no egress) and mounts test ranges into the gateway; the lean profile runs it from a systemd timer
+  # that also records its result for the RangeListsStale alert (infra/ansible role compose_stack).
+  rangelist-updater:
+    <<: *hardened
+    build: { context: ../.., dockerfile: services/gateway/Dockerfile } # the gateway's image (never pulled by tag)
+    image: usagemap/gateway:dev
+    entrypoint: ["/usr/local/bin/rangelist-updater"]
+    command: ["-dir", "/var/lib/scf-rangelists", "-interval", "168h"]
+    volumes: ["rangelists:/var/lib/scf-rangelists"]
+    networks: [public]
+    restart: unless-stopped
+
+  # scf-otelcol (C-107, C-115, C-116, C-130): its own container on the private `otlp` network, which only the gateway
+  # joins. The receivers (4317/4318) and the health endpoint bind to the address of the alias otlp-collector — its
+  # `otlp` interface — so nothing on `core` (or any other network) can reach them, and no port is published. It reaches
+  # writers.mesh.local:4319 over `core` with the edge node's certificate. Earlier it shared the gateway's network
+  # namespace; a restarted gateway then left it attached to the dead namespace (C-130).
+  collector:
+    <<: *hardened
+    build: { context: ../.., dockerfile: collector/Dockerfile }
+    image: usagemap/otelcol:dev
+    networks:
+      otlp: { aliases: [otlp-collector] }
+      core: {}
+    environment:
+      SCF_OTLP_GRPC_ENDPOINT: otlp-collector:4317
+      SCF_OTLP_HTTP_ENDPOINT: otlp-collector:4318
+      SCF_HEALTH_ENDPOINT: otlp-collector:13133
+      SCF_WRITER_ENDPOINT: https://writers.mesh.local:4319
+      SCF_MTLS_CA_FILE: /run/secrets/scf_ca
+      SCF_MTLS_CERT_FILE: /run/secrets/edge_a1_cert # the edge node's identity (OU edge), as the gateway's
+      SCF_MTLS_KEY_FILE: /run/secrets/edge_a1_key
+      SCF_QUEUE_BYTES: "268435456" # 256 MiB locally; the IaC sizes it per node (C-115)
+    secrets: [scf_ca, edge_a1_cert, edge_a1_key]
+    volumes: ["colqueue:/var/lib/scf-otelcol/queue"]
+    depends_on:
+      metrics-writer: { condition: service_healthy }
+    restart: unless-stopped
