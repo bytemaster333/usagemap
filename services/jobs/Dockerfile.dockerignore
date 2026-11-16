@@ -1,0 +1,23 @@
+# Build context is the repository root; send only what the jobs build needs.
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.base.json
+!LICENSE
+!NOTICE
+!services/jobs/package.json
+!services/jobs/src
+!services/jobs/scripts
+!packages/umami-adapter/package.json
+!packages/umami-adapter/src
+!packages/api-types/package.json
+!packages/api-types/src
+!services/control-plane/package.json
+!services/control-plane/src
+!services/onchain-reader/go.mod
+!services/onchain-reader/go.sum
+!services/onchain-reader/cmd
+!services/onchain-reader/internal
+services/onchain-reader/**/*_test.go
+services/onchain-reader/internal/fixture/lakegen
