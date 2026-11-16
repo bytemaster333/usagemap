@@ -1,0 +1,41 @@
+{
+  "name": "@usagemap/tracker",
+  "version": "1.0.0",
+  "protocol": "v1",
+  "url_pattern": "/lib/<version>/<profile>.js",
+  "build": {
+    "esbuild": "0.28.2",
+    "node": "24.19.0",
+    "commit": null,
+    "container_digest": null
+  },
+  "config": {
+    "hosts": ["https://ingest-a.example-analytics.org", "https://ingest-b.example-analytics.net"],
+    "pow_max_work": 16777216,
+    "pow_parallel": 8
+  },
+  "budgets_gzip_bytes": {
+    "strict": 2500,
+    "standard": 3500
+  },
+  "files": [
+    {
+      "path": "standard.js",
+      "profile": "standard",
+      "bytes": 5297,
+      "gzip_bytes": 2778,
+      "sha256": "2d35a3be42d7bddb92e6d91f70b9bb4241e37a098e06811b71f49890e2744de8",
+      "sha384": "grGHJaIn1S7+QsKcbybsmEiu1LXgxcbaz4buMHrOZKdbGyYIStg+BbK8eJuYeX8K",
+      "integrity": "sha384-grGHJaIn1S7+QsKcbybsmEiu1LXgxcbaz4buMHrOZKdbGyYIStg+BbK8eJuYeX8K"
+    },
+    {
+      "path": "strict.js",
+      "profile": "strict",
+      "bytes": 4577,
+      "gzip_bytes": 2408,
+      "sha256": "525a3c284738bd8aff483a97dc8bee13236b33228f411dec5f7287acb4437a54",
+      "sha384": "gbYqCs3Lbddg6Db5dI0EHQcSrYJ3O7/3vCYBPbhT6om3e+f89IkQkiwlLBzlABwP",
+      "integrity": "sha384-gbYqCs3Lbddg6Db5dI0EHQcSrYJ3O7/3vCYBPbhT6om3e+f89IkQkiwlLBzlABwP"
+    }
+  ]
+}

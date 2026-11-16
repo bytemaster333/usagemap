@@ -1,0 +1,41 @@
+{
+  "name": "@usagemap/control-plane",
+  "version": "0.1.0",
+  "description": "Control plane: sign-in, tenants, sites, signed edge snapshot, internal edge API (ADR-0014/0015/0016).",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./workers": "./src/workers/start.ts"
+  },
+  "engines": {
+    "node": ">=24.19.0"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "build": "node scripts/build.ts",
+    "export:aggregates": "node scripts/export-aggregates.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "biome check .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@usagemap/api-types": "workspace:*",
+    "@usagemap/umami-adapter": "workspace:*",
+    "@simplewebauthn/server": "14.1.0",
+    "@stellar/stellar-sdk": "17.4.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "fastify": "5.12.8",
+    "pg": "8.23.1",
+    "tldts": "7.4.19"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0",
+    "yaml": "2.9.1"
+  }
+}

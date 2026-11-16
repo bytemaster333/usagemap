@@ -1,0 +1,15 @@
+# Build context is the repository root; send only what the control-plane build needs.
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.base.json
+!LICENSE
+!NOTICE
+!packages/api-types/package.json
+!packages/api-types/src
+!packages/umami-adapter/package.json
+!packages/umami-adapter/src
+!services/control-plane/package.json
+!services/control-plane/src
+!services/control-plane/scripts

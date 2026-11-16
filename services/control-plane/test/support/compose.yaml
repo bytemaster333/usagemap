@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: Apache-2.0
+# Integration-test database for the control plane: PostgreSQL 18.6, the migrations applied by their own runner
+# (db/migrate.sh, mounted read-only), and PgBouncer in transaction mode in front of it. Compose project `scf-wsf-pg`;
+# host ports from the range 56140–56159. Throwaway test passwords only.
+services:
+  db:
+    image: postgres:18.6-alpine
+    environment: { POSTGRES_PASSWORD: wsf-test-super, TZ: UTC }
+    command:
+      [
+        "postgres",
+        "-c",
+        "shared_preload_libraries=pg_stat_statements",
+        "-c",
+        "fsync=off",
+        "-c",
+        "max_connections=200",
+      ]
+    tmpfs: [/var/lib/postgresql]
+    ports: ["127.0.0.1:${SCF_WSF_PG_PORT:-56140}:5432"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres"], interval: 1s, retries: 60 }
+
+  migrate:
+    image: postgres:18.6-alpine
+    profiles: [migrate]
+    depends_on: { db: { condition: service_healthy } }
+    volumes: ["../../../../db:/db:ro"]
+    entrypoint: ["sh", "/db/migrate.sh", "migrate"]
+    environment:
+      PGHOST: db
+      SCF_DB_BOOTSTRAP: "1"
+      SCF_DB_RUN_GATES: "1"
+      SCF_DB_SUPERUSER_PASSWORD: wsf-test-super
+      SCF_MIGRATOR_PASSWORD: wsf-test-migrator
+      SCF_APP_PASSWORD: wsf-test-app
+      SCF_JOBS_PASSWORD: wsf-test-jobs
+      SCF_WRITER_PASSWORD: wsf-test-writer
+      SCF_METRICS_RO_PASSWORD: wsf-test-metrics
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest@sha256:8638aa563607256d3c7440437534195f1066a92b68015d89ae9d6b935b444a6d
+    depends_on: { db: { condition: service_healthy } }
+    volumes:
+      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    ports: ["127.0.0.1:${SCF_WSF_PGB_PORT:-56142}:6432"]
