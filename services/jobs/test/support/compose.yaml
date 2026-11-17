@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: Apache-2.0
+# Integration-test stack of the jobs service (compose project `scf-wsg`; host ports 56260–56279):
+# PostgreSQL 18.6 with database `scf` migrated by the runner (db/migrate.sh, mounted read-only, gates on) and
+# database `umami` migrated by the pinned Umami image (C-104), the scf_ro views and our umami roles applied by
+# `db/migrate.sh umami-views`, PgBouncer 1.26.1 in transaction mode in front of both, and the pinned Umami engine
+# (its own API is the reference the rollups are compared with). Throwaway test passwords only.
+services:
+  db:
+    image: postgres:18.6-alpine@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
+    environment: { POSTGRES_PASSWORD: wsg-test-super, TZ: UTC }
+    command:
+      [
+        "postgres",
+        "-c",
+        "shared_preload_libraries=pg_stat_statements",
+        "-c",
+        "fsync=off",
+        "-c",
+        "max_connections=200",
+        "-c",
+        "synchronous_commit=off",
+      ]
+    volumes: ["./initdb:/docker-entrypoint-initdb.d:ro"]
+    tmpfs: [/var/lib/postgresql]
+    ports: ["127.0.0.1:${SCF_WSG_PG_PORT:-56260}:5432"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres"], interval: 1s, retries: 60 }
+
+  migrate:
+    image: postgres:18.6-alpine@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
+    profiles: [tools]
+    depends_on: { db: { condition: service_healthy } }
+    volumes: ["../../../../db:/db:ro"]
+    entrypoint: ["sh", "/db/migrate.sh"]
+    command: ["migrate"]
+    environment:
+      PGHOST: db
+      SCF_DB_BOOTSTRAP: "1"
+      SCF_DB_RUN_GATES: "1"
+      SCF_DB_SUPERUSER_PASSWORD: wsg-test-super
+      SCF_MIGRATOR_PASSWORD: wsg-test-migrator
+      SCF_APP_PASSWORD: wsg-test-app
+      SCF_JOBS_PASSWORD: wsg-test-jobs
+      SCF_WRITER_PASSWORD: wsg-test-writer
+      SCF_METRICS_RO_PASSWORD: wsg-test-metrics
+      SCF_UMAMI_RO_PASSWORD: wsg-test-umami-ro
+      SCF_UMAMI_MAINT_PASSWORD: wsg-test-umami-maint
+
+  umami-migrate:
+    image: usagemap/umami-migrate:3.5.0-d3c62a8
+    profiles: [tools]
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      DATABASE_URL: postgresql://umami_app:wsg-test-umami@db:5432/umami
+      CHECKPOINT_DISABLE: "1"
+      PRISMA_HIDE_UPDATE_MESSAGE: "1"
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest@sha256:8638aa563607256d3c7440437534195f1066a92b68015d89ae9d6b935b444a6d
+    depends_on: { db: { condition: service_healthy } }
+    volumes:
+      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    entrypoint: ["pgbouncer", "/etc/pgbouncer/pgbouncer.ini"]
+    ports: ["127.0.0.1:${SCF_WSG_PGB_PORT:-56261}:6432"]
+
+  umami:
+    image: usagemap/umami:3.5.0-d3c62a8
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      DATABASE_URL: postgresql://umami_app:wsg-test-umami@db:5432/umami
+      APP_SECRET: wsg-test-app-secret-0123456789abcdef0123456789abcdef
+      CLIENT_IP_HEADER: x-scf-surrogate-ip
+      SALT_ROTATION: day
+      TZ: UTC
+      DISABLE_TELEMETRY: "1"
+      DISABLE_UPDATES: "1"
+      PRIVATE_MODE: "1"
+      SKIP_DB_MIGRATION: "1"
+    ports: ["127.0.0.1:${SCF_WSG_UMAMI_PORT:-56262}:3000"]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:3000/api/heartbeat'').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"',
+        ]
+      interval: 2s
+      retries: 90

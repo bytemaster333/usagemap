@@ -1,0 +1,4 @@
+"scf_jobs" "wsg-test-jobs"
+"scf_app" "wsg-test-app"
+"scf_umami_ro" "wsg-test-umami-ro"
+"scf_umami_maint" "wsg-test-umami-maint"
