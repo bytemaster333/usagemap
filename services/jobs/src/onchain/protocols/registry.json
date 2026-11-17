@@ -1,0 +1,518 @@
+{
+  "version": "2026-11-19.1",
+  "retrieved": "2026-11-19",
+  "note": "Curated public Soroban contract ids of DeFi protocols, taken only from each project's official repository at a pinned commit (VERIFIED) or its official documentation / official live configuration endpoint (LIKELY: no pinned ref). Token contracts (BLND, XRF), governance (DAO) and mocks are left out: touching a token is not protocol use. Contracts a protocol creates at run time (pools, pairs, vaults) are listed only where the project lists them, so every figure is a lower bound. Testnet ids change with testnet resets: each source's last-commit date is in references/onchain-protocols-quickstart-2026-11-19.md. Bump `version` with every change; it is stored with every figure.",
+  "protocols": [
+    {
+      "id": "blend",
+      "name": "Blend",
+      "website": "https://www.blend.capital",
+      "contracts": [
+        {
+          "network": "mainnet",
+          "contract_id": "CAO3AGAMZVRMHITL36EJ2VZQWKYRPWMQAPDQD5YEOF3GIF7T44U4JAL3",
+          "role": "backstop_v1",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CCZD6ESMOGMPWH2KRO4O7RGTAPGTUPFWFQBELQSS7ZUK63V3TZWETGAG",
+          "role": "pool_factory_v1",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CCOQM6S7ICIUWA225O5PSJWUBEMXGFSSW2PQFO6FP4DQEKMS5DASRGRR",
+          "role": "emitter",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CAS3FL6TLZKDGGSISDBWGGPXT3NRR4DYTZD7YOD3HMYO6LTJUVGRVEAM",
+          "role": "comet_blnd_usdc_lp",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CA2LVIPU6HJHHPPD6EDDYJTV2QEUBPGOAVJ4VIYNTMFUCRM4LFK3TJKF",
+          "role": "comet_factory",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CBUTN4KJSULJAUZYTYIGSMYAOO7PBJSAQ5OP6UTGYHOXA6UQYBAEOBB3",
+          "role": "backstop_bootstrapper",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CDVQVKOY2YSXS2IC7KN6MNASSHPAO7UN2UR2ON4OI2SKMFJNVAMDX6DP",
+          "role": "pool_v1_fixed_xlm_usdc",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CBP7NO6F7FRDHSOFQBT2L2UWYIZ2PU76JKVRYAQTG3KZSQLYAOKIF2WB",
+          "role": "pool_v1_yieldblox",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CAQQR5SWBXKIGZKPBZDH3KM5GQ5GUTPKB7JAFCINLZBC5WXPJKRG3IM7",
+          "role": "backstop_v2",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CDSYOAVXFY7SM5S64IZPPPYB4GVGGLMQVFREPSQQEZVIWXX5R23G4QSU",
+          "role": "pool_factory_v2",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CAJJZSGMMM3PD7N33TAPHGBUGTB43OC73HVIK2L2G6BNGGGYOSSYBXBD",
+          "role": "pool_v2_fixed",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CCCCIQSDILITHMM7PBSLVDT5MISSY7R26MNZXCX4H7J5JQ5FPIYOGYFS",
+          "role": "pool_v2_yieldblox",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CCS4AZ5ORM6VLLPJTJUFRNXWBMHOO3L5WHHRPL2ZMILE35ZDMQFHOQMJ",
+          "role": "backstop_v2_1",
+          "status": "LIKELY",
+          "source": "https://docs.blend.capital/mainnet-deployments"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CACUXRNBUFV7BFPKUDLVJFQI6H7EHHNSJPOFJSCWJCYUUYMORM6C63AL",
+          "role": "pool_factory_v2_1",
+          "status": "LIKELY",
+          "source": "https://docs.blend.capital/mainnet-deployments"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CASYAKK3SHDN6S2E6IUOBVRXT3KKPVQCVQO4GNBDTVE6XZQQMW4UMIHE",
+          "role": "comet_v1_1_blnd_usdc_lp",
+          "status": "LIKELY",
+          "source": "https://docs.blend.capital/mainnet-deployments"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CC3WJVJINN4E3LPMNTWKK7LQZLYDQMZHZA7EZGXATPHHBPKNZRIO3KZ6",
+          "role": "emitter",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CBDVWXT433PRVTUNM56C3JREF3HIZHRBA64NB2C3B2UNCKIS65ZYCLZA",
+          "role": "backstop_v2",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CDV6RX4CGPCOKGTBFS52V3LMWQGZN3LCQTXF5RVPOOCG4XVMHXQ4NTF6",
+          "role": "pool_factory_v2",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CA5UTUUPHYL5K22UBRUVC37EARZUGYOSGK3IKIXG2JLCC5ZZLI4BDWDM",
+          "role": "comet_blnd_usdc_lp",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CDX2TKELFKHP2MWISDCXWWZ73CL7F57GHYRJAWJWNOTLNJNNM7XLT4JY",
+          "role": "comet_factory",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF",
+          "role": "pool_v2",
+          "status": "VERIFIED",
+          "source": "https://github.com/blend-capital/blend-utils/blob/b05242df30b6b6caf9d317646f754541824a5a8b/testnet.contracts.json"
+        }
+      ]
+    },
+    {
+      "id": "soroswap",
+      "name": "Soroswap",
+      "website": "https://soroswap.finance",
+      "contracts": [
+        {
+          "network": "mainnet",
+          "contract_id": "CA4HEQTL2WPEUYKYKCDOHCDNIV4QHNJ7EL4J4NQ6VADP7SYHVRYZ7AW2",
+          "role": "factory",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/core/blob/6eade008ee6794075ad941609e0fef0d1124d3eb/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CAG5LRYQ5JVEUI5TEID72EYOVX44TTUJT5BQR2J6J77FH65PCCFAJDDH",
+          "role": "router",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/core/blob/6eade008ee6794075ad941609e0fef0d1124d3eb/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CAYP3UWLJM7ZPTUKL6R6BFGTRWLZ46LRKOXTERI2K6BIJAWGYY62TXTO",
+          "role": "aggregator_previous",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/aggregator/blob/84de10e0f8d26168b4a76f8c23b963e50917517c/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CALUZAZZ6FHENZJBQLSTPBZBZOZMACRIHMAEGSCGJYRC35RA5ZDXTKP2",
+          "role": "aggregator_deployer",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/aggregator/blob/84de10e0f8d26168b4a76f8c23b963e50917517c/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CC6KQUATUBCIFZRDJL5X5PHCYGOHLPHKZQPUOTZTQTASGU5AUQ6DS7SC",
+          "role": "aggregator_soroswap_adapter",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/aggregator/blob/84de10e0f8d26168b4a76f8c23b963e50917517c/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CCEBUGFV3D73OMV7MUXXA43AREY53MUHVD5SMUM7YZODNGY4NZBA2TSC",
+          "role": "aggregator_phoenix_adapter",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/aggregator/blob/84de10e0f8d26168b4a76f8c23b963e50917517c/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CDHDUKHFZB6FORHEBZCNYI3GGVNVOLEITSGI7OKU4UIQND5QG75KGSRR",
+          "role": "aggregator_aqua_adapter",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/aggregator/blob/84de10e0f8d26168b4a76f8c23b963e50917517c/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CARVQXFP4JF5ELLXUMQ6DALR346YVGBMQOHB4ENA7SSVXAYABXLBDDC4",
+          "role": "aggregator_v3",
+          "status": "LIKELY",
+          "source": "https://docs.soroswap.finance/aggregator/technical-reference/contracts/aggregator-v3.md"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CDP3HMUH6SMS3S7NPGNDJLULCOXXEPSHY4JKUKMBNQMATHDHWXRRJTBY",
+          "role": "factory",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/core/blob/6eade008ee6794075ad941609e0fef0d1124d3eb/public/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CCJUD55AG6W5HAI5LRVNKAE5WDP5XGZBUDS5WNTIVDU7O264UZZE7BRD",
+          "role": "router",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/core/blob/6eade008ee6794075ad941609e0fef0d1124d3eb/public/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CC74XDT7UVLUZCELKBIYXFYIX6A6LGPWURJVUXGRPQO745RWX7WEURMA",
+          "role": "aggregator",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/aggregator/blob/84de10e0f8d26168b4a76f8c23b963e50917517c/public/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CBY6WKJ2V2PSBZG5RVRSGC2VCZFFVZKHCGYXBLJ2HEOZJNXJ3SI7TOZB",
+          "role": "aggregator_deployer",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/aggregator/blob/84de10e0f8d26168b4a76f8c23b963e50917517c/public/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CCFXCAP7GT7XFTKGPENDZFN6MZ5VMPFONUHH46VKVN7E75C7FWA7NQ66",
+          "role": "aggregator_soroswap_adapter",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/aggregator/blob/84de10e0f8d26168b4a76f8c23b963e50917517c/public/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CBQBQXFQAQ5BQH5RATLBVYE5OTRJFRFPC6WBQNPENI22UODKPL2BZZB5",
+          "role": "aggregator_phoenix_adapter",
+          "status": "VERIFIED",
+          "source": "https://github.com/soroswap/aggregator/blob/84de10e0f8d26168b4a76f8c23b963e50917517c/public/testnet.contracts.json"
+        }
+      ]
+    },
+    {
+      "id": "defindex",
+      "name": "DeFindex",
+      "website": "https://www.defindex.io",
+      "contracts": [
+        {
+          "network": "mainnet",
+          "contract_id": "CDKFHFJIET3A73A2YN4KV7NSV32S6YGQMUFH3DNJXLBWL4SKEGVRNFKI",
+          "role": "factory",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CDB2WMKQQNVZMEBY7Q7GZ5C7E7IAFSNMZ7GGVD6WKTCEWK7XOIAVZSAP",
+          "role": "strategy_usdc_blend_fixed",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CC5CE6MWISDXT3MLNQ7R3FVILFVFEIH3COWGH45GJKL6BD2ZHF7F7JVI",
+          "role": "strategy_eurc_blend_fixed",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CDPWNUW7UMCSVO36VAJSQHQECISPJLCVPDASKHRC5SEROAAZDUQ5DG2Z",
+          "role": "strategy_xlm_blend_fixed",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CCBTSHPUVNKCT5V675AAVYNANHXBU26PTZK2QLS7ZLFNYRJZT5HW3VL6",
+          "role": "strategy_usdc_blend_etherfuse",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CAZ3LLLKPWEOVK6K4G5NCQ2VXWABLFIPKKNMN5GLKMZKEN7JSKTEMIKN",
+          "role": "strategy_cetes_blend_etherfuse",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CA3SO5RRKOONAPWVR5XY6CMOYZGN4M4QKVIGX5DFRIIJUJW2SFSELBXL",
+          "role": "strategy_ustry_blend_etherfuse",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/mainnet.contracts.json"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CDSCVJHJWUZQMR64FVK3XMND5NKSN7Z23KPRCHKFHVGOEJBWPVH5B5XA",
+          "role": "strategy_tesouro_blend_etherfuse",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/mainnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CDSCWE4GLNBYYTES2OCYDFQA2LLY4RBIAX6ZI32VSUXD7GO6HRPO4A32",
+          "role": "factory",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CALLOM5I7XLQPPOPQMYAHUWW4N7O3JKT42KQ4ASEEVBXDJQNJOALFSUY",
+          "role": "strategy_usdc_blend",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CDVLOSPJPQOTB6ZCWO5VSGTOLGMKTXSFWYTUP572GTPNOWX4F76X3HPM",
+          "role": "strategy_xlm_blend",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CCP4RBDWPRNO2LWO23XFU4BBLGA73J5N3BK7EHRJUHVN33YEMMFB2MBE",
+          "role": "strategy_cetes_blend",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CBMVK2JK6NTOT2O4HNQAIQFJY232BHKGLIMXDVQVHIIZKDACXDFZDWHN",
+          "role": "vault_usdc",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CCLV4H7WTLJQ7ATLHBBQV2WW3OINF3FOY5XZ7VPHZO7NH3D2ZS4GFSF6",
+          "role": "vault_xlm",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/testnet.contracts.json"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CBIS5TEMTNNOTBE3WXPQUAGUEDYZZVIWAKTXEQCOUJ34OJJ3FJ5NLF2P",
+          "role": "vault_cetes",
+          "status": "VERIFIED",
+          "source": "https://github.com/paltalabs/defindex/blob/a0fcabfae38f1c7b0c9c2f10ff51d225f8edc2f1/public/testnet.contracts.json"
+        }
+      ]
+    },
+    {
+      "id": "aquarius",
+      "name": "Aquarius",
+      "website": "https://aqua.network",
+      "contracts": [
+        {
+          "network": "mainnet",
+          "contract_id": "CBQDHNBFBZYE4MKPWBSJOPIYLW4SFSXAXUTSXJN76GNKYVYPCKWC6QUK",
+          "role": "amm_router",
+          "status": "LIKELY",
+          "source": "https://docs.aqua.network/developers/reference/addresses-and-networks.md"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CA4Q2T6FRAFYJYSMDJV7F6B7RL5PS6QS2UOZHBMCT2KSMGQRAAKP2MKO",
+          "role": "provider_fee_collector_factory",
+          "status": "LIKELY",
+          "source": "https://docs.aqua.network/developers/reference/addresses-and-networks.md"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CBCFTQSPDBAIZ6R6PJQKSQWKNKWH2QIV3I4J72SHWBIK3ADRRAM5A6GD",
+          "role": "amm_router",
+          "status": "LIKELY",
+          "source": "https://docs.aqua.network/developers/reference/addresses-and-networks.md"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CCXU6S2PFFFESV65RHUEVJX6TSSN6BYKOCJ3S3LM5M3IXXIWAL5AV4CO",
+          "role": "provider_fee_collector_factory",
+          "status": "LIKELY",
+          "source": "https://docs.aqua.network/developers/reference/addresses-and-networks.md"
+        }
+      ]
+    },
+    {
+      "id": "reflector",
+      "name": "Reflector",
+      "website": "https://reflector.network",
+      "contracts": [
+        {
+          "network": "mainnet",
+          "contract_id": "CAFJZQWSED6YAWZU3GWRTOCNPPCGBN32L7QV43XX5LZLFTK6JLN34DLN",
+          "role": "oracle_external_cex_dex",
+          "status": "VERIFIED",
+          "source": "https://github.com/reflector-network/reflector-contract/blob/b006d297ac1a11dbf97de5f74b9e45dac1acb14a/README.md"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CALI2BYU2JE6WVRUFYTS6MSBNEHGJ35P4AVCZYF3B6QOE3QKOB2PLE6M",
+          "role": "oracle_stellar_dex",
+          "status": "LIKELY",
+          "source": "https://orchestrator.reflector.network/config"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CBKGPWGKSKZF52CFHMTRR23TBWTPMRDIYZ4O2P5VS65BMHYH4DXMCJZC",
+          "role": "oracle_fiat_fx",
+          "status": "LIKELY",
+          "source": "https://orchestrator.reflector.network/config"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CCRVIC2R4W5XZTVBPQR4UNGZAFSVIFDLD64B6RPX2262F36P4ISEE2F7",
+          "role": "oracle_beam_stellar_dex",
+          "status": "LIKELY",
+          "source": "https://orchestrator.reflector.network/config"
+        },
+        {
+          "network": "mainnet",
+          "contract_id": "CBNGTWIVRCD4FOJ24FGAKI6I5SDAXI7A4GWKSQS7E6UYSR4E4OHRI2JX",
+          "role": "subscriptions",
+          "status": "LIKELY",
+          "source": "https://orchestrator.reflector.network/config"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5OYKOMJRN63",
+          "role": "oracle_external_cex_dex",
+          "status": "LIKELY",
+          "source": "https://orchestrator-testnet.reflector.network/config"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CAVLP5DH2GJPZMVO7IJY4CVOD5MWEFTJFVPD2YY2FQXOQHRGHK4D6HLP",
+          "role": "oracle_stellar_dex_pubnet_feed",
+          "status": "LIKELY",
+          "source": "https://orchestrator-testnet.reflector.network/config"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CA2NWEPNC6BD5KELGJDVWWTXUE7ASDKTNQNL6DN3TGBVWFEWSVVGMUAF",
+          "role": "oracle_stellar_dex_testnet_feed",
+          "status": "LIKELY",
+          "source": "https://orchestrator-testnet.reflector.network/config"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CCSSOHTBL3LEWUCBBEB5NJFC2OKFRC74OWEIJIZLRJBGAAU4VMU5NV4W",
+          "role": "oracle_fiat_fx",
+          "status": "LIKELY",
+          "source": "https://orchestrator-testnet.reflector.network/config"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CAJ6ZBULX6AZA43GAO7EZ53ETTDGHS4LDHOZA6IQUQJ4XB4EYBJYGUUC",
+          "role": "oracle_beam_external_cex_dex",
+          "status": "LIKELY",
+          "source": "https://orchestrator-testnet.reflector.network/config"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CB2IB6YKLJ3N56MP2OTU7JQX7D6IJBK7HV4N2RO6YHTITP2YG6A3HRBI",
+          "role": "oracle_beam_fiat_fx",
+          "status": "LIKELY",
+          "source": "https://orchestrator-testnet.reflector.network/config"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CCQQHVZ2EG6TI6ULPIHIHXUKFIPP7UUKXPCDOWFT2Y7K7CLINUXDCJDR",
+          "role": "oracle_beam_stellar_dex_pubnet_feed",
+          "status": "LIKELY",
+          "source": "https://orchestrator-testnet.reflector.network/config"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CDEIQLTE3Y3XQMYPSZFJC2OXIS67F4MURGP73NCE2C2NZZ22RNSPV7ZI",
+          "role": "oracle_beam_stellar_dex_testnet_feed",
+          "status": "LIKELY",
+          "source": "https://orchestrator-testnet.reflector.network/config"
+        },
+        {
+          "network": "testnet",
+          "contract_id": "CDQ7EZ2GG6LI6VKKY3UKDT4QGMNEJZGT2ANR7QCB65XVIXZTQ2CHBXU4",
+          "role": "subscriptions",
+          "status": "LIKELY",
+          "source": "https://orchestrator-testnet.reflector.network/config"
+        }
+      ]
+    }
+  ]
+}
