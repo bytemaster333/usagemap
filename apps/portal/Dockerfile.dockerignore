@@ -1,0 +1,23 @@
+# Build context is the repository root; send only what the portal build needs.
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.base.json
+!LICENSE
+!NOTICE
+!packages/api-types/package.json
+!packages/api-types/src
+!apps/portal/package.json
+!apps/portal/index.html
+!apps/portal/vite.config.ts
+!apps/portal/tsconfig.json
+!apps/portal/src
+!apps/portal/server
+!apps/portal/scripts
+!docs/methodology
+!apps/portal/caddy/go.mod
+!apps/portal/caddy/go.sum
+!apps/portal/caddy/go.work
+!apps/portal/caddy/go.work.sum
+!apps/portal/caddy/main.go

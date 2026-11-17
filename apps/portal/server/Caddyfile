@@ -1,0 +1,110 @@
+# SPDX-License-Identifier: Apache-2.0
+# Portal web server (ADR-0024): serves the static SPA and reverse-proxies the control-plane API on the same origin,
+# so the browser only ever talks to 'self' (connect-src 'self'). Security headers are generated from
+# server/headers.ts into headers-<scheme>.caddy; SCF_PORTAL_SCHEME selects the set (https adds HSTS and
+# upgrade-insecure-requests; http is for a local stack on localhost only).
+#
+# Environment:
+#   SCF_PORTAL_PORT              listen port (default 8080)
+#   SCF_PORTAL_SCHEME            https (default) | http — the scheme the browser uses to reach the portal
+#   SCF_CONTROL_PLANE_UPSTREAM   host:port of the control plane's public API (default control-plane:8080)
+#
+# Privacy (the invariants of CONTRIBUTING.md): no access log; the error log is filtered so that it never carries the client
+# address, request headers or the request URI (query strings).
+{
+	admin off
+	auto_https off
+	persist_config off
+	grace_period 10s
+	servers {
+		timeouts {
+			read_header 5s
+			read_body 10s
+			write 30s
+			idle 2m
+		}
+		max_header_size 16KB
+	}
+	log {
+		output stderr
+		level INFO
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip delete
+				request>remote_port delete
+				request>client_ip delete
+				request>headers delete
+				request>uri delete
+				request>tls delete
+				resp_headers delete
+			}
+		}
+	}
+}
+
+:{$SCF_PORTAL_PORT:8080} {
+	import headers-{$SCF_PORTAL_SCHEME:https}.caddy
+
+	# Liveness of the web server itself (container health check); never proxied.
+	handle /portal-healthz {
+		header Cache-Control "no-store"
+		respond "ok" 200
+	}
+
+	# The control-plane API on the same origin. Caddy replaces any client-sent X-Forwarded-For with the peer address
+	# (no trusted_proxies), so the control plane's SCF_TRUST_PROXY may list this server's address (infra/compose).
+	# The snapshot signing keys live at the portal origin too (wire-formats §i.3 step 1), and so does the operator metrics
+	# API (/op/v1/*, operator-metrics.openapi.yaml servers). test/unit/caddy-routes.test.ts keeps this matcher equal to
+	# the public operations of both OpenAPI documents. The OAuth authorization server metadata of the hosted MCP server
+	# (RFC 8414, issuer = this origin) is a control-plane route as well.
+	@api path /v1/* /op/v1/* /public/* /.well-known/scf-snapshot-keys.json /.well-known/oauth-authorization-server
+	handle @api {
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy {$SCF_CONTROL_PLANE_UPSTREAM:control-plane:8080} {
+			header_up -Forwarded
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 30s
+			}
+		}
+		header Cache-Control "no-store"
+	}
+
+	# The published measurement methodology (rendered at build time, read-only): /docs/methodology/<semver> is the URL
+	# signed into v2 traction snapshots. An unknown version is a 404, never the SPA shell.
+	handle /docs/methodology/* {
+		root * /srv/portal
+		try_files {path} {path}.html
+		header Cache-Control "public, max-age=3600"
+		file_server
+	}
+
+	# /.well-known/ is never the SPA shell: every path not proxied above is a 404. The portal origin is not a SEP-1
+	# home domain; the production Caddyfile (infra/ansible compose_stack Caddyfile.j2) redirects stellar.toml to the
+	# landing host instead.
+	# A named matcher on purpose: Caddy sorts single-path `handle` blocks before named ones, and this one must not
+	# shadow the /.well-known/ paths of @api.
+	@wellknown path /.well-known/*
+	handle @wellknown {
+		header Cache-Control "no-store"
+		respond 404
+	}
+
+	# Content-hashed build output: immutable; a missing asset is a 404, never the SPA shell.
+	handle /assets/* {
+		root * /srv/portal
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Everything else is a client-side route: serve the shell, never cached so a new release is picked up at once.
+	handle {
+		root * /srv/portal
+		try_files {path} /index.html
+		header Cache-Control "no-store"
+		file_server
+	}
+}

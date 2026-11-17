@@ -1,0 +1,5 @@
+// The portal's Caddy build is its own workspace: joining the repository's go.work would raise shared dependency
+// versions (golang.org/x/net, …) for every other module.
+go 1.27.4
+
+use .
