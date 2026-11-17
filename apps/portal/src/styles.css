@@ -1,0 +1,806 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Legacy page styles. Bundled with the UsageMap kit (components/ui/ui.css, components/shell/shell.css,
+   pages/auth/auth.css) into one stylesheet: 'self' only, no inline styles, self-hosted fonts, no CDN. Page agents
+   remove rules here as their pages move to the um- kit. */
+
+:root {
+  /* Legacy page tokens, mapped onto the UsageMap Ink & Yellow palette (src/components/ui/ui.css) until every page
+     uses the um- kit. Light only, no blue. */
+  color-scheme: light;
+  --surface-0: #f4f5f7;
+  --surface-1: #ffffff;
+  --border: #e3e6ea;
+  --text-primary: #111111;
+  --text-secondary: #5d636b;
+  --accent: #111111;
+  --accent-ink: #ffffff;
+  --focus: #111111;
+  --grid: #e3e6ea;
+  --series-1: #3fa66b;
+  --series-2: #e8763a;
+  --good-bg: #d7f0e1;
+  --good-ink: #1b6e45;
+  --warn-bg: #fbedc6;
+  --warn-ink: #8a5600;
+  --bad-bg: #fbe3df;
+  --bad-ink: #b42318;
+  --radius: 8px;
+  font-family: "Geist", "Segoe UI", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-0);
+  color: var(--text-primary);
+}
+
+a {
+  color: var(--accent);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+
+.skip-link:focus {
+  left: 8px;
+  top: 8px;
+  z-index: 10;
+  background: var(--surface-1);
+  padding: 8px 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+header.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+
+header.app-header .brand {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+header.app-header nav ul {
+  display: flex;
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+header.app-header .spacer {
+  flex: 1;
+}
+
+main:not([class*="um-"]) {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin: 8px 0 12px;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin: 20px 0 8px;
+}
+
+h3 {
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.muted {
+  color: var(--text-secondary);
+}
+
+.small {
+  font-size: 0.875rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.stack > * + * {
+  margin-top: 12px;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+label.inline {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-weight: 400;
+}
+
+input[type="text"],
+input[type="date"],
+input:not([type]),
+select,
+textarea {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  min-width: 12rem;
+}
+
+textarea {
+  width: 100%;
+  min-height: 5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+button,
+.button {
+  font: inherit;
+  display: inline-block;
+  padding: 7px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+button.secondary,
+.button.secondary {
+  background: transparent;
+  color: var(--accent);
+}
+
+button.danger {
+  background: var(--bad-ink);
+  border-color: var(--bad-ink);
+  color: var(--surface-1);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.alert {
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin: 8px 0 16px;
+  border: 1px solid transparent;
+}
+
+.alert.error {
+  background: var(--bad-bg);
+  color: var(--bad-ink);
+  border-color: currentColor;
+}
+
+.alert.warn {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  border-color: currentColor;
+}
+
+.alert.ok {
+  background: var(--good-bg);
+  color: var(--good-ink);
+  border-color: currentColor;
+}
+
+.alert.info {
+  background: var(--surface-1);
+  border-color: var(--border);
+}
+
+pre.code {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 0.85rem;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+td.num,
+th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+caption {
+  text-align: left;
+  font-weight: 700;
+  padding-bottom: 6px;
+}
+
+.tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  margin-left: 6px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tile {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.tile .tile-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.tile .tile-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile .tile-sub {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs a {
+  display: inline-block;
+  padding: 8px 12px;
+  text-decoration: none;
+  color: var(--text-secondary);
+}
+
+.tabs a[aria-current="page"] {
+  color: var(--text-primary);
+  border-bottom: 3px solid var(--accent);
+  font-weight: 600;
+}
+
+.chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart .gridline {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.chart .axis-label {
+  fill: var(--text-secondary);
+  font-size: 11px;
+}
+
+.chart .line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart .series-0 {
+  stroke: var(--series-1);
+  fill: var(--series-1);
+}
+
+.chart .series-1 {
+  stroke: var(--series-2);
+  fill: var(--series-2);
+}
+
+.chart .line.series-0,
+.chart .line.series-1 {
+  fill: none;
+}
+
+.chart .point {
+  stroke: var(--surface-1);
+  stroke-width: 2;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 6px;
+  font-size: 0.875rem;
+}
+
+.legend .swatch {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.legend .swatch.series-0 {
+  background: var(--series-1);
+}
+
+.legend .swatch.series-1 {
+  background: var(--series-2);
+}
+
+dialog {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  max-width: 34rem;
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+
+details > summary {
+  cursor: pointer;
+  color: var(--accent);
+  margin: 6px 0;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.other-row td:first-child {
+  font-style: italic;
+}
+
+/* --- categorical series 3–6 (validated default palette, dataviz reference; light / dark) --- */
+:root {
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+}
+.chart .line.series-2 {
+  stroke: var(--series-3);
+}
+.chart .line.series-3 {
+  stroke: var(--series-4);
+}
+.chart .line.series-4 {
+  stroke: var(--series-5);
+}
+.chart .line.series-5 {
+  stroke: var(--series-6);
+}
+.chart .point.series-2,
+.legend .swatch.series-2,
+.statusbar .seg-2 {
+  fill: var(--series-3);
+  background: var(--series-3);
+}
+.chart .point.series-3,
+.legend .swatch.series-3,
+.statusbar .seg-3 {
+  fill: var(--series-4);
+  background: var(--series-4);
+}
+.chart .point.series-4,
+.legend .swatch.series-4,
+.statusbar .seg-4 {
+  fill: var(--series-5);
+  background: var(--series-5);
+}
+.chart .point.series-5,
+.legend .swatch.series-5 {
+  fill: var(--series-6);
+  background: var(--series-6);
+}
+.statusbar {
+  width: 100%;
+  height: 28px;
+  display: block;
+}
+.statusbar .seg-0 {
+  fill: var(--series-1);
+}
+.statusbar .seg-1 {
+  fill: var(--series-2);
+}
+.statusbar .gap {
+  fill: var(--surface-1);
+}
+
+/* sortable table headers */
+th button.sort {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+th button.sort:hover {
+  background: none;
+}
+.badge {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.badge.good {
+  background: var(--good-bg);
+  color: var(--good-ink);
+}
+.badge.warn {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+.badge.bad {
+  background: var(--bad-bg);
+  color: var(--bad-ink);
+}
+.steps {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  counter-reset: step;
+}
+.steps li {
+  counter-increment: step;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+}
+.steps li::before {
+  content: counter(step) ". ";
+}
+.steps li[aria-current="step"] {
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.legend-dot.seg-0 {
+  background: var(--series-1);
+}
+.legend-dot.seg-1 {
+  background: var(--series-2);
+}
+.legend-dot.seg-2 {
+  background: var(--series-3);
+}
+.legend-dot.seg-3 {
+  background: var(--series-4);
+}
+.legend-dot.seg-4 {
+  background: var(--series-5);
+}
+dl dt {
+  font-weight: 600;
+  margin-top: 8px;
+}
+dl dd {
+  margin-left: 0;
+}
+
+/* --- Usage pages: band chart, sparkline, funnel, verified-usage panel, privacy card --- */
+.band-chart .band {
+  fill: var(--series-2);
+  fill-opacity: 0.22;
+  stroke: none;
+}
+.legend .swatch.band-swatch {
+  height: 10px;
+  background: var(--series-2);
+  opacity: 0.35;
+}
+.legend .swatch.marker-swatch {
+  width: 10px;
+  height: 10px;
+  background: var(--bad-ink);
+}
+.band-chart .marker .marker-line {
+  stroke: var(--bad-ink);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.band-chart .marker .marker-flag {
+  fill: var(--bad-ink);
+  cursor: pointer;
+}
+.band-chart .marker.explained .marker-line,
+.band-chart .marker.explained .marker-flag {
+  stroke: var(--text-secondary);
+  fill: var(--text-secondary);
+}
+.band-chart .hit {
+  fill: transparent;
+  cursor: pointer;
+}
+.band-chart .hover-line {
+  stroke: var(--text-secondary);
+  stroke-width: 1;
+}
+.band-chart .tip {
+  fill: var(--surface-1);
+  stroke: var(--border);
+}
+.band-chart .tip-text {
+  fill: var(--text-primary);
+  font-size: 12px;
+}
+.band-plot:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.sparkline {
+  width: 120px;
+  height: 28px;
+  display: block;
+}
+.sparkline .line {
+  fill: none;
+  stroke: var(--series-1);
+  stroke-width: 2;
+}
+.funnel {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.funnel li {
+  display: grid;
+  grid-template-columns: minmax(10rem, 14rem) 1fr minmax(5rem, auto);
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+}
+.funnel meter {
+  width: 100%;
+  height: 14px;
+}
+.usage-panel .usage-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 8rem) 1fr;
+  gap: 8px 16px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.usage-panel .usage-row:first-of-type {
+  border-top: none;
+}
+.usage-kind {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.badge.band-high {
+  background: var(--good-bg);
+  color: var(--good-ink);
+}
+.badge.band-medium {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+.badge.band-low {
+  background: var(--bad-bg);
+  color: var(--bad-ink);
+}
+.privacy-card h3 {
+  font-size: 1rem;
+  margin: 0 0 6px;
+}
+.privacy-list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+.check-list {
+  list-style: none;
+  padding: 0;
+}
+.check-list li {
+  padding: 4px 0;
+}
+.check-list .pass::before {
+  content: "✓ ";
+  color: var(--good-ink);
+  font-weight: 700;
+}
+.check-list .fail::before {
+  content: "✗ ";
+  color: var(--bad-ink);
+  font-weight: 700;
+}
+.check-list .info::before {
+  content: "• ";
+}
+.segment-break td {
+  border-top: 3px double var(--bad-ink);
+}
+
+/* Read-only mode (ops.end-of-window-read-only): a persistent, full-width notice above every page. */
+.read-only-banner {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  padding: 0.6rem 16px;
+  border-bottom: 1px solid currentColor;
+  font-weight: 600;
+}
+
+/* Metric definitions on cards (MetricInfo, 2026-11-19) */
+.tile .tile-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.metric-info > summary {
+  list-style: none;
+  margin: 0;
+  line-height: 1;
+}
+
+.metric-info > summary::-webkit-details-marker {
+  display: none;
+}
+
+.metric-info[open] {
+  flex-basis: 100%;
+}
+
+.tile .tile-head:has(.metric-info[open]) {
+  flex-wrap: wrap;
+}
+
+.metric-info > p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+}
+
+.metric-defs dl > div {
+  margin: 4px 0;
+}
+
+.metric-defs dt {
+  font-weight: 600;
+}
+
+.metric-defs dd {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* --- Ecosystem Usage Map: summary figures as a definition list --- */
+.usage-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+}
+dl.usage-summary > div {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+dl.usage-summary dd {
+  margin: 4px 0 0;
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
