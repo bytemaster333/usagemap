@@ -1,0 +1,62 @@
+{
+  "FCE801FF--51904000-51967999/FCE7C160--51920543.xdr.zst": {
+    "etag": "\"019d1255cd748321a1d38ba91d5e7aeb\"",
+    "x-amz-meta-compression-type": "zst",
+    "x-amz-meta-core-version": "stellar-core 23.0.1 (050eacf11a15afb2e95560dfb5723dfdcf78070f)",
+    "x-amz-meta-end-ledger": "51920543",
+    "x-amz-meta-end-ledger-close-time": "1717200018",
+    "x-amz-meta-network-passphrase": "Public Global Stellar Network ; September 2015",
+    "x-amz-meta-protocol-version": "20",
+    "x-amz-meta-start-ledger": "51920543",
+    "x-amz-meta-start-ledger-close-time": "1717200018",
+    "x-amz-meta-version": "develop"
+  },
+  "FCE801FF--51904000-51967999/FCE7C161--51920542.xdr.zst": {
+    "etag": "\"b2b95f98ba87d2a4974774b2ecee667f\"",
+    "x-amz-meta-compression-type": "zst",
+    "x-amz-meta-core-version": "stellar-core 23.0.1 (050eacf11a15afb2e95560dfb5723dfdcf78070f)",
+    "x-amz-meta-end-ledger": "51920542",
+    "x-amz-meta-end-ledger-close-time": "1717200013",
+    "x-amz-meta-network-passphrase": "Public Global Stellar Network ; September 2015",
+    "x-amz-meta-protocol-version": "20",
+    "x-amz-meta-start-ledger": "51920542",
+    "x-amz-meta-start-ledger-close-time": "1717200013",
+    "x-amz-meta-version": "develop"
+  },
+  "FCE801FF--51904000-51967999/FCE7C162--51920541.xdr.zst": {
+    "etag": "\"7bbafd99580525d3a18a45ec4dab9d33\"",
+    "x-amz-meta-compression-type": "zst",
+    "x-amz-meta-core-version": "stellar-core 23.0.1 (050eacf11a15afb2e95560dfb5723dfdcf78070f)",
+    "x-amz-meta-end-ledger": "51920541",
+    "x-amz-meta-end-ledger-close-time": "1717200007",
+    "x-amz-meta-network-passphrase": "Public Global Stellar Network ; September 2015",
+    "x-amz-meta-protocol-version": "20",
+    "x-amz-meta-start-ledger": "51920541",
+    "x-amz-meta-start-ledger-close-time": "1717200007",
+    "x-amz-meta-version": "develop"
+  },
+  "FCE801FF--51904000-51967999/FCE7C163--51920540.xdr.zst": {
+    "etag": "\"54ff520e7997f01eceb3dfa02b90cbd8\"",
+    "x-amz-meta-compression-type": "zst",
+    "x-amz-meta-core-version": "stellar-core 23.0.1 (050eacf11a15afb2e95560dfb5723dfdcf78070f)",
+    "x-amz-meta-end-ledger": "51920540",
+    "x-amz-meta-end-ledger-close-time": "1717200001",
+    "x-amz-meta-network-passphrase": "Public Global Stellar Network ; September 2015",
+    "x-amz-meta-protocol-version": "20",
+    "x-amz-meta-start-ledger": "51920540",
+    "x-amz-meta-start-ledger-close-time": "1717200001",
+    "x-amz-meta-version": "develop"
+  },
+  "FCE801FF--51904000-51967999/FCE7C164--51920539.xdr.zst": {
+    "etag": "\"9ad076b28b4accc43a08851762151c9c\"",
+    "x-amz-meta-compression-type": "zst",
+    "x-amz-meta-core-version": "stellar-core 23.0.1 (050eacf11a15afb2e95560dfb5723dfdcf78070f)",
+    "x-amz-meta-end-ledger": "51920539",
+    "x-amz-meta-end-ledger-close-time": "1717199995",
+    "x-amz-meta-network-passphrase": "Public Global Stellar Network ; September 2015",
+    "x-amz-meta-protocol-version": "20",
+    "x-amz-meta-start-ledger": "51920539",
+    "x-amz-meta-start-ledger-close-time": "1717199995",
+    "x-amz-meta-version": "develop"
+  }
+}

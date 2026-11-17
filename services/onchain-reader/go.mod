@@ -1,0 +1,13 @@
+module github.com/bytemaster333/usagemap/services/onchain-reader
+
+go 1.27
+
+require (
+	github.com/klauspost/compress v1.20.3
+	github.com/stellar/go-stellar-sdk v0.8.0
+)
+
+require (
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/stellar/go-xdr v0.0.0-20260806060815-dc590f17552a // indirect
+)

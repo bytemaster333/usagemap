@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: Apache-2.0
+# PostgreSQL of the on-chain reader's integration test (onchain_test.go): project scf-d1-oc-it, PostgreSQL on
+# 127.0.0.1:${SCF_OC_PG_PORT:-26410}, our clean server image and the migrator built from db/Dockerfile under this
+# suite's own tags. Started and removed by the test (TestMain); `KEEP=1` leaves it running. Passwords are throwaway
+# values of this disposable test container.
+name: scf-d1-oc-it
+services:
+  pg:
+    build: { context: ../../../db, dockerfile: Dockerfile, target: server }
+    image: scf-d1-oc-it/postgres:test
+    user: "70:70"
+    environment:
+      POSTGRES_PASSWORD: oc-test-super
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command:
+      ["postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off"]
+    ports: ["127.0.0.1:${SCF_OC_PG_PORT:-26410}:5432"]
+    tmpfs: ["/var/lib/postgresql:size=1g,uid=70,gid=70,mode=0700"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 1s
+      retries: 60
+  migrate:
+    build: { context: ../../../db, dockerfile: Dockerfile, target: migrate }
+    image: scf-d1-oc-it/db-migrate:test
+    profiles: ["tools"]
+    environment:
+      PGHOST: pg
+      PGPORT: "5432"
+      SCF_DB_SUPERUSER: postgres
+      SCF_DB_SUPERUSER_PASSWORD: oc-test-super
+      SCF_DB_BOOTSTRAP: "1"
+      SCF_MIGRATOR_PASSWORD: oc-test
+      SCF_APP_PASSWORD: oc-test
+      SCF_WRITER_PASSWORD: oc-test
+      SCF_JOBS_PASSWORD: oc-test
+      SCF_METRICS_RO_PASSWORD: oc-test
+      SCF_UMAMI_RO_PASSWORD: oc-test
+      SCF_UMAMI_MAINT_PASSWORD: oc-test
+    depends_on:
+      pg: { condition: service_healthy }
