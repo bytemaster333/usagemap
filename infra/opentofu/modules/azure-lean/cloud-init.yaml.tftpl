@@ -1,0 +1,23 @@
+#cloud-config
+# SPDX-License-Identifier: Apache-2.0
+# First boot only: enough for Ansible (infra/ansible/playbooks/lean.yml) to take over. No secrets here — custom data is
+# readable by anyone with read access to the VM resource.
+hostname: ${node_name}
+preserve_hostname: false
+package_update: true
+packages: [python3, nftables]
+write_files:
+  - path: /etc/scf/node.env
+    permissions: "0644"
+    content: |
+      SCF_NODE_NAME=${node_name}
+      SCF_NODE_ROLE=${role}
+      SCF_PROFILE=lean
+  - path: /etc/ssh/sshd_config.d/10-scf.conf
+    permissions: "0644"
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+runcmd:
+  - [systemctl, restart, ssh]

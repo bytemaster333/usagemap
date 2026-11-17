@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copy to prod.tfvars (git-ignored) and fill in. Names and keys below are placeholders (C-98).
+subscription_id = "00000000-0000-0000-0000-000000000000"
+platform = {
+  location           = "westeurope"
+  secondary_location = "swedencentral"
+  admin_ssh_keys     = ["ssh-ed25519 AAAA... operator-1"]
+  admin_source_cidrs = []
+  backup_storage_accounts = {
+    repo1 = "scfbackuprepo1x"
+    repo2 = "scfbackuprepo2x"
+  }
+  dns_zones = ["ingest-domain-one.example", "ingest-domain-two.example"]
+  # One exact published version (never "latest"): az vm image list --publisher Debian --offer debian-13 --sku 13-gen2 --all
+  image = { version = "0.20261101.2290" }
+}

@@ -1,0 +1,7 @@
+# Local state, plans, filled-in variable and backend files never go to git.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+prod.tfvars
+backend.hcl

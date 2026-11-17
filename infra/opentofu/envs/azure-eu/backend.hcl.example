@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copy to backend.hcl (git-ignored). The state account is created once by hand or a bootstrap stack, with versioning on.
+resource_group_name  = "scf-rg-tfstate"
+storage_account_name = "scftfstatexxxx"
+container_name       = "tfstate"

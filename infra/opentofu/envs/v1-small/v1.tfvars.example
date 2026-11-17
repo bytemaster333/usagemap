@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copy to $DEPLOY_DIR/tofu/v1.tfvars (outside the repository) and fill in. Placeholders below.
+subscription_id = "00000000-0000-0000-0000-000000000000"
+v1 = {
+  resource_group_name    = "rg-example"
+  location               = "westeurope"
+  vm                     = { name = "usagemap-vm", size = "Standard_D2as_v5", os_disk_gb = 128 }
+  admin_ssh_keys         = ["ssh-ed25519 AAAA... operator-1"]
+  admin_source_cidrs     = ["198.51.100.10/32"] # the operators' current addresses; never 0.0.0.0/0
+  backup_storage_account = "usagemapbackupx"
+  # One exact published version (never "latest"): az vm image list --publisher Debian --offer debian-13 --sku 13-gen2 --all
+  image     = { version = "0.20261116.2664" }
+  drill_vms = {} # e.g. { "usagemap-drill-r" = "Standard_D2as_v5" } during a drill only
+}
+dns = {
+  zone_id = "0123456789abcdef0123456789abcdef"
+  zone    = "example.org"
+  portal  = "app.example.org"
+  status  = "status.example.org"
+  ingest  = ["e1.example.org", "e2.example.org"]
+}
