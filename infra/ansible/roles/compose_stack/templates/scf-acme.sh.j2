@@ -1,0 +1,21 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# ACME for the public host names (C-123): lego {{ scf_lego_version }} with the DNS-01 challenge ({{ scf_acme_dns_provider }}),
+# authorised by this VM's managed identity or the provider credentials in provider.env (0600, root only). `lego run` obtains a certificate or renews it when due (ARI or a third
+# of the lifetime left), then scf-cert-deploy copies a changed one into place and reloads its consumer.
+set -euo pipefail
+set -a; . {{ scf_acme_dir }}/provider.env; set +a
+rc=0
+{% for name, hosts in scf_tls_sets.items() %}
+/usr/local/bin/lego-{{ scf_lego_version }} run --accept-tos --path {{ scf_acme_dir }} --server {{ scf_acme_server }} \
+  {% if scf_acme_email %}--email {{ scf_acme_email }} {% endif %}--dns {{ scf_acme_dns_provider }} --cert.name {{ name }} \
+  --key-type EC256 --log.format text --no-random-sleep{% for h in hosts %} -d {{ h }}{% endfor %} \
+  && /usr/local/sbin/scf-cert-deploy {{ name }} {{ scf_acme_dir }}/certificates/{{ name }}.crt {{ scf_acme_dir }}/certificates/{{ name }}.key \
+  || { echo "scf-acme: {{ name }} failed" >&2; rc=1; }
+{% endfor %}
+# Result of this run for the CertExpiring alert (renewal failing), plus every certificate's validity (scf-cert-metrics).
+m={{ scf_data_dir }}/metrics
+printf '# HELP scf_acme_last_run_success 1 when every certificate set was obtained or renewed on the last run.\n# TYPE scf_acme_last_run_success gauge\nscf_acme_last_run_success %d\n# HELP scf_acme_last_run_timestamp_seconds Time of the last ACME run.\n# TYPE scf_acme_last_run_timestamp_seconds gauge\nscf_acme_last_run_timestamp_seconds %d\n' \
+  "$((rc == 0))" "$(date +%s)" > "$m/.scf_acme.prom.$$" && mv "$m/.scf_acme.prom.$$" "$m/scf_acme.prom"
+/usr/local/sbin/scf-cert-metrics || true
+exit $rc

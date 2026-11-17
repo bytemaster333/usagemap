@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+- name: PKI directories
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0700"
+  loop: ["{{ scf_pki_dir }}", "{{ scf_pki_dir }}/issued"]
+
+- name: CA key and certificate (created once)
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.shell: |
+    set -eu
+    umask 077
+    openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -aes256 -pass env:SCF_CA_PASS -out ca-key.pem
+    openssl req -x509 -new -key ca-key.pem -passin env:SCF_CA_PASS -sha256 -days {{ scf_pki_ca_days }} \
+      -subj '{{ scf_pki_ca_subject }}' -addext 'basicConstraints=critical,CA:TRUE,pathlen:0' \
+      -addext 'keyUsage=critical,keyCertSign,cRLSign' -out ca.pem
+    chmod 0644 ca.pem
+  args:
+    chdir: "{{ scf_pki_dir }}"
+    creates: "{{ scf_pki_dir }}/ca.pem"
+  environment:
+    SCF_CA_PASS: "{{ scf_pki_ca_key_passphrase }}"
+  no_log: true

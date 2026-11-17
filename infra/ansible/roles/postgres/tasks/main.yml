@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: Apache-2.0
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "{{ item.mode }}"
+    owner: "{{ omit if scf_postgres_skip_chown | default(false) else item.owner }}"
+  loop:
+    - { path: "{{ scf_postgres_dir }}", mode: "0755", owner: root }
+    - { path: "{{ scf_postgres_dir }}/secrets", mode: "0750", owner: root }
+    - { path: "{{ scf_postgres_data_dir }}", mode: "0700", owner: "999" }
+
+- name: Secrets (from SOPS; readable by the container's postgres user only)
+  ansible.builtin.copy:
+    dest: "{{ scf_postgres_dir }}/secrets/{{ item.key }}"
+    content: "{{ item.value }}"
+    mode: "0400"
+    owner: "{{ omit if scf_postgres_skip_chown | default(false) else '999' }}"
+  loop: "{{ scf_postgres_secrets | dict2items }}"
+  no_log: true
+  vars:
+    scf_postgres_secrets:
+      pg_superuser_password: "{{ scf_pg_superuser_password }}"
+      pg_replication_password: "{{ scf_pg_replication_password }}"
+      pg_rewind_password: "{{ scf_pg_rewind_password }}"
+      patroni_restapi_password: "{{ scf_patroni_restapi_password }}"
+      umami_db_password: "{{ scf_umami_db_password }}"
+      pgbackrest_repo1_cipher_pass: "{{ scf_pgbackrest_cipher_pass['1'] }}"
+      pgbackrest_repo2_cipher_pass: "{{ scf_pgbackrest_cipher_pass['2'] }}"
+      dump_age_recipient: "{{ scf_dump_age_recipient }}"
+
+- name: Configuration
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ scf_postgres_dir }}/{{ item }}"
+    mode: "0644"
+  loop: [compose.yaml, pgbackrest.conf, haproxy.cfg]
+  register: scf_postgres_config
+
+- name: Start or update the node (Patroni, etcd member, HAProxy)
+  when: scf_postgres_manage_containers
+  ansible.builtin.command:
+    cmd: docker compose -p scf-postgres -f {{ scf_postgres_dir }}/compose.yaml up -d --wait
+  changed_when: scf_postgres_config is changed
+
+- name: Umami role and database (C-113/C-115)
+  ansible.builtin.include_tasks: umami.yml
+  when: inventory_hostname in groups['postgres']

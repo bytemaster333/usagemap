@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: Apache-2.0
+# Gatus (ops/status/gatus: the generated config of ops/status/sli.json) on this host as one more vantage point of the
+# public checks. It runs INSIDE the host's failure domain, so it is a cross-check of the outside view, not the outside
+# view itself (docs/sla.md §17 P7: an independent vantage point needs other infrastructure). Separate Compose project
+# `scf-status`, joined to the stack's `public` bridge (internet 80/443 only); UI on 127.0.0.1 only.
+- name: Gatus directory
+  ansible.builtin.file:
+    path: /opt/scf-status
+    state: directory
+    mode: "0755"
+
+- name: Gatus configuration and Compose file (from the workstation's checkout)
+  ansible.builtin.copy:
+    src: "{{ scf_release_src }}/ops/status/gatus/{{ item }}"
+    dest: "/opt/scf-status/{{ item }}"
+    mode: "0644"
+  loop: [config.yaml, compose.yaml]
+  register: scf_gatus_files
+
+- name: Gatus environment and network override
+  ansible.builtin.copy:
+    dest: "/opt/scf-status/{{ item.name }}"
+    mode: "0644"
+    content: "{{ item.content }}"
+  loop:
+    - name: status.env
+      content: |
+        SCF_STATUS_INGEST_URL_A=https://{{ scf_ingest_hostnames[0] }}
+        SCF_STATUS_INGEST_URL_B=https://{{ scf_ingest_hostnames[-1] }}
+        SCF_STATUS_PORTAL_URL=https://{{ scf_portal_hostname }}
+        SCF_STATUS_PORT=8095
+    - name: compose.host.yaml
+      content: |
+        services:
+          gatus:
+            networks: [public]
+        networks:
+          public: { name: {{ scf_stack_project }}_public, external: true }
+  loop_control:
+    label: "{{ item.name }}"
+  register: scf_gatus_env
+
+- name: Gatus up
+  ansible.builtin.command:
+    argv: [docker, compose, -p, scf-status, -f, /opt/scf-status/compose.yaml, -f, /opt/scf-status/compose.host.yaml,
+           --env-file, /opt/scf-status/status.env, up, -d, --wait, --force-recreate]
+  when: scf_gatus_files is changed or scf_gatus_env is changed
+  changed_when: true

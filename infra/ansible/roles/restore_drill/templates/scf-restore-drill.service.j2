@@ -1,0 +1,24 @@
+# {{ ansible_managed }}
+[Unit]
+Description=SCF weekly restore drill (ADR-0021, C-56)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStartPre=-/usr/bin/docker volume rm -f scf-restore-drill
+ExecStart=/usr/bin/docker run --rm --name scf-restore-drill --init --read-only --cap-drop ALL \
+  --security-opt no-new-privileges:true --shm-size 1g{% if scf_drill_docker_network %} --network {{ scf_drill_docker_network }}{% endif %} \
+  --tmpfs /tmp:size=1g,mode=1777 --tmpfs /var/run/postgresql:size=1m,uid=999,gid=999,mode=2775 \
+  --tmpfs /var/spool/pgbackrest:size=64m,uid=999,gid=999 --tmpfs /var/log/pgbackrest:size=8m,uid=999,gid=999 \
+  -v scf-restore-drill:/var/lib/postgresql \
+  -v {{ scf_drill_dir }}/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro \
+  -v {{ scf_drill_dir }}/repo2_cipher_pass:/run/secrets/repo2_cipher_pass:ro \
+{% if scf_drill_repo2_sas | bool %}
+  -v {{ scf_drill_dir }}/repo2_key:/run/secrets/repo2_key:ro \
+{% endif %}
+  -v {{ scf_drill_db_dir }}:/db:ro -v {{ scf_drill_metrics_dir }}:/var/lib/scf-metrics{% for v in scf_drill_extra_volumes | default([]) %} -v {{ v }}{% endfor %} \
+  --entrypoint /bin/bash {{ scf_image_postgres }} \
+  -c 'export PGBACKREST_REPO2_CIPHER_PASS=$(cat /run/secrets/repo2_cipher_pass);{% if scf_drill_repo2_sas | bool %} export PGBACKREST_REPO2_AZURE_KEY=$(cat /run/secrets/repo2_key);{% endif %} exec scf-restore-drill'
+ExecStopPost=-/usr/bin/docker volume rm -f scf-restore-drill
+TimeoutStartSec=4h

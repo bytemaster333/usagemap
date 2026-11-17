@@ -1,0 +1,12 @@
+{
+  "data-root": "{{ scf_docker_data_root }}",
+  "userland-proxy": false,
+  "live-restore": true,
+  "no-new-privileges": true,
+  "log-driver": "local",
+  "log-opts": { "max-size": "{{ scf_docker_log_max_size }}", "max-file": "{{ scf_docker_log_max_file }}" },
+  "default-address-pools": {{ scf_docker_address_pools | to_json }},
+  "ip6tables": false,
+  "features": { "containerd-snapshotter": false },
+  "experimental": false
+}

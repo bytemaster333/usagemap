@@ -1,0 +1,168 @@
+# SPDX-License-Identifier: Apache-2.0
+- name: Production override, portal Caddyfile, PostgreSQL single mode, pgBackRest, monitoring configuration
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ scf_stack_dir }}/{{ item.dest }}"
+    mode: "{{ item.mode | default('0644') }}"
+  loop:
+    - src: compose.prod.yaml.j2
+      dest: compose.prod.yaml
+    - src: Caddyfile.j2
+      dest: Caddyfile
+    - src: scf-pg-single.sh.j2
+      dest: scf-pg-single
+      mode: "0755"
+    - src: pgbackrest.conf.j2
+      dest: pgbackrest.conf
+    - src: prometheus.yml.j2
+      dest: prometheus.yml
+    - src: probe.json.j2
+      dest: probe.json
+  register: scf_stack_config
+
+- name: This deployment's tracker versions (scf_tracker_versions; mounted over the release's list)
+  when: scf_tracker_versions | length > 0
+  ansible.builtin.copy:
+    dest: "{{ scf_stack_dir }}/tracker-releases.json"
+    content: "{{ scf_tracker_versions | to_nice_json }}\n"
+    mode: "0644"
+  register: scf_stack_tracker_versions
+
+- name: Landing page (static files from the workstation, served by the portal's Caddy)
+  when: scf_landing_hostname | length > 0
+  ansible.builtin.copy:
+    src: "{{ scf_landing_src | regex_replace('/?$', '/') }}"
+    dest: "{{ scf_stack_dir }}/landing/"
+    mode: "0644"
+    directory_mode: "0755"
+  register: scf_stack_landing
+
+- name: Documentation site (static export of apps/docs from the workstation, served by the portal's Caddy)
+  when: scf_docs_hostname | length > 0
+  ansible.builtin.copy:
+    src: "{{ scf_docs_src | regex_replace('/?$', '/') }}"
+    dest: "{{ scf_stack_dir }}/docs-site/"
+    mode: "0644"
+    directory_mode: "0755"
+  register: scf_stack_docs
+
+# Alertmanager: the route tree of the release (ops/alertmanager/alertmanager.yml)
+# with this deployment's receivers. A production stack whose critical alerts reach nobody is refused.
+- name: Alert receivers
+  ansible.builtin.set_fact:
+    scf_alert_webhooks: "{{ (scf_stack_secrets | default({})).alert_webhooks | default({}) }}"
+    scf_alert_deadman_url: "{{ (scf_stack_secrets | default({})).deadman_ping_url | default('') }}"
+    scf_alert_email_worker_token: "{{ (scf_stack_secrets | default({})).alert_email_worker_token | default('') }}"
+  no_log: true
+
+- name: Receivers with a channel (webhook, SMTP e-mail or the alert mailer Worker)
+  ansible.builtin.set_fact:
+    scf_alert_channelled: >-
+      {{ ((scf_alert_webhooks.keys() | list) + (scf_alert_emails.keys() | list)
+          + (scf_alert_email_worker_receivers if scf_alert_email_worker_url else [])) | unique }}
+
+- name: Every required receiver has a channel (no deploy with critical alerts going nowhere)
+  ansible.builtin.assert:
+    that:
+      - (scf_alert_local_only and scf_alert_local_only_reason | length >= 20)
+        or scf_alert_receivers_required | reject('in', scf_alert_channelled) | list | length == 0
+      - (not scf_alert_email_worker_url)
+        or (scf_alert_email_worker_url is match('^https://[A-Za-z0-9.-]+(:[0-9]+)?/[A-Za-z0-9/._-]*$')
+            and scf_alert_email_worker_token | length >= 32
+            and scf_alert_email_worker_receivers | reject('in', scf_alert_receivers_all) | list | length == 0)
+      - scf_alert_emails | length == 0 or (scf_alert_smtp_smarthost is match('^[A-Za-z0-9.-]+:[0-9]+$') and scf_alert_smtp_from | length > 0)
+      - (not scf_alert_deadman_required) or scf_alert_deadman_url is match('^https://')
+      - scf_alert_webhooks.values() | reject('match', '^https://') | list | length == 0
+    fail_msg: >-
+      Alertmanager would drop alerts: give each of {{ scf_alert_receivers_required }} a channel —
+      scf_stack_secrets.alert_webhooks.<receiver> (an https URL, SOPS) and/or scf_alert_emails.<receiver> with
+      scf_alert_smtp_smarthost/scf_alert_smtp_from, or the alert mailer Worker (scf_alert_email_worker_url, https,
+      no query, + scf_stack_secrets.alert_email_worker_token ≥ 32 chars; runbook alert-email)
+      {{ '— and scf_stack_secrets.deadman_ping_url' if scf_alert_deadman_required else '' }}
+      (or, only where no outside channel exists yet, scf_alert_local_only with scf_alert_local_only_reason).
+      Missing: {{ scf_alert_receivers_required | reject('in', scf_alert_channelled) | list }}
+    quiet: true
+
+- name: Alert channels are local only (explicit exception, recorded in the deploy log)
+  when: scf_alert_local_only | bool
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'NOTE: alerts are also recorded on this VM (VictoriaLogs, Grafana)' if scf_alert_channelled | length > 0
+         else 'WARNING: alerts are recorded on this VM only (VictoriaLogs, Grafana) and reach nobody outside' }}:
+      {{ scf_alert_local_only_reason }}
+
+- name: Alertmanager webhook URL files (read by uid 65534 only; empty for a receiver without a webhook)
+  ansible.builtin.copy:
+    dest: "{{ scf_stack_secrets_dir }}/am_webhook_{{ item }}"
+    content: "{{ scf_alert_webhooks[item] | default('') }}"
+    owner: 65534
+    group: 65534
+    mode: "0400"
+  loop: "{{ scf_alert_receivers_all }}"
+  register: scf_stack_am_webhooks
+  no_log: true
+
+- name: Alertmanager SMTP password, alert mailer secret and outside heartbeat URL (read by uid 65534 only)
+  ansible.builtin.copy:
+    dest: "{{ scf_stack_secrets_dir }}/{{ item.name }}"
+    content: "{{ item.content }}"
+    owner: 65534
+    group: 65534
+    mode: "0400"
+  loop:
+    - name: am_smtp_password
+      content: "{{ (scf_stack_secrets | default({})).alert_smtp_password | default('') }}"
+    - name: am_deadman_url
+      content: "{{ scf_alert_deadman_url }}"
+    - name: am_email_worker_token
+      content: "{{ scf_alert_email_worker_token }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: scf_stack_am_secrets
+  no_log: true
+
+- name: Route tree of the release
+  ansible.builtin.slurp:
+    src: "{{ scf_release_dir }}/{{ scf_release_id }}/ops/alertmanager/alertmanager.yml"
+  register: scf_am_repo
+
+- name: Alertmanager configuration (the release's routes, this deployment's receivers)
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ scf_stack_dir }}/alertmanager.yml"
+    mode: "0644"
+  vars:
+    scf_am_routes: "{{ scf_am_repo.content | b64decode | from_yaml }}"
+  register: scf_stack_am_config
+
+- name: Compose command
+  ansible.builtin.set_fact:
+    scf_compose: >-
+      {{ ['docker', 'compose', '-p', scf_stack_project, '--project-directory', '/opt/scf/current/infra/compose',
+          '-f', '/opt/scf/current/infra/compose/compose.yaml']
+         + (['-f', '/opt/scf/current/infra/compose/compose.monitoring.yaml'] if scf_monitoring_enabled else [])
+         + ['-f', scf_stack_dir ~ '/compose.prod.yaml'] }}
+
+- name: The merged configuration is valid
+  ansible.builtin.command:
+    argv: "{{ scf_compose + ['config', '--quiet'] }}"
+  changed_when: false
+
+- name: Images of the merged configuration
+  ansible.builtin.command:
+    argv: "{{ scf_compose + ['config', '--images'] }}"
+  register: scf_stack_images
+  changed_when: false
+
+# Nothing but the release's images and digest-pinned third-party images: a service the
+# production override does not pin — like the old `dev-settings` with usagemap/db-migrate:dev — fails here, before any pull.
+- name: Every image is a release image of scf_images or a digest-pinned third-party image
+  ansible.builtin.assert:
+    that: scf_images_unpinned | length == 0
+    fail_msg: "Images neither in scf_images nor pinned by digest (would be resolved against a registry by name): {{ scf_images_unpinned }}"
+    quiet: true
+  vars:
+    scf_images_unpinned: >-
+      {{ scf_stack_images.stdout_lines | unique
+         | reject('in', scf_images.values() | list + [scf_image_node_exporter])
+         | reject('match', '^(?!scf[/-])[a-z0-9./-]+(:[A-Za-z0-9._-]+)?@sha256:[0-9a-f]{64}$') | list }}

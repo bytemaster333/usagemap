@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Fetch the network-class range lists weekly
+
+[Timer]
+OnCalendar={{ scf_rangelist_schedule }}
+RandomizedDelaySec=2h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

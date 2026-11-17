@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Renew the public certificates when due
+
+[Timer]
+OnCalendar={{ scf_acme_schedule }}
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

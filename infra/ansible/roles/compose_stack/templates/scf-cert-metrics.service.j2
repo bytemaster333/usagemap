@@ -1,0 +1,10 @@
+# {{ ansible_managed }}
+[Unit]
+Description=SCF certificate validity metrics (textfile for the node exporter)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/scf-cert-metrics
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectHome=true

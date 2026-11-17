@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+[Unit]
+Description=SCF network-class range lists (rangelist-updater, C-38)
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/scf-rangelists
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectHome=true

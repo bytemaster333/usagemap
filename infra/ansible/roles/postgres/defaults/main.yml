@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: Apache-2.0
+# PostgreSQL node (ADR-0020/0021, C-108): the image of infra/compose/ha/postgres (Patroni + pgBackRest) run by Docker
+# Compose with host networking, data on the attached disk (C-109), etcd member, HAProxy following the primary.
+scf_postgres_dir: /etc/scf/postgres
+scf_postgres_data_dir: /srv/scf/postgres # on the ≥ 250 GB data disk
+scf_postgres_manage_containers: true # tests render only
+scf_postgres_etcd_hosts: "{{ (groups['postgres'] + groups['mon']) | map('regex_replace', '$', '.' ~ scf_mesh_domain ~ ':2379') | join(',') }}"
+scf_postgres_drill_host: "{{ groups['mon'] | first }}"
+scf_postgres_mesh_name: "{{ inventory_hostname }}.{{ scf_mesh_domain }}"
+# How the role reaches psql on the current primary: inside the node's container (production); tests override it.
+scf_postgres_psql:
+  [
+    docker,
+    exec,
+    -i,
+    -u,
+    postgres,
+    scf-postgres,
+    psql,
+    -X,
+    -v,
+    ON_ERROR_STOP=1,
+    -h,
+    /var/run/postgresql,
+    -U,
+    postgres,
+    -d,
+    postgres,
+  ]
+scf_postgres_psql_env: { PGPASSWORD: "{{ scf_pg_superuser_password }}" }
+scf_postgres_is_primary_cmd:
+  [
+    "curl",
+    "-fsS",
+    "-o",
+    "/dev/null",
+    "--cacert",
+    "{{ scf_postgres_dcs_dir }}/ca.pem",
+    "https://localhost:8008/primary",
+  ]
+# DCS certificates (F15): issued by the `pki` role from a CA of their own (playbook site.yml, play "DCS certificates").
+scf_postgres_dcs_dir: /etc/scf/pki-dcs
+scf_scram_verifier: "{{ playbook_dir }}/../../compose/ha/bin/scf-scram-verifier"

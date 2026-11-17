@@ -1,0 +1,29 @@
+# {{ ansible_managed }}
+# pgBackRest 2.60.0 on {{ inventory_hostname }} (C-108, C-110): the two Azure storage accounts of infra/opentofu,
+# reached through their private endpoints with this VM's managed identity (key type auto — no key, no SAS). The
+# identity's role can delete current blobs but not blob versions; versioning + the 14-day previous-version rule
+# protect the history. Cipher passes come from the environment (SOPS secrets), one per repository.
+[global]
+{% for r in scf_backup_repos %}
+repo{{ r.n }}-type=azure
+repo{{ r.n }}-azure-account={{ r.account }}
+repo{{ r.n }}-azure-container={{ r.container }}
+repo{{ r.n }}-azure-key-type=auto
+repo{{ r.n }}-path=/scf
+repo{{ r.n }}-cipher-type=aes-256-cbc
+repo{{ r.n }}-bundle=y
+repo{{ r.n }}-block=y
+repo{{ r.n }}-retention-full-type=time
+repo{{ r.n }}-retention-full=35
+{% endfor %}
+archive-async=y
+spool-path=/var/spool/pgbackrest
+process-max=2
+compress-type=zst
+start-fast=y
+log-level-console=info
+log-level-file=off
+
+[scf]
+pg1-path=/var/lib/postgresql/18/main
+pg1-socket-path=/var/run/postgresql

@@ -1,0 +1,110 @@
+# SPDX-License-Identifier: Apache-2.0
+# The release on the VM: the Compose files, the monitoring configuration and db/ (restore drill), unpacked under
+# releases/<id>; `current` points at it. Only these paths — no source code, no build context. The released tracker
+# builds come from their signed release directories (tracker.yml), never from the working tree.
+- name: Release identity
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.command:
+    argv:
+      [
+        "git",
+        "-C",
+        "{{ scf_release_src }}",
+        "rev-parse",
+        "--short=12",
+        "{{ 'HEAD' if scf_release_ref == 'WORKTREE' else scf_release_ref ~ '^{commit}' }}",
+      ]
+  register: scf_release_rev
+  changed_when: false
+
+- name: Private work directory for the archive (workstation; mode 0700, unpredictable name — finding 16)
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: scf-release-
+  register: scf_release_tmp
+  changed_when: false
+
+- name: Release archive (workstation)
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.command:
+    argv: "{{ (scf_tar_cmd if scf_release_ref == 'WORKTREE' else scf_git_cmd) + scf_release_paths }}"
+  vars:
+    scf_archive: "{{ scf_release_tmp.path }}/release.tar"
+    scf_tar_cmd:
+      [
+        "tar",
+        "-C",
+        "{{ scf_release_src }}",
+        "--exclude=.secrets",
+        "--exclude=node_modules",
+        "--sort=name",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "-cf",
+        "{{ scf_archive }}",
+      ]
+    scf_git_cmd:
+      [
+        "git",
+        "-C",
+        "{{ scf_release_src }}",
+        "archive",
+        "--format=tar",
+        "-o",
+        "{{ scf_archive }}",
+        "{{ scf_release_ref }}",
+        "--",
+      ]
+  changed_when: false
+
+- name: Archive digest (a working-tree release is named by its content, so an edited file is deployed)
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.stat:
+    path: "{{ scf_release_tmp.path }}/release.tar"
+    checksum_algorithm: sha256
+  register: scf_release_archive
+
+- name: Release id
+  ansible.builtin.set_fact:
+    scf_release_id: >-
+      {{ ('worktree-' ~ scf_release_rev.stdout ~ '-' ~ scf_release_archive.stat.checksum[:12])
+         if scf_release_ref == 'WORKTREE' else scf_release_rev.stdout }}
+
+- name: Release directory
+  ansible.builtin.file:
+    path: "{{ scf_release_dir }}/{{ scf_release_id }}"
+    state: directory
+    mode: "0755"
+
+- name: Unpack the release
+  ansible.builtin.unarchive:
+    src: "{{ scf_release_tmp.path }}/release.tar"
+    dest: "{{ scf_release_dir }}/{{ scf_release_id }}"
+    creates: "{{ scf_release_dir }}/{{ scf_release_id }}/infra/compose/compose.yaml"
+
+- name: Remove the workstation's archive
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.file:
+    path: "{{ scf_release_tmp.path }}"
+    state: absent
+  changed_when: false
+
+- name: Current release
+  ansible.builtin.file:
+    src: "{{ scf_release_dir }}/{{ scf_release_id }}"
+    dest: "{{ scf_release_dir | dirname }}/current"
+    state: link
+    force: true

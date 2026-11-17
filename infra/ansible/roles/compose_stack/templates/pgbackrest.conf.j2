@@ -1,0 +1,35 @@
+# {{ ansible_managed }}
+# pgBackRest 2.60.0, lean profile (C-123): the two repositories of infra/opentofu/modules/azure-lean, reached through
+# their private endpoints with this VM's managed identity (key type auto — no key, no SAS), or per repository a
+# container SAS without version-delete rights (key_type sas) or a local directory (type posix). Versioning and the 14-day
+# previous-version rule protect the history (C-108, C-110, C-112). Cipher passes come from SOPS.
+[global]
+{% for r in scf_backup_repos %}
+{% if (r.type | default(scf_backup_repo_type)) == 'azure' %}
+repo{{ r.n }}-type=azure
+repo{{ r.n }}-azure-account={{ r.account }}
+repo{{ r.n }}-azure-container={{ r.container }}
+{# auto = managed identity; sas = container SAS from /run/secrets/pgbackrest_repoN_key (scf-backup exports it) #}
+repo{{ r.n }}-azure-key-type={{ r.key_type | default('auto') }}
+repo{{ r.n }}-path={{ r.path | default("/scf") }}
+{% else %}
+repo{{ r.n }}-type=posix
+repo{{ r.n }}-path=/var/lib/pgbackrest-repo/{{ r.n }}
+{% endif %}
+repo{{ r.n }}-cipher-type=aes-256-cbc
+repo{{ r.n }}-bundle=y
+repo{{ r.n }}-block=y
+repo{{ r.n }}-retention-full-type=time
+repo{{ r.n }}-retention-full=35
+{% endfor %}
+archive-async=y
+spool-path=/var/spool/pgbackrest
+process-max=2
+compress-type=zst
+start-fast=y
+log-level-console=info
+log-level-file=off
+
+[scf]
+pg1-path=/var/lib/postgresql/18/main
+pg1-socket-path=/var/run/postgresql

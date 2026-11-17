@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: Apache-2.0
+- name: Docker repository key (shipped, checksum-verified)
+  ansible.builtin.copy:
+    src: docker-archive-keyring.asc
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Key file as installed
+  ansible.builtin.stat:
+    path: /etc/apt/keyrings/docker.asc
+    checksum_algorithm: sha256
+  register: scf_docker_key
+
+- name: Key checksum (fingerprint 9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88)
+  ansible.builtin.assert:
+    that: scf_docker_key.stat.checksum == scf_docker_key_sha256
+    quiet: true
+
+- name: Docker apt source (deb822, signed-by the pinned key)
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/docker.sources
+    mode: "0644"
+    content: |
+      Types: deb
+      URIs: {{ scf_docker_repo }}
+      Suites: {{ scf_docker_suite }}
+      Components: stable
+      Architectures: {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}
+      Signed-By: /etc/apt/keyrings/docker.asc
+
+- name: Docker Engine, containerd, Compose plugin (pinned)
+  ansible.builtin.apt:
+    name: "{{ scf_docker_packages.keys() | zip(scf_docker_packages.values()) | map('join', '=') | list }}"
+    state: present
+    update_cache: true
+    allow_downgrade: true
+    allow_change_held_packages: true # a version change in defaults is a deliberate upgrade
+    install_recommends: false
+  notify: Restart docker
+
+- name: Hold them (unattended upgrades never touch the engine)
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop: "{{ scf_docker_packages.keys() | list }}"
+
+- name: Data root on the data disk
+  ansible.builtin.file:
+    path: "{{ scf_docker_data_root }}"
+    state: directory
+    mode: "0710"
+
+- name: Daemon configuration
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+  notify: Restart docker
+
+- name: Docker running and enabled
+  when: scf_docker_manage_service
+  ansible.builtin.systemd_service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Apply a changed configuration now
+  ansible.builtin.meta: flush_handlers

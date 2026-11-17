@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+- name: Directory
+  ansible.builtin.file:
+    path: "{{ scf_pgbouncer_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Configuration
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ scf_pgbouncer_dir }}/{{ item }}"
+    mode: "0644"
+  loop: [pgbouncer.ini, compose.yaml]
+  register: scf_pgbouncer_config
+
+- name: Auth file (runtime roles only; from SOPS)
+  ansible.builtin.template:
+    src: userlist.txt.j2
+    dest: "{{ scf_pgbouncer_dir }}/userlist.txt"
+    mode: "0400"
+    owner: "{{ omit if scf_pgbouncer_skip_chown | default(false) else '70' }}"
+  no_log: true
+  register: scf_pgbouncer_users_file
+
+- name: Start or reload
+  when: scf_pgbouncer_manage_containers and (scf_pgbouncer_config is changed or scf_pgbouncer_users_file is changed)
+  ansible.builtin.command:
+    cmd: docker compose -p scf-pgbouncer -f {{ scf_pgbouncer_dir }}/compose.yaml up -d --wait --force-recreate
+  changed_when: true

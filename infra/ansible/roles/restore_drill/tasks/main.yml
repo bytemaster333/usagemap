@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: Apache-2.0
+- name: Directory
+  ansible.builtin.file:
+    path: "{{ scf_drill_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Drill configuration and units
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: pgbackrest-drill.conf.j2, dest: "{{ scf_drill_dir }}/pgbackrest.conf" }
+    - src: scf-restore-drill.service.j2
+      dest: "{{ scf_drill_systemd_dir }}/scf-restore-drill.service"
+    - src: scf-restore-drill.timer.j2
+      dest: "{{ scf_drill_systemd_dir }}/scf-restore-drill.timer"
+
+- name: Cipher pass of repository 2
+  ansible.builtin.copy:
+    dest: "{{ scf_drill_dir }}/repo2_cipher_pass"
+    content: "{{ scf_pgbackrest_cipher_pass['2'] }}"
+    mode: "0400"
+    owner: "{{ omit if scf_drill_skip_chown | default(false) else '999' }}"
+  no_log: true
+
+- name: Read/list-only SAS of repository 2 (key_type sas; scf_stack_secrets.backup_repo_sas_drill)
+  when: scf_drill_repo2_sas | bool
+  ansible.builtin.copy:
+    dest: "{{ scf_drill_dir }}/repo2_key"
+    content: "{{ scf_stack_secrets.backup_repo_sas_drill | regex_replace('^[?]', '') }}"
+    mode: "0400"
+    owner: "{{ omit if scf_drill_skip_chown | default(false) else '999' }}"
+  no_log: true
+
+- name: Drill network (lean profile; on the app VM the stack's own `backup` network already exists)
+  when: scf_drill_docker_network | length > 0 and scf_drill_create_network | bool and not (scf_drill_render_only | default(false))
+  ansible.builtin.command:
+    argv:
+      [
+        docker,
+        network,
+        create,
+        --driver,
+        bridge,
+        --subnet,
+        "{{ scf_drill_bridge_subnet }}",
+        --opt,
+        "com.docker.network.bridge.name={{ scf_drill_bridge_name }}",
+        "{{ scf_drill_docker_network }}",
+      ]
+  register: scf_drill_net
+  changed_when: scf_drill_net.rc == 0
+  failed_when: scf_drill_net.rc != 0 and 'already exists' not in scf_drill_net.stderr
+
+- name: Timer
+  when: not (scf_drill_render_only | default(false))
+  ansible.builtin.systemd_service:
+    name: scf-restore-drill.timer
+    enabled: true
+    state: started
+    daemon_reload: true

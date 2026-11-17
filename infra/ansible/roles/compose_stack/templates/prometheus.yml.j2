@@ -1,0 +1,49 @@
+# {{ ansible_managed }}
+# Prometheus on the one VM of the lean profile (C-123): the same rules and job names as ops/prometheus/prometheus.yml,
+# targets on the stack's Docker networks; no health controller, no remote probe sources (scale-out only). Alerts whose
+# signals come from absent components stay silent rather than firing on missing targets.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+  external_labels: {monitor: scf-{{ inventory_hostname }}, profile: lean}
+
+rule_files: [/etc/prometheus/rules/*.rules.yaml]
+
+alerting:
+  alertmanagers:
+    - static_configs: [{targets: ["alertmanager:9093"]}]
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs: [{targets: ["localhost:9090"]}]
+  - job_name: alertmanager
+    static_configs: [{targets: ["alertmanager:9093"]}]
+  - job_name: gateway
+    static_configs: [{targets: ["gateway:9464"], labels: {node: edge-a1, role: edge}}]
+  - job_name: collector
+    static_configs: [{targets: ["collector-metrics:8888"], labels: {node: edge-a1, role: edge}}]
+  - job_name: engine-proxy
+    static_configs: [{targets: ["engine-proxy:9464"], labels: {node: core-a, role: core}}]
+  - job_name: metrics-writer
+    static_configs: [{targets: ["metrics-writer:9464"], labels: {node: core-a, role: core}}]
+  - job_name: jobs
+    static_configs: [{targets: ["jobs:8080"], labels: {node: core-a, role: core}}]
+    metric_relabel_configs:
+      - {source_labels: [exported_job], target_label: job_name}
+      - {regex: exported_job, action: labeldrop}
+  - job_name: control-plane
+    static_configs: [{targets: ["control-plane:9464"], labels: {node: core-a, role: core}}]
+  - job_name: postgres
+    static_configs: [{targets: ["postgres-exporter:9187"], labels: {node: core-a, role: core}}]
+  - job_name: node
+    static_configs: [{targets: ["node-exporter:9100"], labels: {node: {{ inventory_hostname }}}}]
+{% if scf_probe_site_key %}
+  - job_name: probes
+    static_configs: [{targets: ["probe-mon-c:9480"]}]
+{% endif %}
+  - job_name: status
+    static_configs: [{targets: ["status:8080"]}]
+  - job_name: logscan
+    static_configs: [{targets: ["logscan:9480"]}]
+  - job_name: victorialogs
+    static_configs: [{targets: ["victorialogs:9428"]}]

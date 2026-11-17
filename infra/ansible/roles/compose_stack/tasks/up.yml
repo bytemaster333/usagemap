@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: Apache-2.0
+- name: Pull the release images (by digest)
+  when: scf_images_pull | bool and scf_stack_up | bool
+  ansible.builtin.command:
+    argv: "{{ scf_compose + ['pull', '--quiet', '--policy', 'missing'] }}"
+  register: scf_stack_pull
+  changed_when: false
+
+# Images shipped over SSH (scf_image_ids): every release image on the VM must be exactly the one built on the
+# workstation (image ID = sha256 of its configuration), so a stale or substituted local tag cannot start.
+- name: Shipped images are exactly the built ones (image IDs)
+  when: scf_stack_up | bool and scf_image_ids | length > 0
+  ansible.builtin.command:
+    argv: [docker, image, inspect, --format, "{{ '{{' }}.Id{{ '}}' }}", "{{ scf_images[item] }}"]
+  loop: "{{ scf_images.keys() | list }}"
+  register: scf_image_id_check
+  changed_when: false
+  failed_when: scf_image_id_check.rc != 0 or scf_image_id_check.stdout | trim != scf_image_ids[item] | default('missing')
+
+# The gateway serves the tracker bytes from its image; the control plane and jobs publish SRI hashes from the released
+# manifests (tracker.yml). Both must be the same build, or browsers refuse the script.
+- name: The gateway image embeds exactly the released tracker manifests
+  when: scf_stack_up | bool
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      set -euo pipefail
+      c=$(docker create {{ scf_images.gateway | quote }})
+      trap 'docker rm -f "$c" >/dev/null' EXIT
+      for v in {{ scf_tracker_meta | map(attribute='version') | map('quote') | join(' ') }}; do
+        docker cp "$c:/usr/share/scf-gateway/tracker/$v/manifest.json" - | tar -xO \
+          | cmp - {{ (scf_release_dir ~ '/' ~ scf_release_id ~ '/tracker/dist') | quote }}/"$v"/manifest.json \
+          || { echo "tracker $v: the gateway image's manifest differs from the released one" >&2; exit 1; }
+      done
+  changed_when: false
+
+- name: Start or update the stack (one-shot steps re-run; migrations, Umami views and bootstrap are idempotent)
+  when: scf_stack_up | bool
+  ansible.builtin.command:
+    # --pull never after the pull by digest: `up` itself never resolves a name against a registry (finding 1)
+    argv: >-
+      {{ scf_compose + ['up', '-d', '--no-build', '--pull', ('never' if scf_images_pull | bool else 'missing'), '--wait',
+                        '--wait-timeout', scf_stack_wait_timeout | string, '--remove-orphans']
+         + (['--force-recreate'] if (scf_stack_secrets_written is changed or scf_stack_pki_changed | default(false) | bool) else []) }}
+  register: scf_stack_upped
+  changed_when: scf_stack_upped.stderr is search('Recreated|Created')
+
+# Bind-mounted configuration does not make Compose recreate a container: restart the ones whose files changed.
+- name: Restart services whose mounted configuration changed
+  when: scf_stack_up | bool and scf_restart_services | length > 0 and not (scf_stack_upped.stderr | default('') is search('Recreated'))
+  ansible.builtin.command:
+    argv: "{{ scf_compose + ['restart'] + scf_restart_services }}"
+  changed_when: true
+  vars:
+    scf_cfg_changed: "{{ scf_stack_config.results | default([]) | selectattr('changed') | map(attribute='item.dest') | list }}"
+    scf_restart_services: >-
+      {{ ((['portal'] if ('Caddyfile' in scf_cfg_changed or scf_stack_landing is changed or scf_stack_docs is changed) else [])
+         + (['prometheus'] if 'prometheus.yml' in scf_cfg_changed else [])
+         + (['probe-mon-c'] if ('probe.json' in scf_cfg_changed and scf_probe_site_key) else [])
+         + (['postgres'] if (scf_cfg_changed | select('search', 'scf-pg-single|pgbackrest.conf') | list | length > 0) else [])
+         + (['alertmanager'] if (scf_stack_am_config is changed or scf_stack_am_webhooks is changed or scf_stack_am_secrets is changed) else [])
+         + (['control-plane', 'jobs'] if scf_stack_tracker_versions is changed else [])) | unique }}
+
+- name: Range lists and certificate metrics
+  ansible.builtin.import_tasks: timers.yml

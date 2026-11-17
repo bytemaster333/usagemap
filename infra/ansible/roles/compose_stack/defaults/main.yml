@@ -1,0 +1,277 @@
+# SPDX-License-Identifier: Apache-2.0
+# The Docker Compose stack of infra/compose on one VM with production settings (lean profile, C-123). The stack is the
+# repository's own compose.yaml + compose.monitoring.yaml, unchanged; everything production-specific is in the
+# override rendered from templates/compose.prod.yaml.j2. compose.dev.yaml (development and test fixtures),
+# infra/compose/scripts/dev-secrets.sh and dev-pki.sh are never used here: secrets come from SOPS
+# (scripts/gen-stack-secrets.sh creates them once, C-79), node certificates from the `pki` role, public certificates
+# from ACME (lego, DNS-01 on Azure DNS with the VM's managed identity).
+
+# --- release
+scf_stack_project: scf
+scf_release_src: "{{ playbook_dir }}/../../.." # repository checkout on the workstation
+# A git ref (tag of the release) → `git archive`; WORKTREE → the working tree as it is (tests, development only).
+scf_release_ref: HEAD
+scf_release_paths:
+  [
+    infra/compose,
+    ops/prometheus,
+    ops/alerts,
+    ops/alertmanager,
+    ops/grafana,
+    ops/dashboards,
+    db,
+    LICENSE,
+  ]
+scf_release_dir: /opt/scf/releases
+# The released tracker builds (C-100, security.supply-chain) the control plane and jobs read (manifests, SRI, release list): one
+# signed tracker release directory per version listed in infra/compose/tracker-releases.json, as the release workflow
+# publishes it (`gh release download tracker-vX.Y.Z`: lib/<v>/{manifest.json,…}, SHA256SUMS, release.json and the
+# Sigstore bundles *.sigstore.json). Each is checked on the workstation (SHA256SUMS, release.json clean and of that
+# version, cosign signatures of SHA256SUMS and manifest.json against the release workflow at tag tracker-v<version>)
+# and its manifest compared with the one the gateway image embeds before the stack starts. Never the working tree.
+scf_tracker_releases: [] # local directories, e.g. ["/srv/releases/tracker-v1.0.0", "/srv/releases/tracker-v1.1.0"]
+scf_tracker_verify_signatures: true # tests set false (unsigned test releases; SHA256SUMS and the gateway check still run)
+scf_stack_dir: /etc/scf/stack
+scf_stack_secrets_dir: "{{ scf_stack_dir }}/secrets"
+scf_stack_tls_dir: "{{ scf_stack_dir }}/tls"
+scf_pki_node_dir: /etc/scf/pki
+scf_data_dir: /srv/scf # the data disk (Docker data root, metrics textfiles, ACME state)
+
+# --- images (by digest in production: built and published for the release, C-79; the role refuses tags unless allowed)
+scf_images:
+  postgres_ha: usagemap/postgres-ha:18.7-pgbr2.60.0-patroni4.1.5
+  db_migrate: usagemap/db-migrate:dev
+  umami: usagemap/umami:3.5.0-d3c62a8
+  umami_migrate: usagemap/umami-migrate:3.5.0-d3c62a8
+  engine_proxy: usagemap/engine-proxy:dev
+  control_plane: usagemap/control-plane:dev
+  portal: usagemap/portal:dev
+  jobs: usagemap/jobs:dev
+  metrics_writer: usagemap/metrics-writer:dev
+  gateway: usagemap/gateway:dev
+  otelcol: usagemap/otelcol:dev
+  ops: usagemap/ops:dev
+  mcp: usagemap/mcp:dev
+scf_image_node_exporter: prom/node-exporter:v1.12.1@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0
+scf_images_require_digest: true # tests set false (images loaded locally)
+scf_images_pull: true # tests set false
+# The release registry (images published as <registry>/<name>): every scf_images value
+# must be <registry>/<catalogue name>@sha256:… (key with "_" → "-"), so nothing of ours is ever pulled from another
+# namespace (such as the unclaimed docker.io/scf namespace).
+scf_image_registry: ghcr.io/scf-analytics
+# cosign verification of every release image on the workstation before anything is deployed (supply-chain.md C5;
+# ops/runbooks/deploy-verify.md): the keyless identity of the release workflow at the release tag.
+scf_images_verify_signatures: true # tests set false (no signed images)
+# Images shipped over SSH instead of pulled (v1 small host, docs/guides/deploy-v1.md: no registry yet). A name → image
+# ID map (the sha256 of each image's configuration, printed by scripts/ship-images.sh --ids):
+# the role checks every scf_images entry on the VM resolves to exactly that ID before anything starts, which pins the
+# content as a registry digest would. Empty = no check (registry deployments pin by digest instead).
+scf_image_ids: {}
+scf_release_repo: "" # <org>/<repo> on GitHub; required when verifying signatures
+scf_release_signer_workflow: "" # path of the signing workflow in scf_release_repo; required when verifying signatures
+scf_cosign_bin: cosign # on the workstation (cosign 3.1.4)
+
+# --- public names and addresses (from the OpenTofu outputs)
+scf_ingest_hostnames: []
+scf_portal_hostname: ""
+scf_status_hostname: ""
+scf_ingest_bind_ip: "" # private address the ingest public IP maps to
+scf_portal_bind_ip: ""
+scf_public_port: 443
+# Fixed addresses of the two named bridges: the control plane trusts X-Forwarded-For only from the portal's address.
+scf_public_subnet: 172.30.0.0/24
+scf_portal_fixed_ip: 172.30.0.10
+# Hosted MCP server (services/mcp) behind the portal at https://<portal>/mcp; it holds no key (callers send their own
+# Bearer key to the control plane through it). Its fixed address is the second one the control plane trusts for
+# X-Forwarded-For, so the control plane's failed-auth limiter counts MCP callers, not the container.
+scf_mcp_enabled: true
+scf_mcp_fixed_ip: 172.30.0.11
+scf_backup_subnet: 172.30.1.0/24
+# Optional landing page on the portal address (its own name, e.g. the apex): a static directory on the workstation,
+# copied to the VM and served by the portal's Caddy with the same TLS and header policy. Empty = none.
+scf_landing_hostname: ""
+scf_landing_src: ""
+# Optional documentation site on the portal address (C-152: apps/docs, a static export, e.g. docs.<zone>): copied and
+# served like the landing page. Empty = none.
+scf_docs_hostname: ""
+scf_docs_src: ""
+# Port 80 on the portal address: answers only with a permanent redirect to https (HSTS does the rest). Off = 443 only.
+scf_http_redirect: false
+scf_status_page_url: "{{ ('https://' ~ scf_status_hostname) if scf_status_hostname else 'https://status.invalid' }}"
+
+# --- ACME (lego 5.6.0, MIT; sha256 from the release's checksums file, 2026-11-13)
+scf_acme_enabled: true
+scf_lego_version: 5.6.0
+scf_lego_sha256:
+  amd64: f02fc11b6f56b97e387fa7caa0268f86f5a336953b22458e6430e4651fea439a
+  arm64: 34d87a6552d69390c4a4560237045c47713a8e148d899e16db0e97040894ed1f
+scf_acme_server: https://acme-v02.api.letsencrypt.org/directory
+scf_acme_email: "" # optional role address of the operating team; never a personal address
+scf_acme_dir: "{{ scf_data_dir }}/acme"
+scf_acme_dns_provider: azuredns
+# Provider environment (Azure DNS with the VM's managed identity: Reader on the zone, DNS Zone Contributor on the
+# _acme-challenge record sets only — infra/opentofu/modules/azure-lean/dns.tf).
+scf_acme_env:
+  AZURE_AUTH_METHOD: msi
+  AZURE_TENANT_ID: "{{ scf_azure_tenant_id | default('') }}"
+  AZURE_SUBSCRIPTION_ID: "{{ scf_azure_subscription_id | default('') }}"
+  AZURE_RESOURCE_GROUP: "{{ scf_azure_dns_resource_group | default('') }}"
+# Provider credentials that ARE secrets (e.g. Cloudflare's CF_DNS_API_TOKEN): scf_stack_secrets.acme_env (SOPS), a map
+# of lego environment variables merged into provider.env (0600, root only). Empty for Azure DNS (managed identity).
+# Use another provider: scf_acme_dns_provider: cloudflare, scf_acme_env: {} and acme_env: {CF_DNS_API_TOKEN: …}.
+scf_acme_schedule: "*-*-* 03,15:17:00 UTC"
+
+# --- backups (C-108, C-110, C-112): repositories from `tofu output backup_repositories`
+scf_backup_repo_type: azure # tests: posix (a local directory per repository)
+# Per repository (scf_backup_repos entries) `type` (azure|posix, default scf_backup_repo_type) and `key_type`
+# (auto = managed identity, default; sas = a container-scoped SAS from scf_stack_secrets.backup_repo_sas.<n>, for an
+# account where no role can be assigned — the SAS must not carry the delete-version / permanent-delete permissions).
+# A posix repository lives on this VM's disk (scf_data_dir/pgbackrest-repo/<n>): fast restores, NOT off-host.
+# scf_backup_public_endpoint: the account is reached over its public endpoint (service endpoint / firewall of the
+# account) instead of private endpoints: the PostgreSQL bridge may then open 443 to the internet (host firewall).
+scf_backup_public_endpoint: false
+scf_backup_tick: 60
+scf_backup_full_every: 604800
+scf_backup_diff_every: 86400
+scf_dump_every: 604800
+
+# --- monitoring overlay (switch off what the lean profile does not run: health controller, its etcd, fake DNS,
+# the probe sources of other nodes)
+scf_monitoring_enabled: true
+scf_monitoring_disabled_services:
+  [etcd, dns-a, dns-b, hc-mon-c, hc-core-b, probe-probe-d, probe-edge]
+# Alertmanager receivers. The deploy FAILS unless maintainers-critical,
+# maintainers-warning and security-responders each have at least one integration: a production stack whose critical
+# alerts go nowhere is refused. Webhook URLs carry tokens, so they come from SOPS (scf_stack_secrets.alert_webhooks,
+# keyed by receiver) and are mounted as files (url_file). E-mail needs an SMTP relay; its port is opened in the host
+# firewall's egress allow-list (role common). Alertmanager joins the `public` bridge (internet on 80/443 only).
+scf_alert_receivers_required: [maintainers-critical, maintainers-warning, security-responders]
+scf_alert_receivers_all:
+  [maintainers-critical, maintainers-warning, security-responders, portal-notices]
+scf_alert_emails: {} # receiver → address (a role address of the operating team, never a personal one)
+scf_alert_smtp_smarthost: "" # host:port of the relay (e.g. smtp.example.org:587)
+scf_alert_smtp_from: ""
+scf_alert_smtp_username: ""
+# E-mail through the alert mailer Worker (ops/alert-mailer, runbook alert-email): each
+# notification of these receivers is posted to the Worker's https URL (not a secret) with a bearer secret
+# (scf_stack_secrets.alert_email_worker_token, ≥ 32 characters, mounted as /run/secrets/am_email_worker_token); the
+# Worker sends exactly one e-mail through Cloudflare's send_email binding to the operations contact's verified Email
+# Routing address. No SMTP relay and no third-party mail account. The address itself is never in this repository or
+# on the host (it is a Worker binding). Empty URL = off. ops/scripts/cloudflare-email-setup.sh prints the URL.
+scf_alert_email_worker_url: ""
+scf_alert_email_worker_receivers: [maintainers-critical, maintainers-warning, security-responders]
+scf_alert_email_worker_max_alerts: 50 # alerts per notification; the mail counts the rest ("… and N more")
+# Dead-man's switch: Alertmanager also sends the always-firing Watchdog to an outside
+# heartbeat monitor (a "ping URL" that alarms when pings stop, e.g. a self-hosted Healthchecks instance on other
+# infrastructure). The URL is a secret (scf_stack_secrets.deadman_ping_url); empty = only the status host's heartbeat
+# (read by .github/workflows/deadman.yml). Runbook dead-mans-switch.
+# Explicit, documented fallback for a host whose operating team has no outside channel (yet, or while the mailer is
+# down): every receiver records its notifications in the local log store (VictoriaLogs, 30 days; Grafana and
+# Prometheus' ALERTS show the state) and, without another channel, NOTHING leaves the VM. The deploy still refuses
+# unless scf_alert_local_only_reason names why. It may be combined with the e-mail route (both then receive).
+scf_alert_local_only: false
+scf_alert_local_only_reason: ""
+scf_alert_deadman_required: false # set true once the outside monitor exists; the deploy then refuses to run without it
+scf_probe_site_key: "" # a dedicated probe site (runbook deploy-verify); empty = the journey/probe stays off
+scf_probe_tenant_id: ""
+scf_probe_site_id: ""
+# End-to-end checks of the host's probe beyond the canary event and the signed-in journey (ops/internal/probes):
+# an OTLP metric export with a probe-only ingest token (scf_stack_secrets.probe_otlp_token, a token limited to
+# service `scf-probe`), the tracker files of every ingest name against the SRI the API publishes (every 5 min; needs
+# an ops image with `tracker_api`), and data freshness — the canary site must show page views inside this window
+# (`fresh_within`, e.g. "15m"; same image requirement). Empty/false = off.
+scf_probe_otlp: false
+# Per-node probes bypassing DNS (node id → origin). The default reaches the gateway on the Compose network, which only
+# works where the gateway's certificate names `gateway` (private CA); a host with ACME certificates for its public
+# names and a single node sets {} (the hostname probes already reach that node).
+scf_probe_nodes: { edge-a1: "https://gateway:8443" }
+# Status page wording (scf-ops status-page): sources that must vote (2 = the 2-of-3 design; 1 = a single probe
+# source), the objective sentence and the placement sentence. Defaults = the multi-node design's text.
+scf_status_min_voters: 2
+scf_status_objectives: ""
+scf_status_placement: ""
+# The status page's headline objective and the sentence after it (ops/internal/status Options.Objective/ObjectiveOf).
+scf_status_objective: ""
+scf_status_objective_of: ""
+# Shown right after the objective sentence whenever scf_status_objective is set (a host with its own objective): how
+# that objective relates to the service-window commitment (docs/sla.md §1, C-180). "" leaves it out.
+scf_status_service_window: >-
+  This pre-funding launch host targets 99.5 %; during the funded 12-month service window the service runs on the
+  scale-out profile with a commitment of 99.99 % ingestion and 99.90 % dashboard availability (docs/sla.md §1,
+  register C-180).
+scf_probe_tracker_check: false
+scf_probe_fresh_within: ""
+scf_probe_tracker_version: "{{ (scf_tracker_versions | last).version if scf_tracker_versions else '1.0.0' }}"
+
+# --- network-class range lists (C-38, bot.ip-multiplicity): the gateway image's rangelist-updater, run once a week by a systemd
+# timer (and on every deploy when no list exists yet) into the `rangelists` volume the gateway re-reads every minute;
+# each run writes scf_rangelists.prom to the textfile directory (alert RangeListsStale). scf_rangelist_sources: an
+# optional source list (JSON array {name,class,url,format}, services/gateway internal/rangelist) replacing the
+# built-in publishers; tests point it at an unreachable host.
+scf_rangelist_schedule: "Mon *-*-* 04:23:00 UTC"
+scf_rangelist_sources: []
+
+# The tracker versions this deployment serves (default: infra/compose/tracker-releases.json of the release). A
+# deployment whose tracker is built for its own ingest host names cannot serve released versions built for other
+# names; list its own here ({version, released_at, status}); the role then mounts this list instead.
+scf_tracker_versions: []
+
+# --- control plane / jobs settings that differ from the local stack
+scf_stellar_network: public
+# Horizon of that network for the jobs service (without it on-chain correlation is disabled); scf_jobs_extra_env wins.
+scf_horizon_url: "{{ 'https://horizon.stellar.org' if scf_stellar_network == 'public' else 'https://horizon-testnet.stellar.org' }}"
+scf_jobs_extra_env: {} # e.g. SCF_HORIZON_URL, SCF_STELLAR_RPC_URL, SCF_REGISTRY_SOURCES
+# Daily seal (C-135): the jobs service seals each day's published figures in one Stellar transaction. TESTNET only
+# unless scf_seal_mainnet_approved (the role refuses mainnet otherwise). The sealing account's secret seed comes from
+# SOPS (scf_stack_secrets.seal_secret_seed) and is mounted for the jobs service only; on testnet the job funds it
+# through Friendbot itself (and again after a testnet reset).
+scf_seal_enabled: false
+scf_seal_network: testnet
+scf_seal_horizon_url: "{{ 'https://horizon-testnet.stellar.org' if scf_seal_network == 'testnet' else 'https://horizon.stellar.org' }}"
+scf_seal_mainnet_approved: false
+scf_collector_queue_bytes: "1073741824" # 1 GiB on the data disk (C-115)
+scf_postgres_shared_buffers: 4GB
+scf_postgres_effective_cache_size: 12GB
+
+# Gatus checks of the public names on this host (tasks/gatus.yml; a cross-check inside the failure domain)
+scf_gatus_enabled: false
+
+# --- stack lifecycle
+scf_stack_up: true # tests may render only
+scf_stack_wait_timeout: 900
+
+# --- secrets (values in SOPS: scf_stack_secrets; created by scripts/gen-stack-secrets.sh)
+scf_stack_required_secrets:
+  [
+    pg_superuser_password,
+    umami_db_password,
+    umami_app_secret,
+    umami_seed_admin_password,
+    umami_provisioner_password,
+    scf_migrator_password,
+    scf_app_password,
+    scf_writer_password,
+    scf_jobs_password,
+    scf_metrics_ro_password,
+    scf_dump_login_password,
+    scf_monitor_password,
+    scf_umami_ro_password,
+    scf_umami_maint_password,
+    umami_creds_keys,
+    pepper_ing,
+    pepper_op,
+    pepper_pub,
+    edge_signing_key,
+    snapshot_signing_key,
+    sep10_signing_seed,
+    grafana_admin_password,
+    heartbeat_token,
+    journey_seed,
+  ]
+# Edge-snapshot key rotation without an outage (infra/compose/README.md "To rotate"): the PEM public key of the NEXT
+# signing key, trusted by the gateways as kid edge-2 before the jobs service signs with it. Empty = the current key.
+scf_edge_pub_next: ""
+
+# GitHub sign-in (ADR-0014): the OAuth App's client id (not a secret; callback https://<portal>/v1/auth/github/callback).
+# Its client secret is scf_stack_secrets.github_client_secret (scripts/v1-secrets.sh merges it). Empty = GitHub sign-in off.
+scf_github_client_id: ""

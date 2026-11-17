@@ -1,0 +1,3 @@
+{% for u, p in scf_pgbouncer_users | dictsort %}
+"{{ u }}" "{{ p }}"
+{% endfor %}

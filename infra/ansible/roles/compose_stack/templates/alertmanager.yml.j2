@@ -1,0 +1,57 @@
+# {{ ansible_managed }}
+# Alertmanager of the lean profile: the route tree and inhibit rules of the release
+# (ops/alertmanager/alertmanager.yml) with this deployment's receivers. Webhook URLs, the SMTP password, the alert
+# mailer's bearer secret and the outside heartbeat URL are files from SOPS (/run/secrets/am_*), never in this file.
+# E-mail goes through the alert mailer Worker (scf_alert_email_worker_url; runbook alert-email): one webhook per
+# receiver, one e-mail per notification. The role refuses to render it unless maintainers-critical,
+# maintainers-warning and security-responders each have a channel — or, with the explicit scf_alert_local_only
+# fallback, records every notification in the local log store (also alongside the other channels).
+{% set notify_resolved = {'maintainers-critical': true, 'maintainers-warning': false, 'security-responders': true, 'portal-notices': true} %}
+{% set cfg = {} %}
+{% if scf_alert_smtp_smarthost %}
+{%   set _ = cfg.update({'global': {'smtp_smarthost': scf_alert_smtp_smarthost, 'smtp_from': scf_alert_smtp_from,
+                                    'smtp_require_tls': true}}) %}
+{%   if scf_alert_smtp_username %}
+{%     set _ = cfg['global'].update({'smtp_auth_username': scf_alert_smtp_username,
+                                     'smtp_auth_password_file': '/run/secrets/am_smtp_password'}) %}
+{%   endif %}
+{% endif %}
+{% set _ = cfg.update({'route': scf_am_routes.route}) %}
+{% if scf_am_routes.inhibit_rules is defined %}
+{%   set _ = cfg.update({'inhibit_rules': scf_am_routes.inhibit_rules}) %}
+{% endif %}
+{% set heartbeat = {'name': 'heartbeat', 'webhook_configs': [
+     {'url': 'http://status:8080/v1/heartbeat', 'send_resolved': false,
+      'http_config': {'authorization': {'type': 'Bearer', 'credentials_file': '/run/secrets/heartbeat_token'}}}]} %}
+{% if scf_alert_deadman_url %}
+{%   set _ = heartbeat.webhook_configs.append({'url_file': '/run/secrets/am_deadman_url', 'send_resolved': false}) %}
+{% endif %}
+{% set receivers = [heartbeat] %}
+{% for r in scf_alert_receivers_all %}
+{%   set rcv = {'name': r} %}
+{%   if r in scf_alert_emails %}
+{%     set _ = rcv.update({'email_configs': [{'to': scf_alert_emails[r], 'send_resolved': notify_resolved[r]}]}) %}
+{%   endif %}
+{%   set hooks = [] %}
+{%   if r in scf_alert_webhooks %}
+{%     set _ = hooks.append({'url_file': '/run/secrets/am_webhook_' ~ r, 'send_resolved': notify_resolved[r]}) %}
+{%   endif %}
+{%   if scf_alert_email_worker_url and r in scf_alert_email_worker_receivers %}
+{#     The alert mailer Worker: one e-mail per notification to the operations lead (ops/alert-mailer). #}
+{%     set _ = hooks.append({'url': scf_alert_email_worker_url, 'send_resolved': notify_resolved[r],
+                             'max_alerts': scf_alert_email_worker_max_alerts | int, 'timeout': '15s',
+                             'http_config': {'authorization': {'type': 'Bearer',
+                                             'credentials_file': '/run/secrets/am_email_worker_token'}}}) %}
+{%   endif %}
+{%   if scf_alert_local_only %}
+{#     Local record only (scf_alert_local_only): each notification becomes one entry in VictoriaLogs (30 days). #}
+{%     set _ = hooks.append({'url': 'http://victorialogs:9428/insert/jsonline?_stream_fields=receiver,status&_msg_field=commonLabels.alertname', 'send_resolved': true}) %}
+{%   endif %}
+{%   if hooks %}
+{%     set _ = rcv.update({'webhook_configs': hooks}) %}
+{%   endif %}
+{%   set _ = receivers.append(rcv) %}
+{% endfor %}
+{% set _ = receivers.append({'name': 'blackhole'}) %}
+{% set _ = cfg.update({'receivers': receivers}) %}
+{{ cfg | to_nice_yaml(indent=2, sort_keys=false) }}

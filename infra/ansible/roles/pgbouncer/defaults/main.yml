@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# PgBouncer on each core node (ADR-0013, C-103, C-115): transaction pooling for the runtime roles, server side the
+# local primary-following HAProxy (127.0.0.1:5000, role postgres), so a failover re-points it without a reload.
+scf_pgbouncer_dir: /etc/scf/pgbouncer
+scf_pgbouncer_manage_containers: true
+scf_pgbouncer_listen: 0.0.0.0:6432
+scf_pgbouncer_server: 127.0.0.1:5000
+scf_pgbouncer_default_pool_size: 20
+scf_pgbouncer_max_client_conn: 400

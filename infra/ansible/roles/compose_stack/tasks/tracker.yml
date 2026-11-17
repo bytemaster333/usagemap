@@ -1,0 +1,88 @@
+# SPDX-License-Identifier: Apache-2.0
+# The released tracker builds the control plane and jobs read (manifests → SRI in snippets, release list; C-100,
+# tracker.version-pinned, security.supply-chain) — from the signed tracker release directories, never from the operator's working tree (audit
+# 2026-11-18 finding 8). On the workstation: each directory's SHA256SUMS holds, release.json names a clean build of
+# that version, and (production) cosign verifies SHA256SUMS and manifest.json against the release workflow at tag
+# tracker-v<version>. The set of versions must equal infra/compose/tracker-releases.json of the release. On the VM,
+# up.yml compares every manifest with the one embedded in the gateway image, which serves the bytes.
+- name: Tracker release directories are complete (SHA256SUMS)
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.command:
+    argv: [sha256sum, --check, --strict, --quiet, SHA256SUMS]
+    chdir: "{{ item }}"
+  loop: "{{ scf_tracker_releases }}"
+  changed_when: false
+
+- name: Tracker release metadata
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.set_fact:
+    scf_tracker_meta: "{{ scf_tracker_meta | default([]) + [lookup('ansible.builtin.file', item ~ '/release.json') | from_json | combine({'dir': item})] }}"
+  loop: "{{ scf_tracker_releases }}"
+
+- name: Tracker versions of the release (infra/compose/tracker-releases.json at the release ref)
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.command:
+    argv: >-
+      {{ ['cat', scf_release_src ~ '/infra/compose/tracker-releases.json'] if scf_release_ref == 'WORKTREE'
+         else ['git', '-C', scf_release_src, 'show', scf_release_ref ~ ':infra/compose/tracker-releases.json'] }}
+  register: scf_tracker_listed_json
+  changed_when: false
+
+- name: Each release is a clean build of its version, listed in tracker-releases.json, none missing
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.assert:
+    that:
+      - scf_tracker_meta | selectattr('dirty') | list | length == 0
+      - scf_tracker_meta | map(attribute='version') | select('match', '^[0-9]+\.[0-9]+\.[0-9]+$') | list | length == scf_tracker_meta | length
+      - scf_tracker_meta | map(attribute='version') | sort == scf_tracker_listed | sort
+    fail_msg: >-
+      Tracker releases {{ scf_tracker_meta | map(attribute='version') | sort }} (dirty:
+      {{ scf_tracker_meta | selectattr('dirty') | map(attribute='version') | list }}) must be clean builds and equal the
+      versions of infra/compose/tracker-releases.json or scf_tracker_versions ({{ scf_tracker_listed | sort }}).
+    quiet: true
+  vars:
+    scf_tracker_listed: >-
+      {{ (scf_tracker_versions if scf_tracker_versions else (scf_tracker_listed_json.stdout | from_json))
+         | map(attribute='version') | list }}
+
+- name: Signatures of SHA256SUMS and manifest.json (cosign keyless, release workflow at tag tracker-v<version>)
+  when: scf_tracker_verify_signatures | bool
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.command:
+    argv:
+      - "{{ scf_cosign_bin }}"
+      - verify-blob
+      - --bundle
+      - "{{ scf_signed_file }}.sigstore.json"
+      - --certificate-identity
+      - "https://github.com/{{ scf_release_repo }}/{{ scf_release_signer_workflow }}@refs/tags/tracker-v{{ item.0.version }}"
+      - --certificate-oidc-issuer
+      - https://token.actions.githubusercontent.com
+      - "{{ scf_signed_file }}"
+    chdir: "{{ item.0.dir }}"
+  vars:
+    scf_signed_file: "{{ 'SHA256SUMS' if item.1 == 'sums' else 'lib/' ~ item.0.version ~ '/manifest.json' }}"
+  loop: "{{ scf_tracker_meta | product(['sums', 'manifest']) | list }}"
+  loop_control:
+    label: "{{ item.0.version }} {{ item.1 }}"
+  changed_when: false
+
+- name: Released tracker build of each version (the classic scripts and their manifest)
+  ansible.builtin.copy:
+    src: "{{ item.dir }}/lib/{{ item.version }}/"
+    dest: "{{ scf_release_dir }}/{{ scf_release_id }}/tracker/dist/{{ item.version }}/"
+    mode: "0644"
+    directory_mode: "0755"
+  loop: "{{ scf_tracker_meta }}"
+  loop_control:
+    label: "{{ item.version }}"

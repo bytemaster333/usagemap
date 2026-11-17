@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+- name: Restart ssh
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
+- name: Reload nftables
+  ansible.builtin.service:
+    name: nftables
+    state: reloaded
+- name: Restart journald
+  ansible.builtin.service:
+    name: systemd-journald
+    state: restarted
+- name: Restart resolved
+  ansible.builtin.service:
+    name: systemd-resolved
+    state: restarted

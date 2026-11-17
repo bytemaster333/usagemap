@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+- name: Squid
+  ansible.builtin.apt:
+    name: squid
+    state: present
+  when: not (scf_egress_render_only | default(false))
+
+- name: Allow-list configuration
+  ansible.builtin.template:
+    src: squid.conf.j2
+    dest: "{{ scf_egress_conf | default('/etc/squid/squid.conf') }}"
+    mode: "0644"
+  notify: Reload squid

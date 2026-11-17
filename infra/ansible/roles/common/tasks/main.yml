@@ -1,0 +1,111 @@
+# SPDX-License-Identifier: Apache-2.0
+# OS baseline (ADR-0019): SSH keys only, unattended security upgrades, nftables default-deny egress (C-10); on edge
+# nodes no core dumps and no swap (C-66 kept for edges).
+- name: Packages
+  ansible.builtin.apt:
+    name: [nftables, unattended-upgrades, ca-certificates, chrony]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Unattended upgrades — security updates only, daily
+  ansible.builtin.copy:
+    dest: "{{ item.dest }}"
+    mode: "0644"
+    content: "{{ item.content }}"
+  loop:
+    - dest: /etc/apt/apt.conf.d/20auto-upgrades
+      content: |
+        APT::Periodic::Update-Package-Lists "1";
+        APT::Periodic::Unattended-Upgrade "1";
+        APT::Periodic::AutocleanInterval "7";
+    - dest: /etc/apt/apt.conf.d/52scf-unattended-upgrades
+      content: |
+        Unattended-Upgrade::Origins-Pattern {
+          "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+        };
+        Unattended-Upgrade::Automatic-Reboot "{{ 'true' if scf_unattended_reboot else 'false' }}";
+        Unattended-Upgrade::Remove-Unused-Dependencies "true";
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Journald drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Journald size cap (log rotation of the host journal)
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/10-scf.conf
+    mode: "0644"
+    content: |
+      [Journal]
+      SystemMaxUse={{ scf_journald_max_use }}
+      MaxRetentionSec=30day
+  notify: Restart journald
+
+# systemd-resolved's LLMNR/mDNS announce on every new Docker bridge and veth; the egress firewall drops and logs each
+# packet. On a 2-vCPU host the log flood alone kept a CPU busy (v1 host, 2026-11-18). Neither protocol is used here.
+- name: Is systemd-resolved installed
+  ansible.builtin.stat:
+    path: /usr/lib/systemd/systemd-resolved
+  register: scf_resolved_bin
+
+- name: No LLMNR or multicast DNS (resolved drop-in, where systemd-resolved is installed)
+  when: scf_resolved_bin.stat.exists
+  block:
+    - name: Resolved drop-in directory
+      ansible.builtin.file:
+        path: /etc/systemd/resolved.conf.d
+        state: directory
+        mode: "0755"
+    - name: Resolved drop-in
+      ansible.builtin.copy:
+        dest: /etc/systemd/resolved.conf.d/10-scf.conf
+        mode: "0644"
+        content: |
+          [Resolve]
+          LLMNR=no
+          MulticastDNS=no
+      notify: Restart resolved
+
+- name: SSH hardening
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-scf.conf
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+      X11Forwarding no
+    mode: "0644"
+  notify: Restart ssh
+
+- name: Egress firewall (nftables)
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: "{{ scf_nftables_conf | default('/etc/nftables.conf') }}"
+    mode: "0644"
+    validate: "{{ scf_nft_validate | default('nft -c -f %s') }}"
+  notify: Reload nftables
+
+# Without this the rules live only until the next boot: Debian ships nftables.service disabled, and the handler above
+# only reloads a running ruleset. Found by a reboot drill on a deployed host:
+# after a reboot the host came up with Docker's tables only (no default-deny egress, C-10).
+- name: Egress firewall loaded at every boot (nftables.service enabled and active)
+  ansible.builtin.service:
+    name: nftables
+    enabled: true
+    state: started
+
+- name: Edge nodes keep no core dumps and no swap
+  when: scf_node_class == 'edge'
+  block:
+    - name: Core dumps off
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/10-scf-nocore.conf
+        content: "kernel.core_pattern=|/bin/false\nfs.suid_dumpable=0\n"
+        mode: "0644"
+    - name: Swap off
+      ansible.builtin.command: swapoff -a
+      changed_when: false

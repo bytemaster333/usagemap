@@ -1,0 +1,24 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# Lean profile (C-123): PostgreSQL 18.6 of the HA image WITHOUT Patroni — one server, WAL archived by pgBackRest to both
+# repositories (C-108, C-110), and the backup scheduler (scf-backup daemon: full weekly, differential daily, check
+# hourly, weekly logical dump uploaded with the managed identity). The scheduler is detached (setsid -f) so its parent
+# is the container's init, never the postmaster (C-108: the postmaster must not reap foreign children).
+set -euo pipefail
+for n in 1 2; do
+  f=/run/secrets/pgbackrest_repo${n}_cipher_pass
+  [ -r "$f" ] && export "PGBACKREST_REPO${n}_CIPHER_PASS=$(tr -d '\n' <"$f")"
+  # key_type sas: the container SAS must be in the server's environment too, or archive_command cannot push WAL
+  f=/run/secrets/pgbackrest_repo${n}_key
+  [ -s "$f" ] && export "PGBACKREST_REPO${n}_AZURE_KEY=$(tr -d '\n' <"$f")"
+done
+export SCF_PATRONI_URL=none
+setsid -f /usr/local/bin/scf-backup daemon
+exec /usr/local/bin/docker-entrypoint.sh postgres \
+  -c unix_socket_directories=/var/run/postgresql \
+  -c wal_level=replica -c max_wal_senders=4 -c wal_log_hints=on \
+  -c archive_mode=on -c "archive_command=pgbackrest --stanza=scf archive-push %p" -c archive_timeout=60 \
+  -c password_encryption=scram-sha-256 \
+  -c shared_buffers={{ scf_postgres_shared_buffers }} -c effective_cache_size={{ scf_postgres_effective_cache_size }} \
+  -c log_connections=off -c log_disconnections=off -c log_hostname=off -c log_statement=none \
+  -c log_min_duration_statement=-1

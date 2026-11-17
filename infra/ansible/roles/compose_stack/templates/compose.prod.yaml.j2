@@ -1,0 +1,349 @@
+# {{ ansible_managed }}
+# Production override of infra/compose/compose.yaml (+ compose.monitoring.yaml) for the lean profile (C-123): one VM.
+# Same services, networks and hardening as the local stack; what differs: images by digest, secrets from SOPS
+# (/etc/scf/stack/secrets) and the IaC CA (/etc/scf/pki), public TLS from ACME (/etc/scf/stack/tls, mounted as a
+# directory so renewals are seen), the gateway and the portal published on their own front addresses on 443, no
+# host port for the control plane (the portal fronts it, SCF_TRUST_PROXY = the portal's fixed address), PostgreSQL =
+# the HA image in single mode with pgBackRest to two Azure repositories (managed identity), the monitoring overlay
+# without the scale-out services. Rendered by infra/ansible/roles/compose_stack. compose.dev.yaml (the local stacks'
+# synthetic fixtures, e.g. onchain-fixture) is never loaded here.
+{% set S = scf_stack_secrets_dir %}
+{% set K = scf_pki_node_dir %}
+{% set T = scf_stack_tls_dir %}
+name: {{ scf_stack_project }}
+
+networks:
+  public:
+    driver_opts: { com.docker.network.bridge.name: scf-public0 }
+    ipam: { config: [{ subnet: {{ scf_public_subnet }} }] }
+  # PostgreSQL only: the instance metadata service (managed identity) and the blob private endpoints — the host
+  # firewall (role common) admits nothing else from this bridge.
+  backup:
+    driver_opts: { com.docker.network.bridge.name: scf-backup0 }
+    ipam: { config: [{ subnet: {{ scf_backup_subnet }} }] }
+
+secrets:
+{% for n in ['pg_superuser_password', 'umami_db_password', 'umami_app_secret', 'umami_seed_admin_password', 'umami_provisioner_password',
+             'scf_migrator_password', 'scf_app_password', 'scf_writer_password', 'scf_jobs_password', 'scf_metrics_ro_password',
+             'scf_dump_login_password', 'scf_monitor_password', 'scf_umami_ro_password', 'scf_umami_maint_password', 'pgbouncer_userlist',
+             'control_plane_database_url', 'jobs_database_url', 'metrics_ro_database_url',
+             'jobs_listen_database_url', 'umami_creds_keys', 'pepper_ing', 'pepper_op', 'pepper_pub', 'sep10_signing_seed',
+             'pgbackrest_repo1_cipher_pass', 'pgbackrest_repo2_cipher_pass', 'dump_age_recipient'] %}
+  {{ n }}: { file: {{ S }}/{{ n }} }
+{% endfor %}
+  edge_signing_key: { file: {{ S }}/edge_signing_key.pem }
+  edge_snapshot_pub: { file: {{ S }}/edge_snapshot_pub.pem }
+  edge_snapshot_pub_next: { file: {{ S }}/edge_snapshot_pub_next.pem } # rotation slot, kid edge-2
+  snapshot_signing_key: { file: {{ S }}/snapshot_signing_key.pem } # jobs only (F16)
+  snapshot_pub: { file: {{ S }}/snapshot_pub.pem } # its public half, published by the control plane
+{% for r in scf_backup_repos if r.key_type | default('auto') == 'sas' %}
+  pgbackrest_repo{{ r.n }}_key: { file: {{ S }}/pgbackrest_repo{{ r.n }}_key }
+{% endfor %}
+  scf_ca: { file: {{ K }}/ca.pem }
+{% for n, cn in {'engine_proxy': 'engine-proxy', 'control_plane_internal': 'control-plane', 'engine_proxy_cp_client': 'core-a-engine-proxy',
+                  'jobs_reader': 'core-a-jobs-reader', 'bootstrap': 'core-a-umami-bootstrap', 'jobs': 'core-a-jobs',
+                  'jobs_provisioner': 'core-a-jobs-provisioner', 'reader': 'core-a-control-plane', 'edge_a1': 'edge-a1',
+                  'writer': 'core-a-writer'}.items() %}
+  {{ n }}_cert: { file: {{ K }}/{{ cn }}.pem }
+  {{ n }}_key: { file: {{ K }}/{{ cn }}-key.pem }
+{% endfor %}
+  ingest_cert: { file: {{ T }}/ingest/ingest.pem }
+  ingest_key: { file: {{ T }}/ingest/ingest-key.pem }
+{% if scf_github_client_id %}
+  github_client_secret: { file: {{ S }}/github_client_secret }
+{% endif %}
+{% if scf_monitoring_enabled %}
+  grafana_admin_password: { file: {{ S }}/grafana_admin_password }
+  heartbeat_token: { file: {{ S }}/heartbeat_token }
+  dns_token: { file: {{ S }}/dns_token }
+  journey_seed: { file: {{ S }}/journey_seed }
+  am_smtp_password: { file: {{ S }}/am_smtp_password }
+  am_deadman_url: { file: {{ S }}/am_deadman_url }
+  am_email_worker_token: { file: {{ S }}/am_email_worker_token }
+{% if scf_seal_enabled %}
+  seal_secret: { file: {{ S }}/seal_secret }
+{% endif %}
+{% if scf_probe_otlp %}
+  probe_otlp_token: { file: {{ S }}/probe_otlp_token }
+{% endif %}
+{% for r in scf_alert_receivers_all %}
+  am_webhook_{{ r }}: { file: {{ S }}/am_webhook_{{ r }} }
+{% endfor %}
+{% endif %}
+
+services:
+  postgres:
+    image: {{ scf_images.postgres_ha }}
+    user: "999:999" # the HA image's postgres user (Debian)
+    entrypoint: ["/usr/local/bin/scf-pg-single"]
+    shm_size: 1g
+    stop_grace_period: 120s
+    environment:
+      PGDATA: /var/lib/postgresql/18/main
+      SCF_PATRONI_URL: "none" # no Patroni: `docker exec … scf-backup dump|check` asks the server itself (C-123)
+      SCF_BACKUP_TICK: "{{ scf_backup_tick }}"
+      SCF_BACKUP_FULL_EVERY: "{{ scf_backup_full_every }}"
+      SCF_BACKUP_DIFF_EVERY: "{{ scf_backup_diff_every }}"
+      SCF_DUMP_EVERY: "{{ scf_dump_every }}"
+{% set R2 = scf_backup_repos | selectattr('n', 'equalto', 2) | first %}
+{% if (R2.type | default(scf_backup_repo_type)) == 'azure' %}
+      # Weekly logical dump to repository 2, uploaded with the managed identity (F10: no SAS) or repository 2's
+      # container SAS (key_type sas).
+      SCF_DUMP_AUTH: {{ 'sas' if R2.key_type | default('auto') == 'sas' else 'msi' }}
+      SCF_DUMP_BASEURL: https://{{ R2.account }}.blob.core.windows.net
+      SCF_DUMP_CONTAINER: {{ R2.container }}
+      SCF_DUMP_AGE_RECIPIENT_FILE: /run/secrets/dump_age_recipient
+{% endif %}
+    tmpfs: !override
+      - /tmp:size=256m,mode=1777
+      - /var/run/postgresql:size=1m,uid=999,gid=999,mode=2775
+      - /var/spool/pgbackrest:size=2g,uid=999,gid=999,mode=0750
+      - /var/log/pgbackrest:size=8m,uid=999,gid=999,mode=0750
+      - /var/lib/pgbackrest:size=16m,uid=999,gid=999,mode=0750
+    volumes:
+      - {{ scf_stack_dir }}/scf-pg-single:/usr/local/bin/scf-pg-single:ro
+      - {{ scf_stack_dir }}/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - {{ scf_data_dir }}/metrics:/var/lib/scf-metrics
+{% if scf_backup_repos | map(attribute='type', default=scf_backup_repo_type) | select('equalto', 'posix') | list | length > 0 %}
+      - {{ scf_data_dir }}/pgbackrest-repo:/var/lib/pgbackrest-repo # local repositories (tests; repository 1 of the v1 host)
+{% endif %}
+    secrets:
+      - pgbackrest_repo1_cipher_pass
+      - pgbackrest_repo2_cipher_pass
+      - dump_age_recipient
+{% for r in scf_backup_repos if r.key_type | default('auto') == 'sas' %}
+      - pgbackrest_repo{{ r.n }}_key
+{% endfor %}
+    networks: [backup]
+
+  db-migrate: { image: {{ scf_images.db_migrate }} }
+  umami-views-drop: { image: {{ scf_images.db_migrate }} }
+  umami-views: { image: {{ scf_images.db_migrate }} }
+  umami-migrate: { image: {{ scf_images.umami_migrate }} }
+  umami: { image: {{ scf_images.umami }} }
+  engine-proxy: { image: {{ scf_images.engine_proxy }} }
+  umami-bootstrap: { image: {{ scf_images.engine_proxy }} }
+
+  control-plane:
+    image: {{ scf_images.control_plane }}
+    environment:
+      SCF_PORTAL_ORIGIN: https://{{ scf_portal_hostname }}
+      # The portal (fixed address on `public`) is the only reverse proxy in front of the API (C-64 rate limits).
+      SCF_TRUST_PROXY: "{{ scf_portal_fixed_ip }}{{ (',' ~ scf_mcp_fixed_ip) if scf_mcp_enabled else '' }}"
+      SCF_HEALTH_INGEST_HOSTS: "{{ scf_ingest_hostnames | map('regex_replace', '$', '=edge-a1') | join(',') }}"
+      SCF_STATUS_PAGE_URL: {{ scf_status_page_url }}
+      SCF_STELLAR_NETWORK: {{ scf_stellar_network }}
+{% if scf_github_client_id %}
+      # GitHub sign-in (ADR-0014, C-20): the OAuth App's id here, its secret as a file from SOPS.
+      SCF_GITHUB_CLIENT_ID: "{{ scf_github_client_id }}"
+      SCF_GITHUB_CLIENT_SECRET_FILE: /run/secrets/github_client_secret
+    secrets:
+      - github_client_secret
+{% endif %}
+    ports: !reset []
+{% if scf_tracker_versions %}
+    volumes:
+      - {{ scf_stack_dir }}/tracker-releases.json:/srv/tracker-releases.json:ro # this deployment's versions
+{% endif %}
+
+  portal:
+    image: {{ scf_images.portal }}
+    environment:
+      SCF_PORTAL_SCHEME: https
+    volumes:
+      - {{ scf_stack_dir }}/Caddyfile:/etc/caddy/Caddyfile:ro
+      - {{ scf_stack_tls_dir }}/portal:/run/scf-tls:ro # its own certificate only (finding 11)
+{% if scf_landing_hostname %}
+      - {{ scf_stack_dir }}/landing:/srv/landing:ro # static landing page (scf_landing_src)
+{% endif %}
+{% if scf_docs_hostname %}
+      - {{ scf_stack_dir }}/docs-site:/srv/docs:ro # static documentation site (scf_docs_src, C-152)
+{% endif %}
+    ports: !override
+      - "{{ scf_portal_bind_ip }}:{{ scf_public_port }}:8443"
+{% if scf_http_redirect %}
+      - "{{ scf_portal_bind_ip }}:80:8081" # redirect to https only (Caddyfile)
+{% endif %}
+    networks:
+      public: { ipv4_address: {{ scf_portal_fixed_ip }} }
+
+{% if scf_mcp_enabled %}
+  mcp:
+    image: {{ scf_images.mcp }}
+    environment:
+      # X-Forwarded-For is believed only from the portal (Caddy); the caller's address is passed on to the control
+      # plane, which trusts this fixed address too (SCF_TRUST_PROXY above).
+      MCP_TRUST_PROXY: "{{ scf_portal_fixed_ip }}"
+      MCP_FORWARD_CLIENT_ADDRESS: "true"
+    networks:
+      public: { ipv4_address: {{ scf_mcp_fixed_ip }} }
+{% endif %}
+
+  # The on-chain ledger mirror is compose.yaml's writable volume `ledgers` (SCF_ONCHAIN_LEDGER_DIR=/srv/ledgers), filled
+  # by onchain_correlation's fetch step from SCF_ONCHAIN_LEDGER_SOURCE_URL (scf_jobs_extra_env; wire-formats §p.1).
+  # Jobs reads the same network as the control plane (contract verification, on-chain correlation); the daily seal has
+  # its own SCF_SEAL_NETWORK (testnet by default, C-135). On `public` the fetch step defaults to the AWS pubnet store;
+  # scf_jobs_extra_env can set SCF_ONCHAIN_LEDGER_SOURCE_URL ("none" turns it off).
+  jobs:
+    image: {{ scf_images.jobs }}
+    environment:
+      SCF_STELLAR_NETWORK: {{ scf_stellar_network }}
+{% if scf_horizon_url and 'SCF_HORIZON_URL' not in scf_jobs_extra_env %}
+      SCF_HORIZON_URL: {{ scf_horizon_url }} # on-chain correlation and its day-anchor check (C-144) need Horizon
+{% endif %}
+{% for k, v in scf_jobs_extra_env.items() %}
+      {{ k }}: "{{ v }}"
+{% endfor %}
+{% if scf_seal_enabled %}
+      SCF_SEAL_NETWORK: {{ scf_seal_network }} # C-135: testnet unless the operator chose mainnet
+      SCF_SEAL_HORIZON_URL: {{ scf_seal_horizon_url }}
+      SCF_SEAL_SECRET_FILE: /run/secrets/seal_secret
+{% if scf_seal_network == 'mainnet' %}
+      SCF_SEAL_MAINNET_APPROVED: "1"
+{% endif %}
+    secrets: [seal_secret] # added to compose.yaml's list; jobs only
+{% endif %}
+{% if scf_tracker_versions %}
+    volumes:
+      - {{ scf_stack_dir }}/tracker-releases.json:/srv/tracker-releases.json:ro # this deployment's versions
+{% endif %}
+
+  metrics-writer: { image: {{ scf_images.metrics_writer }} }
+
+  gateway:
+    image: {{ scf_images.gateway }}
+    environment:
+      GW_TLS_CERT: /run/scf-tls/ingest.pem # re-read on SIGHUP after a renewal (scf-cert-deploy)
+      GW_TLS_KEY: /run/scf-tls/ingest-key.pem
+    volumes:
+      - {{ scf_stack_tls_dir }}/ingest:/run/scf-tls:ro # its own certificate only (finding 11)
+    ports: !override ["{{ scf_ingest_bind_ip }}:{{ scf_public_port }}:8443"]
+    # The gateway is ready once it holds a signed edge snapshot, which the jobs service builds (F16, C-125).
+    depends_on:
+      jobs: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/gateway", "healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 120s
+
+  # Range lists (C-38, bot.ip-multiplicity): run once a week by the systemd timer scf-rangelists (role compose_stack), which
+  # records each run's result for the RangeListsStale alert; `up` never starts it (profile). Same image as the gateway.
+  rangelist-updater:
+    image: {{ scf_images.gateway }}
+    command: ["-dir", "/var/lib/scf-rangelists", "-interval", "0"{% if scf_rangelist_sources %}, "-config", "/etc/scf-rangelists/sources.json"{% endif %}]
+{% if scf_rangelist_sources %}
+    volumes:
+      - {{ scf_stack_dir }}/rangelist-sources.json:/etc/scf-rangelists/sources.json:ro
+{% endif %}
+    restart: "no"
+    profiles: [rangelist-timer]
+
+  # Networks, receiver binding and the gateway's GW_COLLECTOR_* come from compose.yaml unchanged: the Collector is its
+  # own container on the private `otlp` network with the gateway (C-130), never in the gateway's network namespace.
+  collector:
+    image: {{ scf_images.otelcol }}
+    environment:
+      SCF_QUEUE_BYTES: "{{ scf_collector_queue_bytes }}"
+{% if scf_monitoring_enabled %}
+
+  # ---------------------------------------------------------------- monitoring (lean: everything on this VM)
+  prometheus:
+    volumes: !override
+      - {{ scf_stack_dir }}/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - /opt/scf/current/ops/alerts:/etc/prometheus/rules:ro
+      - promdata:/prometheus
+  # This deployment's receivers (templates/alertmanager.yml.j2); `public` for the webhooks and SMTP relay (the host
+  # firewall lets that bridge reach the internet on 80/443 and the relay's port only).
+  alertmanager:
+    volumes: !override
+      - {{ scf_stack_dir }}/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - amdata:/alertmanager
+    secrets: !override
+      - heartbeat_token
+      - am_smtp_password
+      - am_deadman_url
+      - am_email_worker_token
+{% for r in scf_alert_receivers_all %}
+      - am_webhook_{{ r }}
+{% endfor %}
+    networks: [monitoring, monitoring-ports, public]
+  grafana:
+    environment:
+      GF_SECURITY_COOKIE_SECURE: "true" # reached over an SSH tunnel to 127.0.0.1 only; cookies never sent in clear elsewhere
+  vlogs-init: { image: {{ scf_images.ops }} }
+  logscan: { image: {{ scf_images.ops }} }
+  status:
+    image: {{ scf_images.ops }}
+{% if scf_status_min_voters != 2 or scf_status_objectives or scf_status_placement or scf_status_objective %}
+    # This deployment's honest page (ops/internal/status Options): the sources that really vote, its own objective,
+    # where the page runs. Needs an ops image with these flags.
+    command: !override
+      - status-page
+      - -store
+      - /var/lib/scf-probes
+      - -out
+      - /var/lib/scf-status/www
+      - -listen
+      - ":8080"
+      - -heartbeat-token-file
+      - /run/secrets/heartbeat_token
+      - -min-voters
+      - "{{ scf_status_min_voters }}"
+{% if scf_status_objectives %}
+      - -objectives
+      - {{ scf_status_objectives | to_json }}
+{% endif %}
+{% if scf_status_placement %}
+      - -placement
+      - {{ scf_status_placement | to_json }}
+{% endif %}
+{% if scf_status_objective %}
+      - -objective
+      - {{ scf_status_objective | to_json }}
+      - -objective-of
+      - {{ scf_status_objective_of | to_json }}
+{% if scf_status_service_window %}
+      - -service-window
+      - {{ scf_status_service_window | to_json }}
+{% endif %}
+{% endif %}
+{% endif %}
+{% if scf_status_hostname %}
+    networks: [public] # served by the portal's Caddy on the status host name
+{% endif %}
+  probe-mon-c:
+    image: {{ scf_images.ops }}
+    volumes: !override
+      - {{ scf_stack_dir }}/probe.json:/etc/scf-ops/probe.json:ro
+      - probestore:/var/lib/scf-probes
+{% if scf_probe_otlp %}
+    secrets: [probe_otlp_token] # added to the overlay's scf_ca and journey_seed
+{% endif %}
+{% if not scf_probe_site_key %}
+    profiles: [probe] # no probe site configured yet (runbook deploy-verify)
+{% endif %}
+  node-exporter:
+    image: {{ scf_image_node_exporter }}
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.textfile.directory=/host{{ scf_data_dir }}/metrics
+      - --web.listen-address=:9100
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    user: "65534:65534"
+    pid: host
+    volumes: # host metrics and the data disk (disk space, backup and drill textfiles); not the whole root file system
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - {{ scf_data_dir }}:/host{{ scf_data_dir }}:ro
+    networks: [monitoring]
+    restart: unless-stopped
+{% for svc in scf_monitoring_disabled_services %}
+  {{ svc }}: { profiles: [scale-out] } # not part of the lean profile (C-123)
+{% endfor %}
+{% endif %}

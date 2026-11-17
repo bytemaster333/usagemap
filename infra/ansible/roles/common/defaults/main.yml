@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+scf_node_class: "{{ (group_names | intersect(['edge', 'core', 'db', 'mon', 'probe', 'egress', 'app', 'standby'])) | first }}"
+# nftables output allow-list (C-10): loopback, established, the private networks (mesh, VNet), the Azure resolver and
+# the egress proxy. Only the egress class (and the probe on 443 to our public endpoints) gets more.
+scf_nft_output_extra:
+  egress: ["tcp dport { 80, 443 } accept"]
+  probe: ["tcp dport 443 ip daddr @scf_public_endpoints accept"]
+  # Lean profile (C-123): no egress proxy VM; the host itself reaches the internet on 80/443 (Debian mirrors, the
+  # container registry, ACME, Entra ID/ARM for lego's DNS-01, Horizon/RPC) and NTP; containers are narrowed in the
+  # forward chain below.
+  app: ["tcp dport { 80, 443 } accept", "udp dport 123 accept"]
+  standby: ["tcp dport { 80, 443 } accept", "udp dport 123 accept"]
+scf_public_endpoints: []
+scf_ssh_admin_cidrs: []
+# Lean profile: container bridges with fixed names (infra/ansible/roles/compose_stack) and what each may reach.
+scf_lean_classes: [app, standby]
+scf_bridge_public: scf-public0 # control plane, portal, gateway: internet 80/443 (C-10 allow-list is per service)
+scf_bridge_backup: scf-backup0 # PostgreSQL only: the instance metadata service (managed identity) + the blob endpoints
+scf_backup_endpoints_prefix: 10.50.250.0/24
+scf_front_ips: [] # the ingest and portal addresses (lean)
+# Unattended upgrades: security origin only; no automatic reboot (a reboot of the one VM is an outage — the operator
+# schedules it, runbook security-patch-24h); Docker packages are held by the docker_engine role.
+scf_unattended_reboot: false
+scf_journald_max_use: 1G
+# Public TCP ports of web-facing classes: 443, plus 80 when the portal answers it with a redirect (compose_stack
+# scf_http_redirect).
+scf_public_tcp_ports: "{{ [443] + ([80] if scf_http_redirect | default(false) | bool else []) }}"

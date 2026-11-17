@@ -1,0 +1,32 @@
+{
+  "source": "{{ inventory_hostname }}",
+  "hosts": { {% for h in scf_ingest_hostnames %}"host-{{ loop.index }}": "https://{{ h }}"{{ '' if loop.last else ', ' }}{% endfor %} },
+  "nodes": {{ scf_probe_nodes | to_json }},
+  "site_key": "{{ scf_probe_site_key }}",
+  "origin": "https://{{ scf_portal_hostname }}",
+  "tracker_version": "{{ scf_probe_tracker_version }}",
+  "interval": "30s",
+  "deadline": "2s",
+  "store_dir": "/var/lib/scf-probes",
+  "metrics_addr": ":9480",
+  "ingest_ca_file": "/run/secrets/scf_ca",
+{% if scf_probe_otlp %}
+  "otlp_url": "https://{{ scf_ingest_hostnames[0] }}/v1/metrics",
+  "otlp_token_file": "/run/secrets/probe_otlp_token",
+{% endif %}
+{% if scf_probe_tracker_check %}
+  "tracker_api": "http://control-plane:8080",
+  "tracker_every": "1m",
+{% endif %}
+  "journey": {
+    "every": "60s",
+    "api": "http://control-plane:8080",
+    "portal_origin": "https://{{ scf_portal_hostname }}",
+    "seed_file": "/run/secrets/journey_seed",
+    "tenant_id": "{{ scf_probe_tenant_id }}",
+    "site_id": "{{ scf_probe_site_id }}",
+    "require_data": true{% if scf_probe_fresh_within %},
+    "fresh_within": "{{ scf_probe_fresh_within }}"{% endif %}
+
+  }
+}

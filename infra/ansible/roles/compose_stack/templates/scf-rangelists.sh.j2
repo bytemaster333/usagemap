@@ -1,0 +1,32 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# Weekly network-class range lists (C-38, bot.ip-multiplicity): one run of the gateway image's rangelist-updater (Compose service
+# rangelist-updater of the production override, `-interval 0`) into the `rangelists` volume, which the gateway re-reads
+# every minute. Exit 0 = at least one source fetched (a failed source keeps its previous list; per-source SHA-256 and
+# errors in the journal), 1 = every source failed, 2 = bad configuration. The result goes to the node exporter's
+# textfile directory for the RangeListsStale alert.
+set -uo pipefail
+m={{ scf_data_dir }}/metrics
+prev=$(sed -n 's/^scf_rangelist_last_success_timestamp_seconds \([0-9][0-9]*\)$/\1/p' "$m/scf_rangelists.prom" 2>/dev/null || true)
+{{ scf_compose | map('quote') | join(' ') }} run --rm --no-deps rangelist-updater
+rc=$?
+now=$(date +%s)
+ok=$((rc == 0))
+[ "$ok" = 1 ] && prev=$now
+tmp=$(mktemp "$m/.scf_rangelists.XXXXXX")
+{
+  echo '# HELP scf_rangelist_last_run_timestamp_seconds Time of the last range-list update run.'
+  echo '# TYPE scf_rangelist_last_run_timestamp_seconds gauge'
+  echo "scf_rangelist_last_run_timestamp_seconds $now"
+  echo '# HELP scf_rangelist_last_run_success 1 when the last run fetched at least one source.'
+  echo '# TYPE scf_rangelist_last_run_success gauge'
+  echo "scf_rangelist_last_run_success $ok"
+  if [ -n "$prev" ]; then
+    echo '# HELP scf_rangelist_last_success_timestamp_seconds Time of the last run that fetched at least one source.'
+    echo '# TYPE scf_rangelist_last_success_timestamp_seconds gauge'
+    echo "scf_rangelist_last_success_timestamp_seconds $prev"
+  fi
+} >"$tmp"
+chmod 0644 "$tmp" && mv "$tmp" "$m/scf_rangelists.prom"
+echo "scf-rangelists: updater exit $rc"
+exit "$rc"

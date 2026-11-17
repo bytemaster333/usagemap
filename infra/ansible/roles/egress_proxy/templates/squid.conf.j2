@@ -1,0 +1,24 @@
+# {{ ansible_managed }}
+# Egress allow-list (C-10), generated from inventory. Anything not listed is denied.
+http_port 3128
+cache deny all
+via off
+forwarded_for delete
+# Privacy: no client addresses or URLs in the logs — only denials are counted by the exporter.
+access_log none
+cache_log /var/log/squid/cache.log
+acl ssl_ports port 443
+acl safe_ports port 80 443
+acl CONNECT method CONNECT
+http_access deny !safe_ports
+http_access deny CONNECT !ssl_ports
+acl common_dst dstdomain {{ scf_egress_common | join(' ') }}
+{% for cls, net in scf_egress_subnets | dictsort %}
+acl src_{{ cls }} src {{ net }}
+{% if scf_egress_allow[cls] | default([]) %}
+acl dst_{{ cls }} dstdomain {{ scf_egress_allow[cls] | join(' ') }}
+http_access allow src_{{ cls }} dst_{{ cls }}
+{% endif %}
+http_access allow src_{{ cls }} common_dst
+{% endfor %}
+http_access deny all

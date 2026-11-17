@@ -1,0 +1,90 @@
+# SPDX-License-Identifier: Apache-2.0
+# Lean profile (C-123): the repository's Compose stack on one VM with production settings.
+- name: Inputs
+  ansible.builtin.assert:
+    that:
+      - scf_ingest_hostnames | length > 0
+      - scf_portal_hostname | length > 0
+      - scf_ingest_bind_ip is match('^[0-9.]+$')
+      - scf_portal_bind_ip is match('^[0-9.]+$')
+      - scf_ingest_bind_ip != scf_portal_bind_ip
+      - scf_tracker_releases | length > 0
+      - scf_landing_hostname | length == 0 or scf_landing_src | length > 0
+      - scf_docs_hostname | length == 0 or scf_docs_src | length > 0
+      - (not scf_images_verify_signatures and not scf_tracker_verify_signatures) or scf_release_repo is match('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$')
+      - (not scf_images_verify_signatures and not scf_tracker_verify_signatures) or scf_release_signer_workflow | length > 0
+    fail_msg: >-
+      Set scf_ingest_hostnames, scf_portal_hostname, two different bind addresses (OpenTofu output `app`), the signed
+      tracker release directories (scf_tracker_releases), scf_release_repo and scf_release_signer_workflow (the signer
+      of the release).
+    quiet: true
+
+# Every image of ours comes from the release catalogue's registry, by digest, under its catalogue name (C-79; audit
+# 2026-11-18 finding 1): a tag or a foreign namespace would let `docker compose pull` fetch whatever was pushed there.
+- name: Release images by digest from the release registry
+  when: scf_images_require_digest | bool
+  ansible.builtin.assert:
+    that:
+      - item.value is match('^' ~ (scf_image_registry ~ '/' ~ (item.key | replace('_', '-'))) | regex_escape ~ '@sha256:[0-9a-f]{64}$')
+    fail_msg: "scf_images.{{ item.key }} must be {{ scf_image_registry }}/{{ item.key | replace('_', '-') }}@sha256:<64 hex> (the release manifest, C-79)"
+    quiet: true
+  loop: "{{ scf_images | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "{{ item.mode }}"
+    group: "{{ item.group | default(omit) }}"
+    owner: "{{ item.owner | default(omit) }}"
+  loop:
+    - { path: "{{ scf_stack_dir }}", mode: "0755" }
+    - { path: "{{ scf_stack_secrets_dir }}", mode: "0700" } # host users cannot read; containers get bind mounts
+    # Mounted as a directory into the gateway and the portal (a renewed file replaces the old one by rename, which a
+    # single-file bind mount would not see): traversable by their uid 65532 only.
+    # One directory per consumer: the gateway mounts only ingest/, the portal only
+    # portal/, so neither container can read the other's private key although both run as uid 65532.
+    - { path: "{{ scf_stack_tls_dir }}", mode: "0755" }
+    - { path: "{{ scf_stack_tls_dir }}/ingest", mode: "0750", group: 65532 }
+    - { path: "{{ scf_stack_tls_dir }}/portal", mode: "0750", group: 65532 }
+    - { path: "{{ scf_release_dir }}", mode: "0755" }
+    # textfile metrics for the node exporter, written by PostgreSQL's backup scheduler and the restore drill (uid 999)
+    - { path: "{{ scf_data_dir }}/metrics", mode: "0755", owner: 999 }
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Local pgBackRest repositories (tests only — production writes to Azure Blob)
+  when: scf_backup_repos | map(attribute='type', default=scf_backup_repo_type) | select('equalto', 'posix') | list | length > 0
+  ansible.builtin.file:
+    path: "{{ scf_data_dir }}/pgbackrest-repo"
+    state: directory
+    owner: 999
+    group: 999
+    mode: "0750"
+
+- name: Release image signatures (workstation)
+  ansible.builtin.import_tasks: verify.yml
+
+- name: Release
+  ansible.builtin.import_tasks: release.yml
+
+- name: Released tracker builds
+  ansible.builtin.import_tasks: tracker.yml
+
+- name: Secrets
+  ansible.builtin.import_tasks: secrets.yml
+
+- name: Public TLS certificates
+  ansible.builtin.import_tasks: tls.yml
+
+- name: Configuration
+  ansible.builtin.import_tasks: config.yml
+
+- name: Stack
+  ansible.builtin.import_tasks: up.yml
+
+- name: Gatus on this host
+  when: scf_gatus_enabled | bool and scf_stack_up | bool
+  ansible.builtin.import_tasks: gatus.yml

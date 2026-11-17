@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+name: scf-pgbouncer
+services:
+  pgbouncer:
+    image: {{ scf_image_pgbouncer }}
+    network_mode: host # reaches HAProxy on 127.0.0.1; listens on the mesh for the local runtime containers
+    user: "70:70"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    entrypoint: ["/usr/bin/pgbouncer", "/etc/pgbouncer-scf/pgbouncer.ini"]
+    volumes:
+      - {{ scf_pgbouncer_dir }}/pgbouncer.ini:/etc/pgbouncer-scf/pgbouncer.ini:ro
+      - {{ scf_pgbouncer_dir }}/userlist.txt:/etc/pgbouncer-scf/userlist.txt:ro
+    restart: unless-stopped

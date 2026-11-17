@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Refresh the certificate validity metrics daily
+
+[Timer]
+OnCalendar=*-*-* 05:41:00 UTC
+OnBootSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

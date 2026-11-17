@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: Apache-2.0
+# Egress proxy (C-10): the only internet path. Squid (GPL-2.0-or-later, a separately run Debian package) with an
+# allow-list of destination domains per source class; CONNECT only to 443, nothing cached, no client addresses logged.
+scf_egress_subnets:
+  edge: 10.40.1.0/24
+  core: 10.40.2.0/24
+  db: 10.40.3.0/24
+  mon: 10.41.1.0/24
+  probe: 10.41.2.0/24
+# Destinations per class (C-10): OS/image updates everywhere; ACME from edge and core; range lists on edges (C-38);
+# GitHub OAuth and Stellar RPC/Horizon from the control plane (core); DNS-provider APIs and alerting from mon.
+scf_egress_common:
+  - deb.debian.org
+  - security.debian.org
+  - download.docker.com
+  - ghcr.io
+  - pkg-containers.githubusercontent.com
+  - gcr.io
+  - registry-1.docker.io
+  - production.cloudflare.docker.com
+  - apt.postgresql.org
+scf_egress_allow:
+  edge:
+    - acme-v02.api.letsencrypt.org
+    - ip-ranges.amazonaws.com
+    - www.gstatic.com
+    - mask-api.icloud.com
+    - check.torproject.org
+    - download.db-ip.com
+  core:
+    - acme-v02.api.letsencrypt.org
+    - github.com
+    - api.github.com
+    - mainnet.sorobanrpc.com
+    - horizon.stellar.org
+    - soroban-testnet.stellar.org
+    - horizon-testnet.stellar.org
+  db: []
+  mon:
+    - api.github.com
+    - management.azure.com
+    - login.microsoftonline.com
+  probe: []

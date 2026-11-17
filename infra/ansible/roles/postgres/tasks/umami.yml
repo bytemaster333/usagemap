@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+# Umami's role and database exist before the one-shot umami-migrate step (C-113, deployment-topology §6). Patroni's
+# post_bootstrap creates them on a new cluster; this task makes it true for any cluster (idempotent; a password
+# rotation is a separate runbook step). Runs on the current primary only; the password reaches the server only as a SCRAM
+# verifier (C-114), and nothing about it is logged.
+- name: Is this node the primary?
+  ansible.builtin.command:
+    argv: "{{ scf_postgres_is_primary_cmd }}"
+  register: scf_postgres_primary
+  changed_when: false
+  failed_when: false
+
+- name: Ensure umami_app and database umami
+  when: scf_postgres_primary.rc == 0
+  block:
+    - name: SCRAM verifier (computed on the workstation)
+      delegate_to: localhost
+      become: false # the workstation: never sudo there
+      ansible.builtin.command:
+        argv: ["{{ scf_scram_verifier }}"]
+        stdin: "{{ scf_umami_db_password }}"
+      register: scf_umami_verifier
+      changed_when: false
+      no_log: true
+
+    - name: Role and database
+      ansible.builtin.command:
+        argv: "{{ scf_postgres_psql + ['-At', '-v', 'verifier=' ~ scf_umami_verifier.stdout] }}"
+        stdin: "{{ lookup('ansible.builtin.file', 'umami.sql') }}"
+      environment: "{{ scf_postgres_psql_env }}"
+      register: scf_umami_sql
+      changed_when: "'changed' in scf_umami_sql.stdout_lines"
+      no_log: true

@@ -1,0 +1,92 @@
+# {{ ansible_managed }}
+# Database node or etcd witness {{ inventory_hostname }}: Patroni + PostgreSQL 18.6 + pgBackRest (image of infra/compose/ha/postgres),
+# its etcd member and the primary-following HAProxy. Host networking: Patroni and etcd advertise the mesh name.
+# DCS TLS (F15): etcd client and peer traffic over TLS with client-certificate authentication against the DCS CA (a CA
+# of its own, so no other node certificate is an etcd client); Patroni's REST API over TLS; HAProxy verifies it.
+{% set D = scf_postgres_dcs_dir %}
+name: scf-postgres
+services:
+{% if inventory_hostname in groups['postgres'] %}
+  postgres:
+    image: {{ scf_image_postgres }}
+    container_name: scf-postgres
+    network_mode: host
+    init: true # C-108
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    shm_size: 1g
+    stop_grace_period: 120s
+    environment:
+      PATRONI_NAME: {{ inventory_hostname }}
+      PATRONI_RESTAPI_CONNECT_ADDRESS: {{ scf_postgres_mesh_name }}:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: {{ scf_postgres_mesh_name }}:5432
+      PATRONI_ETCD3_HOSTS: {{ scf_postgres_etcd_hosts }}
+      SCF_PATRONI_URL: https://localhost:8008
+      SCF_DUMP_AGE_RECIPIENT_FILE: /run/secrets/dump_age_recipient
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+      - /var/run/postgresql:size=1m,uid=999,gid=999,mode=2775
+      - /var/spool/pgbackrest:size=2g,uid=999,gid=999,mode=0750
+      - /var/log/pgbackrest:size=8m,uid=999,gid=999,mode=0750
+    volumes:
+      - {{ scf_postgres_data_dir }}:/var/lib/postgresql
+      - {{ scf_postgres_dir }}/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - {{ scf_postgres_dir }}/secrets:/run/secrets:ro
+      - /var/lib/node_exporter/textfile:/var/lib/scf-metrics # backup metrics for the node exporter
+      - {{ D }}/ca.pem:/run/secrets/dcs_ca:ro
+      - {{ D }}/{{ inventory_hostname }}-patroni.pem:/run/secrets/etcd_client_cert:ro
+      - {{ D }}/{{ inventory_hostname }}-patroni-key.pem:/run/secrets/etcd_client_key:ro
+      - {{ D }}/{{ inventory_hostname }}-patroni.pem:/run/secrets/patroni_rest_cert:ro
+      - {{ D }}/{{ inventory_hostname }}-patroni-key.pem:/run/secrets/patroni_rest_key:ro
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/scf-pg-healthcheck"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+    restart: unless-stopped
+{% endif %}
+  etcd: # every database node and the witness on mon (three members)
+    image: {{ scf_image_etcd }}
+    network_mode: host
+    read_only: true
+    cap_drop: [ALL]
+    command:
+      - etcd
+      - --name={{ inventory_hostname }}
+      - --data-dir=/var/lib/etcd
+      - --listen-client-urls=https://{{ scf_postgres_mesh_name }}:2379,https://127.0.0.1:2379
+      - --advertise-client-urls=https://{{ scf_postgres_mesh_name }}:2379
+      - --listen-peer-urls=https://{{ scf_postgres_mesh_name }}:2380
+      - --initial-advertise-peer-urls=https://{{ scf_postgres_mesh_name }}:2380
+      - --initial-cluster={% for h in groups['postgres'] + groups['mon'] %}{{ h }}=https://{{ h }}.{{ scf_mesh_domain }}:2380{{ '' if loop.last else ',' }}{% endfor %}
+
+      - --initial-cluster-state=new
+      - --initial-cluster-token=scf-etcd
+      - --cert-file=/certs/etcd.pem
+      - --key-file=/certs/etcd-key.pem
+      - --client-cert-auth
+      - --trusted-ca-file=/certs/ca.pem
+      - --peer-cert-file=/certs/etcd.pem
+      - --peer-key-file=/certs/etcd-key.pem
+      - --peer-client-cert-auth
+      - --peer-trusted-ca-file=/certs/ca.pem
+      - --cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+    volumes:
+      - "{{ scf_postgres_data_dir }}/../etcd:/var/lib/etcd"
+      - {{ D }}/ca.pem:/certs/ca.pem:ro
+      - {{ D }}/{{ inventory_hostname }}-etcd.pem:/certs/etcd.pem:ro
+      - {{ D }}/{{ inventory_hostname }}-etcd-key.pem:/certs/etcd-key.pem:ro
+    restart: unless-stopped
+{% if inventory_hostname in groups['postgres'] %}
+  haproxy:
+    image: {{ scf_image_haproxy }}
+    network_mode: host
+    read_only: true
+    cap_drop: [ALL]
+    volumes:
+      - {{ scf_postgres_dir }}/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - {{ D }}/ca.pem:/usr/local/etc/haproxy/dcs-ca.pem:ro
+    restart: unless-stopped
+{% endif %}

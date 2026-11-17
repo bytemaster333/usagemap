@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: Apache-2.0
+- name: Identities of this node
+  ansible.builtin.set_fact:
+    scf_pki_mine: "{{ (scf_pki_identities[scf_pki_node_class] | default([])) + scf_pki_extra_identities }}"
+
+- name: Node names follow the one pattern (C-114)
+  ansible.builtin.assert:
+    that: item.cn is match('^[a-z0-9][a-z0-9-]{1,31}$')
+    fail_msg: "{{ item.cn }} is not a valid node name"
+    quiet: true
+  loop: "{{ scf_pki_mine }}"
+
+- name: CA (workstation)
+  ansible.builtin.import_tasks: ca.yml
+
+- name: Issue or renew leaf certificates (workstation)
+  ansible.builtin.include_tasks: issue.yml
+  loop: "{{ scf_pki_mine }}"
+  loop_control:
+    loop_var: cert
+
+- name: Node certificate directory
+  ansible.builtin.file:
+    path: "{{ scf_pki_node_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: CA certificate on the node
+  ansible.builtin.copy:
+    src: "{{ scf_pki_dir }}/ca.pem"
+    dest: "{{ scf_pki_node_dir }}/ca.pem"
+    mode: "0644"
+  register: scf_pki_ca_copied
+
+- name: Leaf certificates on the node
+  ansible.builtin.copy:
+    src: "{{ scf_pki_dir }}/issued/{{ cert.cn }}.pem"
+    dest: "{{ scf_pki_node_dir }}/{{ cert.cn }}.pem"
+    mode: "0644"
+  register: scf_pki_leaf_copied
+  loop: "{{ scf_pki_mine }}"
+  loop_control:
+    loop_var: cert
+
+- name: Leaf keys on the node (0600, owned by the one consumer)
+  ansible.builtin.copy:
+    src: "{{ scf_pki_dir }}/issued/{{ cert.cn }}-key.pem"
+    dest: "{{ scf_pki_node_dir }}/{{ cert.cn }}-key.pem"
+    mode: "0600"
+    owner: "{{ omit if scf_pki_skip_chown | default(false) else cert.owner }}"
+  register: scf_pki_key_copied
+  no_log: true
+  loop: "{{ scf_pki_mine }}"
+  loop_control:
+    loop_var: cert
+
+# A renewed CA or leaf reaches the containers only when they restart (Compose file secrets are read at start): the
+# compose_stack role recreates the stack when this is true.
+- name: Node certificates changed on this run
+  ansible.builtin.set_fact:
+    scf_stack_pki_changed: "{{ scf_pki_ca_copied is changed or scf_pki_leaf_copied is changed or scf_pki_key_copied is changed }}"

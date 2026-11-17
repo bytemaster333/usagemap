@@ -1,0 +1,34 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# Validity of every certificate the stack uses, as node-exporter textfile metrics (alert CertExpiring; audit
+# 2026-11-18 finding 4): the public certificates (kind acme: ingest, portal — from ACME in production), the node
+# CA (kind ca) and the mesh leaves of the private CA (kind mesh). Run by scf-cert-metrics.timer (daily), after every
+# ACME run and every deploy. Reads certificates only; never a key.
+set -euo pipefail
+out={{ scf_data_dir }}/metrics/scf_tls.prom
+tmp=$(mktemp "{{ scf_data_dir }}/metrics/.scf_tls.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+{
+  echo '# HELP scf_tls_cert_not_before_timestamp_seconds Start of the certificate validity.'
+  echo '# TYPE scf_tls_cert_not_before_timestamp_seconds gauge'
+  echo '# HELP scf_tls_cert_not_after_timestamp_seconds End of the certificate validity.'
+  echo '# TYPE scf_tls_cert_not_after_timestamp_seconds gauge'
+} >"$tmp"
+emit() { # KIND FILE
+  local kind=$1 f=$2 name nb na
+  name=$(basename "$f" .pem)
+  nb=$(date -u -d "$(openssl x509 -in "$f" -noout -startdate | cut -d= -f2)" +%s) || return 0
+  na=$(date -u -d "$(openssl x509 -in "$f" -noout -enddate | cut -d= -f2)" +%s) || return 0
+  printf 'scf_tls_cert_not_before_timestamp_seconds{kind="%s",name="%s"} %d\n' "$kind" "$name" "$nb" >>"$tmp"
+  printf 'scf_tls_cert_not_after_timestamp_seconds{kind="%s",name="%s"} %d\n' "$kind" "$name" "$na" >>"$tmp"
+}
+for set in ingest portal; do
+  f={{ scf_stack_tls_dir }}/$set/$set.pem
+  [ -s "$f" ] && emit acme "$f"
+done
+for f in {{ scf_pki_node_dir }}/*.pem; do
+  case "$f" in *-key.pem) continue ;; */ca.pem) emit ca "$f" ;; *) emit mesh "$f" ;; esac
+done
+chmod 0644 "$tmp"
+mv "$tmp" "$out"
+trap - EXIT

@@ -1,0 +1,24 @@
+# {{ ansible_managed }}
+# Restore-drill host: repository 2 ONLY, read access only — managed identity or a read/list-only SAS (C-56, C-108).
+{% set r = scf_backup_repos | selectattr('n', 'equalto', 2) | first %}
+[global]
+{% if r.type | default(scf_backup_repo_type | default('azure')) == 'azure' %}
+repo2-type=azure
+repo2-azure-account={{ r.account }}
+repo2-azure-container={{ r.container }}
+{# auto = managed identity; sas = the drill's read/list-only container SAS (repo2_key, exported by the unit) #}
+repo2-azure-key-type={{ r.key_type | default('auto') }}
+repo2-path={{ r.path | default("/scf") }}
+{% else %}
+# tests only: the local repository of the lean role test (compose_stack, scf_backup_repo_type=posix)
+repo2-type=posix
+repo2-path=/var/lib/pgbackrest-repo/2
+{% endif %}
+repo2-cipher-type=aes-256-cbc
+process-max=4
+log-level-console=warn
+log-level-file=off
+
+[scf]
+pg1-path=/var/lib/postgresql/18/main
+pg1-socket-path=/var/run/postgresql

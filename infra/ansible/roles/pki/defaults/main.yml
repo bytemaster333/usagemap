@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: Apache-2.0
+# Private CA and per-node certificates (C-60, C-113, C-114). The CA lives on the service-operator workstation that
+# runs the playbook (its key encrypted with the SOPS-held passphrase); nodes only ever receive their own leaf keys.
+scf_pki_dir: "{{ playbook_dir }}/../.pki" # git-ignored; back it up SOPS-encrypted (runbook)
+scf_pki_node_dir: /etc/scf/pki
+scf_pki_ca_days: 1825
+scf_pki_leaf_days: 397
+# Renewed once less than this is left (a playbook run): above a third of the leaf lifetime (397 d → 132 d), so a
+# renewal happens before the CertExpiring warning (⅔ of the lifetime used) fires.
+scf_pki_renew_before_days: 140
+scf_pki_ca_subject: "/O=UsageMap/CN=UsageMap node CA"
+scf_pki_node_class: "{{ (group_names | intersect(['edge', 'core', 'db', 'mon', 'probe', 'egress', 'app', 'standby'])) | first }}"
+scf_pki_mesh_domain: "{{ scf_mesh_domain | default('mesh.scf.internal') }}"
+# Identities per node class. One OU = the caller role the engine proxy authorises (edge | reader | provisioner;
+# engine-proxy for its client certificate towards the control plane's internal API), CN = a node name matching
+# ^[a-z0-9][a-z0-9-]{1,31}$ (C-113/C-114). owner = uid of the one container user that reads the key.
+scf_pki_identities:
+  edge:
+    - cn: "{{ inventory_hostname }}"
+      ou: edge
+      eku: "serverAuth,clientAuth"
+      san: ["{{ inventory_hostname }}", "{{ inventory_hostname }}.{{ scf_pki_mesh_domain }}"]
+      owner: 65532
+  core:
+    - cn: "{{ inventory_hostname }}-engine-proxy"
+      ou: engine-proxy
+      eku: "serverAuth,clientAuth"
+      san: [engine-proxy, "{{ inventory_hostname }}.{{ scf_pki_mesh_domain }}"]
+      owner: 65532
+    - cn: "{{ inventory_hostname }}-control-plane"
+      ou: reader
+      eku: clientAuth
+      san: []
+      owner: 1000
+    - cn: "{{ inventory_hostname }}-cp-internal"
+      ou: ""
+      eku: serverAuth
+      san: [control-plane]
+      owner: 1000
+    - cn: "{{ inventory_hostname }}-jobs"
+      ou: reader
+      eku: clientAuth
+      san: []
+      owner: 65532
+    - cn: "{{ inventory_hostname }}-jobs-reader" # jobs: umami_reconcile reads (F16)
+      ou: reader
+      eku: clientAuth
+      san: []
+      owner: 1000
+    - cn: "{{ inventory_hostname }}-umami-bootstrap"
+      ou: provisioner
+      eku: clientAuth
+      san: []
+      owner: 65532
+    - cn: "{{ inventory_hostname }}-writer"
+      ou: ""
+      eku: serverAuth
+      san:
+        ["writers.{{ scf_pki_mesh_domain }}", "{{ inventory_hostname }}.{{ scf_pki_mesh_domain }}"]
+      owner: 65532
+  # Lean profile (C-123): the one VM plays the logical nodes core-a and edge-a1 of the Compose stack, so the names are
+  # the stack's own (SCF_INTERNAL_ALLOWED_CLIENTS, GW_NODE_ID, SCF_JOBS_NODE) — the files infra/compose expects.
+  app:
+    - cn: engine-proxy
+      ou: ""
+      eku: serverAuth
+      san: [engine-proxy, localhost]
+      owner: 65532
+    - cn: control-plane
+      ou: ""
+      eku: serverAuth
+      san: [control-plane]
+      owner: 1000
+    - cn: core-a-engine-proxy
+      ou: engine-proxy
+      eku: clientAuth
+      san: []
+      owner: 65532
+    - cn: edge-a1
+      ou: edge
+      eku: "serverAuth,clientAuth"
+      san: [edge-a1]
+      owner: 65532
+    - cn: core-a-control-plane
+      ou: reader
+      eku: clientAuth
+      san: []
+      owner: 1000
+    - cn: core-a-jobs
+      ou: reader
+      eku: clientAuth
+      san: []
+      owner: 65532
+    - cn: core-a-jobs-reader # jobs: umami_reconcile reads (F16)
+      ou: reader
+      eku: clientAuth
+      san: []
+      owner: 1000
+    - cn: core-a-umami-bootstrap
+      ou: provisioner
+      eku: clientAuth
+      san: []
+      owner: 65532
+    - cn: core-a-jobs-provisioner # jobs: tenant_purge, umami_reconcile
+      ou: provisioner
+      eku: clientAuth
+      san: []
+      owner: 1000
+    - cn: core-a-writer
+      ou: ""
+      eku: serverAuth
+      san: [core-a-writer, writers.mesh.local, localhost]
+      owner: 65532
+  standby: []
+  db: []
+  mon: []
+  probe: []
+  egress: []
+# Extra identities for this node (e.g. the `ingest`/`portal` server certificates when no ACME is used — tests).
+scf_pki_extra_identities: []

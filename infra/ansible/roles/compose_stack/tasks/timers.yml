@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: Apache-2.0
+# Host timers next to the stack: the weekly range-list update (C-38, bot.ip-multiplicity) and the daily certificate validity
+# metrics (CertExpiring). Both write to the node exporter's textfile directory.
+- name: Range-list sources (optional replacement of the built-in publisher list)
+  when: scf_rangelist_sources | length > 0
+  ansible.builtin.copy:
+    dest: "{{ scf_stack_dir }}/rangelist-sources.json"
+    content: "{{ scf_rangelist_sources | to_nice_json }}\n"
+    mode: "0644"
+
+- name: Range-list and certificate-metric scripts and units
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - src: scf-rangelists.sh.j2
+      dest: /usr/local/sbin/scf-rangelists
+      mode: "0755"
+    - src: scf-rangelists.service.j2
+      dest: /etc/systemd/system/scf-rangelists.service
+      mode: "0644"
+    - src: scf-rangelists.timer.j2
+      dest: /etc/systemd/system/scf-rangelists.timer
+      mode: "0644"
+    - src: scf-cert-metrics.sh.j2
+      dest: /usr/local/sbin/scf-cert-metrics
+      mode: "0755"
+    - src: scf-cert-metrics.service.j2
+      dest: /etc/systemd/system/scf-cert-metrics.service
+      mode: "0644"
+    - src: scf-cert-metrics.timer.j2
+      dest: /etc/systemd/system/scf-cert-metrics.timer
+      mode: "0644"
+
+- name: Timers
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: [scf-rangelists.timer, scf-cert-metrics.timer]
+
+- name: Certificate metrics now (a renewed node certificate shows at once)
+  ansible.builtin.command: /usr/local/sbin/scf-cert-metrics
+  changed_when: false
+
+# The first lists right after the first deploy, not up to a week later; a failure here does not stop the deploy (the
+# RangeListsStale alert reports it), it only shows in the play output.
+- name: First range-list update (no result recorded yet)
+  when: scf_stack_up | bool
+  ansible.builtin.command:
+    cmd: /usr/local/sbin/scf-rangelists
+    creates: "{{ scf_data_dir }}/metrics/scf_rangelists.prom"
+  register: scf_rangelists_first
+  failed_when: false

@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Weekly restore drill on our own EU infrastructure (C-56), on the drill host (mon-c): repository 2 only, read access
+# only (the Storage Blob Data Reader assignment of infra/opentofu), runs infra/compose/ha/bin/scf-restore-drill in a
+# scratch container, writes its metrics for the node exporter (RestoreDrillStale / RestoreDrillIntegrityMismatch).
+scf_drill_dir: /etc/scf/restore-drill
+scf_drill_schedule: "Sun *-*-* 04:00:00 UTC"
+scf_drill_metrics_dir: /var/lib/node_exporter/textfile
+scf_drill_db_dir: /opt/scf/db # db/ of the deployed release (migrate.sh + gates), copied by the deploy playbook
+scf_drill_systemd_dir: /etc/systemd/system
+# Lean profile (C-123): the drill container joins this Docker network (bridge scf-backup0), the only one the host
+# firewall lets reach the instance metadata service and the blob endpoints. Empty = Docker's default bridge.
+scf_drill_docker_network: ""
+scf_drill_create_network: true # false where Compose owns the network (the app VM)
+scf_drill_bridge_name: scf-backup0
+scf_drill_bridge_subnet: 172.30.1.0/24
+# Repository 2 reached with a SAS (compose_stack scf_backup_repos key_type sas): the drill uses its own read/list-only
+# SAS, scf_stack_secrets.backup_repo_sas_drill — never the writer's.
+scf_drill_repo2_sas: "{{ (scf_backup_repos | selectattr('n', 'equalto', 2) | first).key_type | default('auto') == 'sas' }}"

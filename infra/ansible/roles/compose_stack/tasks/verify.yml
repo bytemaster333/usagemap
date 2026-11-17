@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+# Every release image is verified on the workstation before anything reaches the VM (supply-chain.md C5, audit
+# 2026-11-18 finding 13): the cosign keyless signature of the release workflow at a release tag, and its signed SPDX
+# SBOM attestation (both made by the release signer, scf_release_signer_workflow). Only digests that pass are
+# deployed; a failure stops the play (DeployVerifyFailed, ops/runbooks/deploy-verify.md), and the task output is the
+# deploy log's verification record.
+- name: Signature and SBOM attestation of every release image (cosign, keyless identity of the release workflow)
+  when: scf_images_verify_signatures | bool
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  run_once: true
+  ansible.builtin.command:
+    argv: >-
+      {{ [scf_cosign_bin, item.1]
+         + (['--type', 'spdxjson'] if item.1 == 'verify-attestation' else [])
+         + ['--certificate-identity-regexp', scf_signer_regexp,
+            '--certificate-oidc-issuer', 'https://token.actions.githubusercontent.com', item.0.value] }}
+  vars:
+    scf_signer_regexp: >-
+      ^https://github\.com/{{ scf_release_repo | regex_escape }}/{{ scf_release_signer_workflow | regex_escape
+      }}@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$
+  loop: "{{ scf_images | dict2items | product(['verify', 'verify-attestation']) | list }}"
+  loop_control:
+    label: "{{ item.1 }} {{ item.0.key }}"
+  changed_when: false

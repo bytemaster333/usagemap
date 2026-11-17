@@ -1,0 +1,104 @@
+# SPDX-License-Identifier: Apache-2.0
+# Public certificates: `ingest` (every ingest host name — the gateway terminates TLS itself, so it sees the client
+# address) and `portal` (portal/API host name, and the status host name if set — the portal's Caddy). Production:
+# ACME with lego (DNS-01 on Azure DNS, the VM's managed identity), renewed by a systemd timer; the deploy step copies
+# a changed certificate into place and reloads the gateway (SIGHUP) or restarts the portal. Tests and installations
+# without ACME: certificates from the private CA (pki role identities `ingest`, `portal`).
+- name: Certificate sets
+  ansible.builtin.set_fact:
+    scf_tls_sets:
+      ingest: "{{ scf_ingest_hostnames }}"
+      portal: >-
+        {{ [scf_portal_hostname] + ([scf_status_hostname] if scf_status_hostname else [])
+           + ([scf_landing_hostname] if scf_landing_hostname else []) + ([scf_docs_hostname] if scf_docs_hostname else []) }}
+
+- name: Deploy script (copies a changed certificate into place, reloads its consumer)
+  ansible.builtin.template:
+    src: scf-cert-deploy.sh.j2
+    dest: /usr/local/sbin/scf-cert-deploy
+    mode: "0755"
+
+- name: ACME with lego
+  when: scf_acme_enabled
+  block:
+    - name: Architecture
+      ansible.builtin.set_fact:
+        scf_lego_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
+    - name: Directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0700"
+      loop: ["{{ scf_acme_dir }}", /opt/scf/lego]
+    - name: Lego release archive (sha256-pinned)
+      ansible.builtin.get_url:
+        url: "https://github.com/go-acme/lego/releases/download/v{{ scf_lego_version }}/lego_v{{ scf_lego_version }}_linux_{{ scf_lego_arch }}.tar.gz"
+        dest: "/opt/scf/lego/lego_v{{ scf_lego_version }}.tar.gz"
+        checksum: "sha256:{{ scf_lego_sha256[scf_lego_arch] }}"
+        mode: "0644"
+    - name: Lego binary
+      ansible.builtin.unarchive:
+        src: "/opt/scf/lego/lego_v{{ scf_lego_version }}.tar.gz"
+        dest: /opt/scf/lego
+        remote_src: true
+        include: [lego]
+        creates: /opt/scf/lego/lego
+      register: scf_lego_unpacked
+    - name: Lego of this version
+      ansible.builtin.copy:
+        src: /opt/scf/lego/lego
+        dest: "/usr/local/bin/lego-{{ scf_lego_version }}"
+        remote_src: true
+        mode: "0755"
+    - name: Provider environment (managed identity, or the provider's credentials from SOPS — root only, 0600)
+      ansible.builtin.copy:
+        dest: "{{ scf_acme_dir }}/provider.env"
+        mode: "0600"
+        content: |
+          {% for k, v in (scf_acme_env | combine((scf_stack_secrets | default({})).acme_env | default({}))).items() %}
+          {{ k }}={{ v }}
+          {% endfor %}
+      no_log: true
+    - name: Renewal script, service and timer
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: scf-acme.sh.j2, dest: /usr/local/sbin/scf-acme, mode: "0755" }
+        - { src: scf-acme.service.j2, dest: /etc/systemd/system/scf-acme.service, mode: "0644" }
+        - { src: scf-acme.timer.j2, dest: /etc/systemd/system/scf-acme.timer, mode: "0644" }
+      register: scf_acme_units
+    - name: First issuance (before the stack needs the files)
+      ansible.builtin.command: /usr/local/sbin/scf-acme
+      args:
+        creates: "{{ scf_stack_tls_dir }}/portal/portal.pem"
+      register: scf_acme_first
+    # A changed name set (e.g. a new docs host) needs a new certificate now, not at the next renewal: `lego run` obtains
+    # one for the new set (2026-11-19: docs.usagemap.dev served the old certificate until scf-acme ran by hand).
+    - name: Issuance for a changed name set
+      when: scf_acme_units.results[0] is changed and scf_acme_first is skipped
+      ansible.builtin.command: /usr/local/sbin/scf-acme
+      changed_when: true
+    - name: Renewal timer
+      ansible.builtin.systemd_service:
+        name: scf-acme.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+
+- name: Certificates from the private CA (no ACME)
+  when: not scf_acme_enabled
+  block:
+    - name: Copy the CA-issued pair into place
+      ansible.builtin.copy:
+        src: "{{ scf_pki_node_dir }}/{{ item[0] }}{{ item[1] }}"
+        dest: "{{ scf_stack_tls_dir }}/{{ item[0] }}/{{ item[0] }}{{ item[1] }}"
+        remote_src: true
+        owner: 65532
+        group: 65532
+        mode: "{{ '0400' if item[1] == '-key.pem' else '0444' }}"
+      loop: "{{ ['ingest', 'portal'] | product(['.pem', '-key.pem']) | list }}"
+      loop_control:
+        label: "{{ item[0] }}{{ item[1] }}"
+      no_log: true

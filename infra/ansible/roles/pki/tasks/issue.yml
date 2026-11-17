@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: Apache-2.0
+# One leaf: re-issued when missing, expiring within scf_pki_renew_before_days, or when its subject differs.
+- name: "Check {{ cert.cn }}"
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  ansible.builtin.shell: |
+    f={{ scf_pki_dir }}/issued/{{ cert.cn }}.pem
+    [ -s "$f" ] && [ -s "${f%.pem}-key.pem" ] || { echo missing; exit 0; }
+    openssl x509 -in "$f" -noout -checkend {{ scf_pki_renew_before_days * 86400 }} >/dev/null || { echo expiring; exit 0; }
+    subj=$(openssl x509 -in "$f" -noout -subject -nameopt compat)
+    [ "$subj" = "subject={{ ('/OU=' ~ cert.ou) if cert.ou else '' }}/CN={{ cert.cn }}" ] || { echo subject; exit 0; }
+    echo ok
+  register: scf_pki_state
+  changed_when: false
+
+- name: "Issue {{ cert.cn }}"
+  when: scf_pki_state.stdout != 'ok'
+  delegate_to: localhost
+  become: false # the workstation: never sudo there
+  ansible.builtin.shell: |
+    set -eu
+    umask 077
+    d={{ scf_pki_dir }}; n={{ cert.cn }}
+    openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$d/issued/$n-key.pem"
+    openssl req -new -key "$d/issued/$n-key.pem" -subj '{{ ('/OU=' ~ cert.ou) if cert.ou else '' }}/CN={{ cert.cn }}' -out "$d/issued/$n.csr"
+    {
+      echo 'basicConstraints=critical,CA:FALSE'
+      echo 'keyUsage=critical,digitalSignature'
+      echo 'extendedKeyUsage={{ cert.eku }}'
+    {% if cert.san %}
+      echo 'subjectAltName={{ cert.san | map('regex_replace', '^', 'DNS:') | join(',') }}'
+    {% endif %}
+    } >"$d/issued/$n.ext"
+    openssl x509 -req -in "$d/issued/$n.csr" -CA "$d/ca.pem" -CAkey "$d/ca-key.pem" -passin env:SCF_CA_PASS \
+      -set_serial "0x$(openssl rand -hex 16)" -days {{ scf_pki_leaf_days }} -sha256 -extfile "$d/issued/$n.ext" \
+      -out "$d/issued/$n.pem"
+    chmod 0644 "$d/issued/$n.pem"
+    rm -f "$d/issued/$n.csr" "$d/issued/$n.ext"
+  environment:
+    SCF_CA_PASS: "{{ scf_pki_ca_key_passphrase }}"
+  no_log: true
+  changed_when: true

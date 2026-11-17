@@ -1,0 +1,230 @@
+# {{ ansible_managed }}
+# Portal web server in production (lean profile, C-123): the image's Caddyfile with TLS on the portal host name
+# (certificate from ACME, apps/portal/server/Caddyfile otherwise unchanged in behaviour): the SPA, the control-plane API
+# on the same origin, the published snapshot keys, and optionally the status page. No access log; the error log never
+# carries client addresses, headers or URIs. Liveness on 127.0.0.1-only plain HTTP for the container health check.
+{
+	admin off
+	auto_https off
+	persist_config off
+	grace_period 10s
+	servers {
+		timeouts {
+			read_header 5s
+			read_body 10s
+			write 30s
+			idle 2m
+		}
+		max_header_size 16KB
+	}
+	log {
+		output stderr
+		level INFO
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip delete
+				request>remote_port delete
+				request>client_ip delete
+				request>headers delete
+				request>uri delete
+				request>tls delete
+				resp_headers delete
+			}
+		}
+	}
+}
+
+http://:8080 {
+	handle /portal-healthz {
+		header Cache-Control "no-store"
+		respond "ok" 200
+	}
+	respond 404
+}
+{% if scf_http_redirect %}
+
+# Port 80 of the portal address (scf_http_redirect): a permanent redirect to https for our names, nothing else.
+http://:8081 {
+	@ours host {{ ([scf_portal_hostname] + ([scf_status_hostname] if scf_status_hostname else []) + ([scf_landing_hostname] if scf_landing_hostname else []) + ([scf_docs_hostname] if scf_docs_hostname else [])) | join(' ') }}
+	redir @ours https://{host}{uri} 308
+	respond 404
+}
+{% endif %}
+
+https://{{ scf_portal_hostname }}:8443 {
+	tls /run/scf-tls/portal.pem /run/scf-tls/portal-key.pem {
+		protocols tls1.2 tls1.3
+	}
+	import /etc/caddy/headers-https.caddy
+
+{% if scf_mcp_enabled %}
+	# Hosted MCP server (services/mcp): POST-only JSON, never cached, keys only in Authorization (never logged here:
+	# the global log filter already deletes headers, URI and client addresses). The global write timeout (30 s) caps
+	# one tool answer.
+	handle /mcp {
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy mcp:8080 {
+			header_up -Forwarded
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 60s
+			}
+		}
+		header Cache-Control "no-store"
+	}
+
+{% endif %}
+	@api path /v1/* /op/v1/* /public/* /.well-known/scf-snapshot-keys.json /.well-known/oauth-authorization-server
+	handle @api {
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy control-plane:8080 {
+			header_up -Forwarded
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 30s
+			}
+		}
+		header Cache-Control "no-store"
+	}
+
+	# /.well-known/ is never the SPA shell. The SEP-1 file belongs to the home domain (the landing host), so the portal
+	# host redirects to it; every other /.well-known/ path not proxied above is a plain 404.
+	handle /.well-known/stellar.toml {
+		header Cache-Control "no-store"
+{% if scf_landing_hostname %}
+		redir https://{{ scf_landing_hostname }}/.well-known/stellar.toml 308
+{% else %}
+		respond 404
+{% endif %}
+	}
+
+	# A named matcher on purpose: Caddy sorts single-path `handle` blocks before named ones, and this one must not
+	# shadow the /.well-known/ paths of @api.
+	@wellknown path /.well-known/*
+	handle @wellknown {
+		header Cache-Control "no-store"
+		respond 404
+	}
+
+	handle /assets/* {
+		root * /srv/portal
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	handle {
+		root * /srv/portal
+		try_files {path} /index.html
+		header Cache-Control "no-store"
+		file_server
+	}
+}
+{% if scf_status_hostname %}
+
+https://{{ scf_status_hostname }}:8443 {
+	tls /run/scf-tls/portal.pem /run/scf-tls/portal-key.pem {
+		protocols tls1.2 tls1.3
+	}
+	header Strict-Transport-Security "max-age=31536000"
+	header X-Content-Type-Options "nosniff"
+	reverse_proxy status:8080 {
+		header_up -Forwarded
+	}
+}
+{% endif %}
+{% if scf_landing_hostname %}
+
+# Landing page (static, scf_landing_src): its own Content-Security-Policy is a meta element in the page; the headers
+# here add what a meta element cannot (framing, HSTS) and the portal's general policy.
+https://{{ scf_landing_hostname }}:8443 {
+	tls /run/scf-tls/portal.pem /run/scf-tls/portal-key.pem {
+		protocols tls1.2 tls1.3
+	}
+	header {
+		-Server
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+		Cross-Origin-Opener-Policy "same-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+	}
+	root * /srv/landing
+{% if scf_docs_hostname %}
+	# The documentation moved to its own host (C-152): old links land on its start page.
+	redir /docs https://{{ scf_docs_hostname }}/ 308
+	redir /docs/* https://{{ scf_docs_hostname }}/ 308
+{% endif %}
+	@html path / /index.html
+	header @html Cache-Control "no-cache"
+	# SEP-1 file of the landing site and the Markdown pages for agents (apps/landing: skill.md, docs/ai/*.md)
+	@stellartoml path /.well-known/stellar.toml
+	header @stellartoml {
+		Content-Type "text/plain; charset=utf-8"
+		Access-Control-Allow-Origin "*"
+	}
+	@markdown {
+		path *.md
+		file
+	}
+	header @markdown Content-Type "text/markdown; charset=utf-8"
+	# Content-hashed CSS, JS and self-hosted fonts of the landing build (apps/landing/assets): immutable.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	@woff2 path /assets/fonts/*.woff2
+	header @woff2 Content-Type "font/woff2"
+	try_files {path} {path}/index.html =404
+	file_server
+	handle_errors {
+		respond "{err.status_code}" {err.status_code}
+	}
+}
+{% endif %}
+{% if scf_docs_hostname %}
+
+# Documentation site (C-152: static export of apps/docs, scf_docs_src; paths end in `/`, every page also as Markdown,
+# llms.txt, llms-full.txt and the agent skill SKILL.md). Same header policy as the landing page; the export's pages
+# carry inline scripts, so no script policy is set here (nothing on this host takes input or holds a session).
+https://{{ scf_docs_hostname }}:8443 {
+	tls /run/scf-tls/portal.pem /run/scf-tls/portal-key.pem {
+		protocols tls1.2 tls1.3
+	}
+	header {
+		-Server
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+		Cross-Origin-Opener-Policy "same-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+	}
+	root * /srv/docs
+	@html path / *.html */
+	header @html Cache-Control "no-cache"
+	@markdown {
+		path *.md
+		file
+	}
+	header @markdown Content-Type "text/markdown; charset=utf-8"
+	@text path /llms.txt /llms-full.txt
+	header @text Content-Type "text/plain; charset=utf-8"
+	try_files {path} {path}/index.html {path}.html =404
+	file_server
+	handle_errors 404 {
+		rewrite * /404.html
+		file_server {
+			status 404
+		}
+	}
+	handle_errors {
+		respond "{err.status_code}" {err.status_code}
+	}
+}
+{% endif %}

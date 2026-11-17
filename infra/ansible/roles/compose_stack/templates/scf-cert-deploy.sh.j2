@@ -1,0 +1,22 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# scf-cert-deploy NAME CERT KEY — install a public certificate for the stack if it differs from the one in place:
+# NAME=ingest → the gateway re-reads it on SIGHUP; NAME=portal → the portal (Caddy, admin API off) is restarted.
+# Keys are 0400 and owned by uid 65532 (the gateway's and the portal's user); each set lives in its own directory
+# (tls/ingest, tls/portal), which only its consumer mounts.
+set -euo pipefail
+name=$1 cert=$2 key=$3
+case "$name" in ingest | portal) ;; *) echo "scf-cert-deploy: unknown set $name" >&2; exit 2 ;; esac
+dir={{ scf_stack_tls_dir }}/$name
+openssl x509 -in "$cert" -noout -checkend 0 >/dev/null || { echo "scf-cert-deploy: $cert is expired or unreadable" >&2; exit 1; }
+if cmp -s "$cert" "$dir/$name.pem" && cmp -s "$key" "$dir/$name-key.pem"; then exit 0; fi
+install -m 0444 -o 65532 -g 65532 "$cert" "$dir/.$name.pem.new"
+install -m 0400 -o 65532 -g 65532 "$key" "$dir/.$name-key.pem.new"
+mv "$dir/.$name-key.pem.new" "$dir/$name-key.pem"
+mv "$dir/.$name.pem.new" "$dir/$name.pem"
+echo "scf-cert-deploy: $name installed (notAfter $(openssl x509 -in "$dir/$name.pem" -noout -enddate | cut -d= -f2))"
+svc=$([ "$name" = ingest ] && echo gateway || echo portal)
+ids=$(docker ps -q --filter label=com.docker.compose.project={{ scf_stack_project }} --filter label=com.docker.compose.service=$svc 2>/dev/null || true)
+[ -n "$ids" ] || exit 0
+if [ "$svc" = gateway ]; then docker kill --signal HUP $ids >/dev/null; else docker restart $ids >/dev/null; fi
+/usr/local/sbin/scf-cert-metrics || true # textfile metrics of the new notAfter (CertExpiring)

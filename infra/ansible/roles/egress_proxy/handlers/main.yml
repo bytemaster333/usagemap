@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+- name: Reload squid
+  ansible.builtin.service:
+    name: squid
+    state: reloaded
+  when: not (scf_egress_render_only | default(false))

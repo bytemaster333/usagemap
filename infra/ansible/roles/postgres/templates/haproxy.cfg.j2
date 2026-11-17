@@ -1,0 +1,24 @@
+# {{ ansible_managed }}
+# Primary-following proxy on {{ inventory_hostname }} (ADR-0020, C-07): local PgBouncer, migrators and Umami connect to
+# 127.0.0.1:5000 and reach whichever PostgreSQL node Patroni reports as primary (GET /primary = 200, over TLS — F15).
+global
+  maxconn 1000
+  log stdout format raw local0 notice
+defaults
+  mode tcp
+  log global
+  option dontlognull
+  timeout connect 3s
+  timeout client 30m
+  timeout server 30m
+  timeout check 2s
+frontend pg
+  bind 127.0.0.1:5000
+  default_backend pg_primary
+backend pg_primary
+  option httpchk GET /primary
+  http-check expect status 200
+  default-server inter 2s fastinter 1s downinter 2s fall 2 rise 2 on-marked-down shutdown-sessions
+{% for h in groups['postgres'] %}
+  server {{ h }} {{ h }}.{{ scf_mesh_domain }}:5432 check port 8008 check-ssl verify required ca-file /usr/local/etc/haproxy/dcs-ca.pem check-sni {{ h }}.{{ scf_mesh_domain }} verifyhost {{ h }}.{{ scf_mesh_domain }}
+{% endfor %}

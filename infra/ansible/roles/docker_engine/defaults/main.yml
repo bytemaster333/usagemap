@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+# Docker Engine from Docker's Debian repository (Apache-2.0), every package pinned to one version released at least
+# three days before it was chosen (2026-11-13, supply-chain rule), and held so unattended upgrades never restart the
+# daemon behind the operator's back (upgrades are a deliberate playbook run). The repository key is shipped in the
+# role (files/docker-archive-keyring.asc, fingerprint 9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88, sha256 below)
+# — nothing is fetched unverified.
+scf_docker_packages:
+  docker-ce: "5:29.9.3-1~debian.13~trixie" # 2026-11-03
+  docker-ce-cli: "5:29.9.3-1~debian.13~trixie" # 2026-11-03
+  containerd.io: "2.4.2-3~debian.13~trixie" # 2026-10-20
+  docker-compose-plugin: "5.7.0-1~debian.13~trixie" # 2026-11-02
+scf_docker_key_sha256: 1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570
+scf_docker_repo: https://download.docker.com/linux/debian
+scf_docker_suite: trixie
+scf_docker_data_root: /srv/scf/docker # on the ≥ 250 GB data disk (C-109)
+# daemon.json turns Docker 29's containerd image store off: images and layers then live in the data root (overlay2) on
+# the data disk instead of /var/lib/containerd on the 64 GB OS disk.
+# Per-container log rotation (driver `local`: compressed, bounded) — the services whose logs feed VictoriaLogs use the
+# syslog driver from the monitoring overlay instead.
+scf_docker_log_max_size: 10m
+scf_docker_log_max_file: 5
+# Bridge pool for Compose networks (the fixed subnets of the production override come from the second range).
+scf_docker_address_pools:
+  - { base: 172.29.0.0/16, size: 24 }
+scf_docker_manage_service: true # tests in a container without systemd set false
