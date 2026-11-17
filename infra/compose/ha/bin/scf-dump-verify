@@ -1,0 +1,27 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+# Migration check for a weekly logical dump (ADR-0021, handover.data-migration; runbook ops/runbooks/restore-logical-dump.md): create
+# an empty scratch PostgreSQL in PGDATA (socket only, trust on the socket of this throwaway instance), restore dump
+# NAME into it with `scf-backup dump-restore` (download, sha256, age decrypt, pg_restore, row-count/checksum manifest
+# comparison) and print its one DUMP-RESTORE PASS|FAIL line. With no NAME, the newest dump is used.
+#   scf-dump-verify [NAME] --expect-sha256 HEX      HEX: the out-of-band hash of the dump's log line `dump NAME sha256 HEX`
+#   scf-dump-verify [NAME] --trust-stored-checksum  drill on our own store only (logged WARNING)
+# Needs: SCF_DUMP_BASEURL, SCF_DUMP_CONTAINER, PGBACKREST_REPO2_AZURE_KEY (a read+list SAS is enough),
+# SCF_DUMP_AGE_IDENTITY_FILE. Exit status of dump-restore.
+set -uo pipefail
+: "${PGDATA:?}"
+name=""
+case ${1:-} in --*|"") ;; *) name=$1; shift ;; esac
+[ -s "$PGDATA/PG_VERSION" ] && { echo "DUMP-RESTORE FAIL dump=${name:-?} stage=start reason=\"PGDATA not empty\""; exit 1; }
+if [ -z "$name" ]; then
+  name=$(scf-backup dump-list | tail -n1)
+  [ -n "$name" ] || { echo "DUMP-RESTORE FAIL dump=- stage=list reason=\"no dump found\""; exit 1; }
+fi
+initdb -D "$PGDATA" -U postgres --auth-local=trust --auth-host=reject -E UTF8 --locale=C.UTF-8 >/tmp/initdb.log 2>&1 \
+  || { echo "DUMP-RESTORE FAIL dump=$name stage=initdb reason=\"$(tail -n1 /tmp/initdb.log)\""; exit 1; }
+pg_ctl -D "$PGDATA" -l /tmp/verify-postgres.log -w -o "-c listen_addresses='' -c unix_socket_directories=/var/run/postgresql" start >/dev/null \
+  || { echo "DUMP-RESTORE FAIL dump=$name stage=start reason=\"$(tail -n1 /tmp/verify-postgres.log)\""; exit 1; }
+PGHOST=/var/run/postgresql PGUSER=postgres PGPASSWORD="" scf-backup dump-restore "$name" "$@"
+rc=$?
+pg_ctl -D "$PGDATA" -m fast stop >/dev/null 2>&1 || true
+exit $rc

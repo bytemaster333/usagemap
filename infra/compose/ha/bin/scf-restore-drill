@@ -1,0 +1,147 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+# Weekly restore drill (ADR-0021, C-56, C-108), adopted from spikes/s08-backups-azure-blob/restore-drill.sh. Runs
+# INSIDE a scratch database container on our own EU infrastructure (never a GitHub-hosted runner) whose only
+# credential is a read+list SAS for repository 2 and repository 2's cipher pass:
+#
+#   1. pgbackrest restore from repo 2 into an empty PGDATA (latest, or --target 'YYYY-MM-DD HH:MM:SS+00')
+#   2. start PostgreSQL on a local socket only (no TCP listener, trust on the socket of this throwaway instance,
+#      no archiving, no synchronous standby), replay WAL until promoted
+#   3. pg_amcheck --all --install-missing --heapallindexed on every database
+#   4. the RLS gates G1–G11 (db/migrate.sh gates) on the restored `scf` database
+#   5. optional expectations (--expect FILE: lines "<db>\t<sql returning one value>\t<expected value>")
+#   6. prints ONE line: RESTORE-DRILL PASS|FAIL repo=2 target=… restore=…s ready=…s amcheck=…s gates=… counts=…
+#      restored_point=… end_lsn=… total=…s
+#   7. writes the result as metrics (SCF_METRICS_DIR/scf_restore_drill.prom, textfile format) and, if
+#      SCF_DRILL_REPORT_DIR is set, as a JSON report — never rows, only pass/fail, timings and checksums (C-56)
+#
+# Exit 0 on PASS, 1 on FAIL. The caller destroys the container and its volume afterwards.
+set -uo pipefail
+
+REPO=${SCF_DRILL_REPO:-2}
+DB_DIR=${SCF_DRILL_DB_DIR:-/db}
+METRICS_DIR=${SCF_METRICS_DIR:-/var/lib/scf-metrics}
+SOCK=/var/run/postgresql
+TARGET="" EXPECT=""
+while [ $# -gt 0 ]; do
+  case $1 in
+    --target) TARGET=$2; shift 2 ;;
+    --expect) EXPECT=$2; shift 2 ;;
+    *) echo "scf-restore-drill: unknown argument $1" >&2; exit 2 ;;
+  esac
+done
+
+: "${PGDATA:?}"
+export PGHOST=$SOCK PGUSER=postgres PGDATABASE=postgres
+now() { date +%s.%N; }
+dur() { awk -v a="$1" -v b="$2" 'BEGIN{printf "%.1f", b-a}'; }
+T0=$(now) T1=$T0 T2=$T0 T3=$T0 T4=$T0
+RESTORE_S="-" GATES="-" COUNTS="-" POINT="-" LSN="-" STAGE="" REASON=""
+
+emit() { # emit PASS|FAIL
+  local result=$1 total line ok=0
+  total=$(dur "$T0" "$(now)")
+  [ "$result" = PASS ] && ok=1
+  if [ "$result" = PASS ]; then
+    line="RESTORE-DRILL PASS repo=$REPO target=${TARGET:-latest} restore=${RESTORE_S}s ready=$(dur "$T0" "$T1")s amcheck=$(dur "$T1" "$T2")s gates=$GATES($(dur "$T2" "$T3")s) counts=$COUNTS($(dur "$T3" "$T4")s) restored_point=\"$POINT\" end_lsn=$LSN total=${total}s"
+  else
+    line="RESTORE-DRILL FAIL repo=$REPO target=${TARGET:-latest} stage=$STAGE reason=\"$(printf '%s' "$REASON" | tr '\n"' "  " | cut -c1-300)\" total=${total}s"
+  fi
+  echo "$line"
+  # The last success survives a failed drill (RestoreDrillStale counts from the last pass, not from the failure).
+  last_ok=$(sed -n 's/^scf_restore_drill_last_success_timestamp_seconds{repo="'"$REPO"'"} \([0-9][0-9]*\)$/\1/p' \
+    "$METRICS_DIR/scf_restore_drill.prom" 2>/dev/null || true)
+  [ $ok = 1 ] && last_ok=$(date +%s)
+  mkdir -p "$METRICS_DIR" 2>/dev/null && {
+    {
+      echo "# HELP scf_restore_drill_last_run_timestamp_seconds When the last restore drill finished."
+      echo "# TYPE scf_restore_drill_last_run_timestamp_seconds gauge"
+      echo "scf_restore_drill_last_run_timestamp_seconds{repo=\"$REPO\"} $(date +%s)"
+      echo "# HELP scf_restore_drill_success 1 if the last restore drill passed every check."
+      echo "# TYPE scf_restore_drill_success gauge"
+      echo "scf_restore_drill_success{repo=\"$REPO\"} $ok"
+      echo "# HELP scf_restore_drill_duration_seconds Duration of the last restore drill."
+      echo "# TYPE scf_restore_drill_duration_seconds gauge"
+      echo "scf_restore_drill_duration_seconds{repo=\"$REPO\"} $total"
+      if [ -n "$last_ok" ]; then
+        echo "# HELP scf_restore_drill_last_success_timestamp_seconds When a restore drill last passed (RestoreDrillStale)."
+        echo "# TYPE scf_restore_drill_last_success_timestamp_seconds gauge"
+        echo "scf_restore_drill_last_success_timestamp_seconds{repo=\"$REPO\"} $last_ok"
+      fi
+      echo "# HELP scf_restore_drill_integrity_mismatch 1 if amcheck, the gates or the expectations failed (RestoreDrillIntegrityMismatch)."
+      echo "# TYPE scf_restore_drill_integrity_mismatch gauge"
+      case $STAGE in amcheck | gates | counts) echo "scf_restore_drill_integrity_mismatch{repo=\"$REPO\"} 1" ;; *) echo "scf_restore_drill_integrity_mismatch{repo=\"$REPO\"} 0" ;; esac
+    } >"$METRICS_DIR/.scf_restore_drill.prom.tmp" && mv "$METRICS_DIR/.scf_restore_drill.prom.tmp" "$METRICS_DIR/scf_restore_drill.prom"
+  }
+  if [ -n "${SCF_DRILL_REPORT_DIR:-}" ]; then
+    mkdir -p "$SCF_DRILL_REPORT_DIR"
+    python3 -I -c 'import json,sys; print(json.dumps(dict(zip(sys.argv[1::2], sys.argv[2::2])), indent=1))' \
+      result "$result" repo "$REPO" target "${TARGET:-latest}" finished_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      restore_seconds "$RESTORE_S" ready_seconds "$(dur "$T0" "$T1")" amcheck_seconds "$(dur "$T1" "$T2")" \
+      gates "$GATES" expectations "$COUNTS" restored_point "$POINT" end_lsn "$LSN" total_seconds "$total" \
+      failed_stage "$STAGE" reason "$REASON" line "$line" \
+      >"$SCF_DRILL_REPORT_DIR/restore-drill-$(date -u +%Y%m%dT%H%M%SZ).json"
+  fi
+}
+stop_pg() { pg_ctl -D "$PGDATA" -m immediate stop >/dev/null 2>&1 || true; }
+fail() { STAGE=$1 REASON=$2; stop_pg; emit FAIL; exit 1; }
+q() { psql -X -At -d "${2:-postgres}" -c "$1" 2>/dev/null; }
+
+# 1. restore
+[ -s "$PGDATA/PG_VERSION" ] && fail restore "PGDATA is not empty (scratch instance expected)"
+mkdir -p "$PGDATA" && chmod 0700 "$PGDATA"
+args=(--stanza=scf --repo="$REPO")
+[ -n "$TARGET" ] && args+=(--type=time "--target=$TARGET" --target-action=promote)
+t=$(now)
+out=$(pgbackrest "${args[@]}" restore 2>&1) || fail restore "$(printf '%s' "$out" | grep -E 'ERROR|WARN' | head -n2)"
+RESTORE_S=$(dur "$t" "$(now)")
+
+# 2. start on the local socket only and wait for the end of recovery
+printf 'local all all trust\n' >/tmp/drill_hba.conf
+opts="-c listen_addresses='' -c unix_socket_directories=$SOCK -c hba_file=/tmp/drill_hba.conf -c archive_mode=off"
+opts+=" -c synchronous_standby_names='' -c primary_conninfo='' -c primary_slot_name='' -c hot_standby=on"
+opts+=" -c log_connections=off -c log_statement=none -c logging_collector=off"
+pg_ctl -D "$PGDATA" -l /tmp/drill-postgres.log -w -t 1800 -o "$opts" start >/dev/null 2>&1 \
+  || fail recovery "$(tail -n 3 /tmp/drill-postgres.log 2>/dev/null)"
+ready=""
+for _ in $(seq 1800); do
+  [ "$(q 'select pg_is_in_recovery()')" = f ] && { ready=1; break; }
+  pg_ctl -D "$PGDATA" status >/dev/null 2>&1 || break
+  sleep 1
+done
+[ -n "$ready" ] || fail recovery "not promoted: $(tail -n 3 /tmp/drill-postgres.log 2>/dev/null)"
+T1=$(now)
+POINT=$(q "select coalesce(pg_last_xact_replay_timestamp()::text, '-')")
+
+# 3. physical integrity: heap + every index of every database
+out=$(pg_amcheck --all --install-missing --heapallindexed 2>&1) || fail amcheck "$out"
+T2=$(now)
+
+# 4. RLS gates on the restored platform database (skipped only if the backup holds no `scf` database)
+if [ "$(q "select count(*) from pg_database where datname = 'scf'")" = 1 ]; then
+  out=$(SCF_DB_DIR=$DB_DIR SCF_MIGRATOR_USER=postgres SCF_DB_SUPERUSER=postgres SCF_DB_WAIT_SECONDS=10 \
+        sh "$DB_DIR/migrate.sh" gates 2>&1) || fail gates "$(printf '%s' "$out" | grep -E 'FAIL|ERROR' | head -n3)"
+  GATES="$(printf '%s' "$out" | grep -c ': ok$')ok"
+else
+  GATES="none"
+fi
+T3=$(now)
+
+# 5. expectations (counts and sums written by the caller from the primary, or by the nightly job)
+checked=0
+if [ -n "$EXPECT" ]; then
+  [ -r "$EXPECT" ] || fail counts "expectation file $EXPECT not readable"
+  while IFS=$'\t' read -r db sql want; do
+    [ -z "$db" ] && continue
+    case $db in \#*) continue ;; esac
+    got=$(q "$sql" "$db")
+    [ "$got" = "$want" ] || fail counts "$db: expected '$want' got '$got' for: $sql"
+    checked=$((checked + 1))
+  done <"$EXPECT"
+fi
+COUNTS="${checked}ok"
+T4=$(now)
+LSN=$(q 'select pg_current_wal_lsn()')
+stop_pg
+emit PASS
+exit 0

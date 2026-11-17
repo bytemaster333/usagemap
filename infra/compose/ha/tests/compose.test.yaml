@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+# Test-only additions to compose.ha.yaml (ha/tests/run.sh): a database `hatest` behind PgBouncer and a writer that
+# commits through PgBouncer → HAProxy → the current primary while the tests kill or isolate the primary.
+# Paths are relative to infra/compose (the project directory).
+secrets:
+  pgbouncer_userlist_test: { file: ./.secrets/ha/pgbouncer_userlist_test }
+  scf_hatest_password: { file: ./.secrets/ha/scf_hatest_password }
+
+volumes:
+  hatest-out:
+
+services:
+  pgbouncer:
+    volumes: !override
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer-scf/base.ini:ro
+      - ./ha/tests/pgbouncer-test.ini:/etc/pgbouncer-scf/pgbouncer.ini:ro
+    secrets: !override
+      - source: pgbouncer_userlist_test
+        target: pgbouncer_userlist
+
+  hatest-writer:
+    image: usagemap/postgres-ha:18.7-pgbr2.60.0-patroni4.1.5
+    profiles: [hatest]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    init: true
+    entrypoint: ["/bin/bash", "/opt/writer.sh"]
+    environment:
+      WORKERS: "4"
+    secrets: [scf_hatest_password]
+    volumes:
+      - ./ha/tests/writer.sh:/opt/writer.sh:ro
+      - hatest-out:/var/lib/scf-metrics # a directory the image already gives to uid 999
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    networks: [data]
+    restart: "no"

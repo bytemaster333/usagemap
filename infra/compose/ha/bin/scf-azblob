@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+# Minimal Azure Blob client (bash + openssl + curl) for the HA profile: SAS tokens, container creation, and the few
+# blob operations the backup jobs and tests need. Works against Azure Storage and Azurite alike. No SDK, no Python.
+#
+#   scf-azblob sas-container ACCOUNT KEYFILE CONTAINER PERMS DAYS   service SAS for one container (sr=c), HTTPS only
+#   scf-azblob sas-account   ACCOUNT KEYFILE PERMS DAYS             account SAS (ss=b, srt=sco), HTTPS only
+#   scf-azblob mkcontainer   BASEURL CONTAINER SAS                  create a container (idempotent: 201 or 409)
+#   scf-azblob list          BASEURL CONTAINER SAS [PREFIX]         print blob names, one per line
+#   scf-azblob put           BASEURL CONTAINER SAS NAME FILE        upload FILE as a block blob (single request, ≤ 5000 MiB)
+#   scf-azblob get           BASEURL CONTAINER SAS NAME FILE        download a blob to FILE
+#   scf-azblob delete        BASEURL CONTAINER SAS NAME             delete a blob (current version only)
+#
+# SAS may be the word `msi` for list/put/get/delete: the VM's managed identity (bearer token from IMDS) is used instead.
+#
+# BASEURL is the account endpoint: https://<account>.blob.core.windows.net on Azure, https://<host>:10000/<account> on
+# Azurite (path style). KEYFILE holds the base64 account key; it is read here and never printed. SAS tokens are printed
+# without a leading '?', the form pgBackRest's repoN-azure-key expects. TLS trust: SCF_AZ_CA (a CA file) if set, else the
+# system store. Permissions follow C-108: database nodes `racwdl` (never x/y), the restore-drill host `rl`.
+set -euo pipefail
+
+SV=2021-08-06 # storage service version used for SAS and requests (supported by Azure and Azurite 3.37)
+
+die() { echo "scf-azblob: $*" >&2; exit 2; }
+# SAS argument `msi`: authorise with the VM's managed identity instead — an OAuth bearer token for Azure Storage from
+# the instance metadata service (SCF_AZ_IMDS, default http://169.254.169.254), sent as a header file so it never
+# appears in a process list. The production path of the lean profile (C-123, F10).
+IMDS=${SCF_AZ_IMDS:-http://169.254.169.254}
+AUTH_HDR=""
+msi_token() {
+  local json
+  json=$(curl -sS --fail --max-time 10 --noproxy '*' -H 'Metadata: true' \
+    "$IMDS/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fstorage.azure.com%2F") || die "managed identity: no token from the instance metadata service"
+  printf '%s' "$json" | sed -n 's/.*"access_token" *: *"\([^"]*\)".*/\1/p'
+}
+# auth SAS → sets QS (query string to append) and AUTH_HDR (a 0600 header file, or empty)
+auth() {
+  QS=$1
+  if [ "$1" = msi ]; then
+    local tok
+    tok=$(msi_token); [ -n "$tok" ] || die "managed identity: empty token"
+    AUTH_HDR=$(mktemp); chmod 600 "$AUTH_HDR"
+    trap 'rm -f "$AUTH_HDR"' EXIT
+    printf 'Authorization: Bearer %s\n' "$tok" >"$AUTH_HDR"
+    QS=""
+  fi
+}
+curl_az() { curl -sS --fail-with-body --retry 3 --retry-all-errors ${SCF_AZ_CA:+--cacert "$SCF_AZ_CA"} -H "x-ms-version: $SV" ${AUTH_HDR:+-H "@$AUTH_HDR"} "$@"; }
+utc_in_days() { date -u -d "+$1 days" +%Y-%m-%dT%H:%M:%SZ; }
+urlenc() { local s=$1 o="" c i; for ((i = 0; i < ${#s}; i++)); do c=${s:i:1}; case $c in [A-Za-z0-9._~-]) o+=$c ;; *) o+=$(printf '%%%02X' "'$c") ;; esac; done; printf '%s' "$o"; }
+# hmac KEYFILE STRING → base64 HMAC-SHA256 of STRING with the base64-decoded key
+hmac() {
+  local hexkey
+  hexkey=$(tr -d '\n\r ' <"$1" | base64 -d | od -An -v -tx1 | tr -d ' \n')
+  printf '%s' "$2" | openssl dgst -sha256 -mac HMAC -macopt "hexkey:$hexkey" -binary | base64 -w0
+}
+check_perms() { [[ $1 =~ ^[racwdlxyt]+$ ]] || die "bad permissions '$1'"; }
+
+cmd=${1:-}; shift || true
+case $cmd in
+  sas-container)
+    [ $# -eq 5 ] || die "usage: sas-container ACCOUNT KEYFILE CONTAINER PERMS DAYS"
+    acct=$1 keyf=$2 cont=$3 sp=$4 se=$(utc_in_days "$5"); check_perms "$sp"
+    # Service SAS string-to-sign, version 2020-12-06 and later (16 fields).
+    # printf -v, not $(…): the trailing empty fields end in newlines that command substitution would strip.
+    printf -v sts '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' \
+      "$sp" "" "$se" "/blob/$acct/$cont" "" "" "https" "$SV" "c" "" "" "" "" "" "" ""
+    sig=$(hmac "$keyf" "$sts")
+    printf 'sv=%s&spr=https&se=%s&sr=c&sp=%s&sig=%s\n' "$SV" "$(urlenc "$se")" "$sp" "$(urlenc "$sig")"
+    ;;
+  sas-account)
+    [ $# -eq 4 ] || die "usage: sas-account ACCOUNT KEYFILE PERMS DAYS"
+    acct=$1 keyf=$2 sp=$3 se=$(utc_in_days "$4"); check_perms "$sp"
+    # Account SAS string-to-sign, version 2020-12-06 and later (ends with a newline after the encryption scope).
+    printf -v sts '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n' "$acct" "$sp" "b" "sco" "" "$se" "" "https" "$SV" ""
+    sig=$(hmac "$keyf" "$sts")
+    printf 'sv=%s&ss=b&srt=sco&spr=https&se=%s&sp=%s&sig=%s\n' "$SV" "$(urlenc "$se")" "$sp" "$(urlenc "$sig")"
+    ;;
+  mkcontainer)
+    [ $# -eq 3 ] || die "usage: mkcontainer BASEURL CONTAINER SAS"
+    code=$(curl -sS ${SCF_AZ_CA:+--cacert "$SCF_AZ_CA"} -H "x-ms-version: $SV" -o /dev/null -w '%{http_code}' \
+      -X PUT -H 'Content-Length: 0' "$1/$2?restype=container&$3")
+    case $code in 201) echo "created $2" ;; 409) echo "exists $2" ;; *) die "create container $2: HTTP $code" ;; esac
+    ;;
+  list)
+    [ $# -ge 3 ] || die "usage: list BASEURL CONTAINER SAS [PREFIX]"
+    auth "$3"
+    marker=""
+    while :; do
+      xml=$(curl_az "$1/$2?restype=container&comp=list&maxresults=5000${4:+&prefix=$(urlenc "$4")}${marker:+&marker=$(urlenc "$marker")}${QS:+&$QS}")
+      printf '%s' "$xml" | grep -o '<Name>[^<]*</Name>' | sed 's/<Name>\(.*\)<\/Name>/\1/' || true
+      marker=$(printf '%s' "$xml" | grep -o '<NextMarker>[^<]*</NextMarker>' | sed 's/<[^>]*>//g' || true)
+      [ -n "$marker" ] || break
+    done
+    ;;
+  put)
+    [ $# -eq 5 ] || die "usage: put BASEURL CONTAINER SAS NAME FILE"
+    auth "$3"
+    curl_az -o /dev/null -X PUT -H 'x-ms-blob-type: BlockBlob' -H 'Content-Type: application/octet-stream' \
+      --data-binary "@$5" "$1/$2/$4${QS:+?$QS}"
+    ;;
+  get)
+    [ $# -eq 5 ] || die "usage: get BASEURL CONTAINER SAS NAME FILE"
+    auth "$3"
+    curl_az -o "$5" "$1/$2/$4${QS:+?$QS}"
+    ;;
+  delete)
+    [ $# -eq 4 ] || die "usage: delete BASEURL CONTAINER SAS NAME"
+    auth "$3"
+    curl_az -o /dev/null -X DELETE "$1/$2/$4${QS:+?$QS}"
+    ;;
+  *) sed -n '3,15p' "$0" >&2; exit 2 ;;
+esac

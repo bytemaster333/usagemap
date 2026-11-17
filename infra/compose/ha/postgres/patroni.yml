@@ -1,0 +1,100 @@
+# SPDX-License-Identifier: Apache-2.0
+# Patroni 4.1.5 configuration of a database node (ADR-0020, C-108). Node-specific values and every credential come
+# from PATRONI_* environment variables set by the entrypoint (names, addresses, etcd hosts, passwords), never from
+# this file. The same file is rendered by the Ansible `postgres` role in production (infra/ansible).
+scope: scf
+namespace: /scf/
+
+restapi:
+  listen: 0.0.0.0:8008
+  # TLS (F15): the REST API serves HTTPS only, with the node's certificate from the DCS CA (SAN = node name and
+  # localhost). Read-only endpoints (/primary, /replica, /health — HAProxy, the health check, scf-backup) need no
+  # credentials; unsafe ones (switchover, restart, reinitialize, config PATCH) need PATRONI_RESTAPI_USERNAME/PASSWORD.
+  certfile: /run/secrets/patroni_rest_cert
+  keyfile: /run/secrets/patroni_rest_key
+  cafile: /run/secrets/dcs_ca
+
+ctl:
+  cacert: /run/secrets/dcs_ca
+
+# etcd v3 over TLS with client-certificate authentication (F15): etcd admits only certificates of the DCS CA.
+etcd3:
+  protocol: https
+  cacert: /run/secrets/dcs_ca
+  cert: /run/secrets/etcd_client_cert
+  key: /run/secrets/etcd_client_key
+
+bootstrap:
+  dcs:
+    # ttl > loop_wait + 2 × retry_timeout, so an isolated primary demotes itself before its leader key expires and
+    # the standby may take it (self-fencing; Patroni docs, "Dynamic configuration settings").
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    primary_start_timeout: 30 # ADR-0020: ≤ 30 s
+    maximum_lag_on_failover: 1048576
+    # Synchronous, non-strict (ADR-0020): with a healthy standby every acknowledged commit is on both nodes (RPO 0);
+    # without one the primary keeps accepting writes asynchronously.
+    synchronous_mode: true
+    synchronous_mode_strict: false
+    failsafe_mode: true
+    postgresql:
+      use_pg_rewind: true # fencing: an old primary is rewound before it rejoins (C-108)
+      use_slots: true
+      parameters:
+        wal_level: replica
+        wal_log_hints: "on"
+        max_wal_senders: 10
+        max_replication_slots: 10
+        hot_standby: "on"
+        password_encryption: scram-sha-256
+        # pgBackRest (C-108): every WAL segment to both repositories, asynchronously, at most 60 s apart.
+        archive_mode: "on"
+        archive_command: pgbackrest --stanza=scf archive-push %p
+        archive_timeout: 60
+        # Privacy invariants: no client addresses, no statements in the server log.
+        log_connections: "off"
+        log_disconnections: "off"
+        log_hostname: "off"
+        log_statement: none
+        log_min_duration_statement: -1
+  initdb:
+    - encoding: UTF8
+    - locale: C.UTF-8
+    - data-checksums
+    - auth-host: scram-sha-256
+    - auth-local: scram-sha-256
+  post_bootstrap: /usr/local/bin/scf-post-bootstrap
+
+postgresql:
+  listen: 0.0.0.0:5432
+  bin_dir: /usr/lib/postgresql/18/bin
+  pgpass: /tmp/pgpass
+  # SCRAM everywhere, no trust (C-114). Replication and pg_rewind connect over the database network.
+  pg_hba:
+    - local all all scram-sha-256
+    - host replication replicator 0.0.0.0/0 scram-sha-256
+    - host all all 0.0.0.0/0 scram-sha-256
+  # A new or rebuilt standby is restored from the backup first (S-08 O11, the measured path), and falls back to a
+  # base backup from the primary when no backup exists yet (first start of a cluster).
+  create_replica_methods: [pgbackrest, basebackup]
+  pgbackrest:
+    command: /usr/local/bin/scf-backup replica-restore
+    keep_data: true
+    no_params: true
+  basebackup:
+    checkpoint: fast
+  recovery_conf:
+    restore_command: pgbackrest --stanza=scf archive-get %f "%p"
+  # C-108: a CHECKPOINT after every start and promotion, so archive_timeout applies at once (S-08 O4).
+  callbacks:
+    on_start: /usr/local/bin/scf-pg-callback
+    on_role_change: /usr/local/bin/scf-pg-callback
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false

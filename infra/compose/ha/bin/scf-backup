@@ -1,0 +1,378 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+# Backups of the database cluster (ADR-0021, C-29, C-108, C-110, C-112): pgBackRest 2.60.0 to two Azure Blob
+# repositories, the weekly logical dump, and the metrics the monitoring plan's D11 / TM-OPS-01 alerts read. The same
+# script runs in the Compose HA profile (as a loop next to Patroni) and in production (systemd timer, Ansible role
+# `postgres`). Every scheduled action runs only on the current primary (asks Patroni's REST API).
+#
+#   scf-backup daemon                 loop: `scheduled` every SCF_BACKUP_TICK seconds (default 60)
+#   scf-backup scheduled              if primary: stanza-create (idempotent); per repository a full backup when the
+#                                     newest full is older than SCF_BACKUP_FULL_EVERY (7 d), else a differential when
+#                                     the newest backup is older than SCF_BACKUP_DIFF_EVERY (1 d); `check` every
+#                                     SCF_BACKUP_CHECK_EVERY (1 h); the logical dump every SCF_DUMP_EVERY (7 d)
+#   scf-backup backup full|diff N     one backup to repository N (1 or 2); each repository is backed up separately
+#   scf-backup check                  pgbackrest check (archiving to both repositories works)
+#   scf-backup metrics                rewrite the metrics file from `pgbackrest info`
+#   scf-backup dump                   weekly logical dump: pg_dump of every database + globals + row-count/checksum
+#                                     manifest, age-encrypted, uploaded to repository 2's container under dumps/
+#   scf-backup dump-list              list the dumps in the container
+#   scf-backup dump-restore NAME --expect-sha256 HEX
+#                                     download dump NAME, check its SHA-256 against HEX — recorded OUT OF BAND when
+#                                     the dump was made (the `dump … sha256 …` line of the dump's log, kept away from
+#                                     the dump store), never the SHA256SUMS stored next to the dump, which whoever can
+#                                     write the store can rewrite too — decrypt (SCF_DUMP_AGE_IDENTITY_FILE), restore
+#                                     the globals and every database with `pg_restore --create` (owner, ACL and
+#                                     settings of each database kept, e.g. umami's REVOKE CONNECT FROM PUBLIC) into
+#                                     the server at PGHOST (an empty instance), then compare the manifest and the
+#                                     databases' owners/ACLs: one `DUMP-RESTORE PASS|FAIL …` line (handover.data-migration).
+#                                     `--trust-stored-checksum` instead of --expect-sha256 accepts the stored
+#                                     SHA256SUMS (logged as a WARNING; only for a drill on our own store, never for
+#                                     an import from someone else's)
+#   scf-backup pgbackrest ARGS…       run pgbackrest --stanza=scf ARGS with the repository credentials loaded
+#   scf-backup replica-restore        Patroni create_replica_method: restore a standby from repository 1 (falls
+#                                     back to repository 2), then Patroni starts it streaming from the primary
+#
+# Environment: PGBACKREST_REPO{1,2}_AZURE_KEY / _CIPHER_PASS (set by the entrypoint from secrets),
+# SCF_METRICS_DIR (/var/lib/scf-metrics), SCF_DUMP_BASEURL (repository 2 account endpoint), SCF_DUMP_CONTAINER,
+# SCF_DUMP_AUTH (msi = managed identity, default sas), SCF_PATRONI_URL (none = no Patroni: ask the server), SCF_PATRONI_CA,
+# SCF_DUMP_AGE_RECIPIENT or SCF_DUMP_AGE_RECIPIENT_FILE (public key), SCF_DUMP_KEEP_DAYS (35 = 5 weekly dumps, C-29), SCF_AZ_CA (TLS CA, Azurite).
+set -euo pipefail
+
+STANZA=${SCF_STANZA:-scf}
+METRICS_DIR=${SCF_METRICS_DIR:-/var/lib/scf-metrics}
+STATE_DIR=${SCF_BACKUP_STATE_DIR:-/var/lib/pgbackrest}
+FULL_EVERY=${SCF_BACKUP_FULL_EVERY:-604800}
+DIFF_EVERY=${SCF_BACKUP_DIFF_EVERY:-86400}
+CHECK_EVERY=${SCF_BACKUP_CHECK_EVERY:-3600}
+DUMP_EVERY=${SCF_DUMP_EVERY:-604800}
+DUMP_KEEP_DAYS=${SCF_DUMP_KEEP_DAYS:-35}
+REPOS=${SCF_BACKUP_REPOS:-"1 2"}
+# Patroni's REST API is HTTPS only (F15); its certificate names localhost and is issued by the DCS CA.
+PATRONI_URL=${SCF_PATRONI_URL:-https://localhost:8008}
+[ -z "${SCF_PATRONI_CA:-}" ] && [ -r /run/secrets/dcs_ca ] && SCF_PATRONI_CA=/run/secrets/dcs_ca
+export PGHOST=${PGHOST:-/var/run/postgresql} PGUSER=${PGUSER:-postgres}
+export PGPASSWORD=${PGPASSWORD:-${PATRONI_SUPERUSER_PASSWORD:-$({ tr -d '\n' </run/secrets/pg_superuser_password; } 2>/dev/null || true)}}
+[ -z "${SCF_DUMP_AGE_RECIPIENT:-}" ] && [ -r "${SCF_DUMP_AGE_RECIPIENT_FILE:-/nonexistent}" ] && SCF_DUMP_AGE_RECIPIENT=$(tr -d '\n' <"$SCF_DUMP_AGE_RECIPIENT_FILE")
+
+# Credentials: inherited from the entrypoint, or read from the Docker secrets when called directly (docker exec,
+# systemd timer) — never from a file in the repository.
+for _n in 1 2; do
+  _k=PGBACKREST_REPO${_n}_AZURE_KEY _c=PGBACKREST_REPO${_n}_CIPHER_PASS
+  [ -z "${!_k:-}" ] && [ -r "/run/secrets/pgbackrest_repo${_n}_key" ] && export "$_k=$(tr -d '\n' <"/run/secrets/pgbackrest_repo${_n}_key")"
+  [ -z "${!_c:-}" ] && [ -r "/run/secrets/pgbackrest_repo${_n}_cipher_pass" ] && export "$_c=$(tr -d '\n' <"/run/secrets/pgbackrest_repo${_n}_cipher_pass")"
+done
+unset _n _k _c
+
+log() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) scf-backup: $*" >&2; }
+die() { log "ERROR: $*"; exit 1; }
+now() { date -u +%s; }
+pgbr() { pgbackrest --stanza="$STANZA" "$@"; }
+# Patroni's REST API answers "am I the primary?"; with SCF_PATRONI_URL=none (the lean profile's single PostgreSQL
+# without Patroni, C-123) the server itself does.
+is_primary() {
+  if [ "$PATRONI_URL" = none ]; then
+    [ "$(psql -X -At -d postgres -c 'SELECT NOT pg_is_in_recovery()' 2>/dev/null)" = t ]
+  else
+    curl -fsS -o /dev/null --max-time 3 ${SCF_PATRONI_CA:+--cacert "$SCF_PATRONI_CA"} "$PATRONI_URL/primary"
+  fi
+}
+stamp_get() { cat "$STATE_DIR/$1" 2>/dev/null || echo 0; }
+stamp_set() { echo "$2" >"$STATE_DIR/$1.tmp" && mv "$STATE_DIR/$1.tmp" "$STATE_DIR/$1"; }
+
+# Metric samples are collected in $STATE_DIR/metrics.d/<name>.prom pieces and assembled atomically into
+# $METRICS_DIR/scf_backup.prom (node_exporter textfile collector format).
+metric_piece() { mkdir -p "$STATE_DIR/metrics.d"; printf '%s\n' "$2" >"$STATE_DIR/metrics.d/$1.tmp" && mv "$STATE_DIR/metrics.d/$1.tmp" "$STATE_DIR/metrics.d/$1.prom"; }
+metrics_publish() {
+  mkdir -p "$METRICS_DIR"
+  {
+    echo "# HELP scf_backup_last_success_timestamp_seconds End time of the newest backup per repository and type (pgbackrest info)."
+    echo "# TYPE scf_backup_last_success_timestamp_seconds gauge"
+    echo "# HELP scf_backup_last_run_success 1 if the last backup attempt per repository succeeded."
+    echo "# TYPE scf_backup_last_run_success gauge"
+    echo "# HELP scf_backup_last_run_duration_seconds Duration of the last backup attempt per repository."
+    echo "# TYPE scf_backup_last_run_duration_seconds gauge"
+    echo "# HELP scf_backup_check_success 1 if the last pgbackrest check succeeded (WAL archived to every repository)."
+    echo "# TYPE scf_backup_check_success gauge"
+    echo "# HELP scf_backup_logical_dump_last_success_timestamp_seconds Time of the newest uploaded logical dump."
+    echo "# TYPE scf_backup_logical_dump_last_success_timestamp_seconds gauge"
+    cat "$STATE_DIR"/metrics.d/*.prom 2>/dev/null || true
+  } >"$METRICS_DIR/.scf_backup.prom.tmp"
+  mv "$METRICS_DIR/.scf_backup.prom.tmp" "$METRICS_DIR/scf_backup.prom"
+}
+
+# repo_info N → "<newest full stop epoch> <newest any stop epoch> <newest diff stop epoch>" (0 when none);
+# exit status ≠ 0 when the repository cannot be read (unreachable, no stanza) — then nothing is scheduled for it.
+repo_info() {
+  local json
+  json=$(pgbr --repo="$1" info --output=json 2>/dev/null) || return 1
+  printf '%s' "$json" | python3 -I -c '
+import json, sys
+data = json.load(sys.stdin)
+full = anyb = diff = 0
+for st in data:
+    if st.get("status", {}).get("code") not in (0, 2):  # 0 ok, 2 no valid backups yet
+        sys.exit(1)
+    for b in st.get("backup", []):
+        if b.get("error"):
+            continue
+        t = int(b["timestamp"]["stop"])
+        anyb = max(anyb, t)
+        if b["type"] == "full":
+            full = max(full, t)
+        elif b["type"] == "diff":
+            diff = max(diff, t)
+print(full, anyb, diff)'
+}
+
+metrics_from_info() {
+  local n full anyb diff pieces=""
+  for n in $REPOS; do
+    read -r full anyb diff < <(repo_info "$n" || echo "0 0 0")
+    pieces+="scf_backup_last_success_timestamp_seconds{repo=\"$n\",type=\"full\"} $full"$'\n'
+    pieces+="scf_backup_last_success_timestamp_seconds{repo=\"$n\",type=\"diff\"} $diff"$'\n'
+  done
+  metric_piece info "${pieces%$'\n'}"
+  metrics_publish
+}
+
+backup() { # backup TYPE N
+  local type=$1 n=$2 t0 rc=0
+  [[ $type == full || $type == diff ]] || die "backup type must be full or diff"
+  [[ $n == 1 || $n == 2 ]] || die "repository must be 1 or 2"
+  t0=$(now)
+  log "backup $type to repo$n: start"
+  pgbr --repo="$n" --type="$type" backup || rc=$?
+  metric_piece "run-$n" "scf_backup_last_run_success{repo=\"$n\"} $([ $rc = 0 ] && echo 1 || echo 0)
+scf_backup_last_run_duration_seconds{repo=\"$n\"} $(($(now) - t0))"
+  metrics_from_info
+  [ $rc = 0 ] || die "backup $type to repo$n failed (exit $rc)"
+  log "backup $type to repo$n: done in $(($(now) - t0)) s"
+}
+
+check() {
+  local rc=0
+  pgbr check || rc=$?
+  metric_piece check "scf_backup_check_success $([ $rc = 0 ] && echo 1 || echo 0)
+scf_backup_check_timestamp_seconds $(now)"
+  metrics_publish
+  return $rc
+}
+
+stanza_ready() {
+  [ -e "$STATE_DIR/stanza-ok" ] && return 0
+  # stanza-create takes the archive lock, which the asynchronous archive-push holds for a moment once per WAL switch.
+  # With archive_timeout = the scheduler tick (60 s) both start in the same second after a restart and collide on
+  # every tick (v1 host, 2026-11-18: no backup for 10 minutes, lock error [050]); retry a few times, off the beat.
+  local i
+  for i in 1 2 3 4; do
+    pgbr stanza-create && { : >"$STATE_DIR/stanza-ok"; return 0; }
+    sleep $((3 + i * 4))
+  done
+  return 1
+}
+
+scheduled() {
+  is_primary || return 0
+  stanza_ready || die "stanza-create failed"
+  local n full anyb diff t info
+  t=$(now)
+  for n in $REPOS; do
+    if ! info=$(repo_info "$n"); then
+      log "repo$n: cannot read the repository; no backup scheduled this tick"
+      continue
+    fi
+    read -r full anyb diff <<<"$info"
+    if [ $((t - full)) -ge "$FULL_EVERY" ]; then
+      backup full "$n" || true
+    elif [ $((t - anyb)) -ge "$DIFF_EVERY" ]; then
+      backup diff "$n" || true
+    fi
+  done
+  if [ $((t - $(stamp_get last-check))) -ge "$CHECK_EVERY" ]; then
+    check && stamp_set last-check "$t" || log "check failed"
+  fi
+  if [ -n "${SCF_DUMP_BASEURL:-}" ] && [ $((t - $(dump_newest))) -ge "$DUMP_EVERY" ]; then
+    dump || log "logical dump failed"
+  fi
+  metrics_from_info
+}
+
+daemon() {
+  local tick=${SCF_BACKUP_TICK:-60}
+  mkdir -p "$STATE_DIR"
+  rm -f "$STATE_DIR/stanza-ok"
+  log "scheduler started (tick ${tick}s, full every ${FULL_EVERY}s, diff every ${DIFF_EVERY}s)"
+  while :; do
+    sleep "$tick"
+    # One scheduler at a time per node; a long backup simply delays the next tick.
+    flock -n "$STATE_DIR/scheduler.lock" "$0" scheduled || log "scheduled run failed"
+  done
+}
+
+replica_restore() {
+  local n
+  for n in 1 2; do
+    log "replica-restore: trying repo$n"
+    if pgbr --repo="$n" --type=standby --delta --target-timeline=latest restore; then
+      log "replica-restore: restored from repo$n"
+      return 0
+    fi
+  done
+  log "replica-restore: no usable backup; Patroni falls back to basebackup"
+  return 1
+}
+
+# ---------------------------------------------------------------- logical dump (ADR-0021 weekly pg_dump, handover.data-migration)
+# Credentials of the dump upload: the managed identity (SCF_DUMP_AUTH=msi — the production path, F10: a bearer token from
+# the instance metadata service per request, no SAS whose lifetime could expire), else repository 2's SAS (Azurite).
+dump_sas() { if [ "${SCF_DUMP_AUTH:-sas}" = msi ]; then printf msi; else printf '%s' "${PGBACKREST_REPO2_AZURE_KEY:?}"; fi; }
+dump_list() { scf-azblob list "${SCF_DUMP_BASEURL:?}" "${SCF_DUMP_CONTAINER:?}" "$(dump_sas)" dumps/ | sed -n 's#^dumps/\([^/]*\)/SHA256SUMS$#\1#p' | sort; }
+dump_newest() {
+  local newest
+  newest=$(dump_list 2>/dev/null | tail -n1)
+  [ -n "$newest" ] && date -u -d "$(echo "$newest" | sed -E 's/^([0-9-]+)T([0-9]{2})([0-9]{2})([0-9]{2})Z$/\1 \2:\3:\4/')" +%s || echo 0
+}
+
+# manifest DB → lines "<db>\t<schema.table>\t<rows>\t<md5 of the ordered rows or ->" for every ordinary table in
+# user schemas (a partitioned table counts once, with its partitions). Checksums only for tables up to
+# SCF_DUMP_CHECKSUM_MAX_BYTES (256 MiB, partitions included), counts for all.
+# One line per user database: name, owner, ACL (as stored), allow-connections flag.
+dbacl() {
+  psql -X -At -F $'\t' -d postgres -v ON_ERROR_STOP=1 -c "
+    SELECT d.datname, pg_get_userbyid(d.datdba), coalesce(d.datacl::text, ''), d.datallowconn
+      FROM pg_database d WHERE NOT d.datistemplate AND d.datname <> 'postgres' ORDER BY 1"
+}
+
+manifest() {
+  local db=$1 max=${SCF_DUMP_CHECKSUM_MAX_BYTES:-268435456}
+  psql -X -At -F $'\t' -d "$db" -v ON_ERROR_STOP=1 -c "
+    SELECT quote_ident(n.nspname)||'.'||quote_ident(c.relname),
+           (SELECT coalesce(sum(pg_total_relation_size(p.relid)), 0) FROM pg_partition_tree(c.oid) p) <= $max
+      FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+     WHERE c.relkind IN ('r','p') AND NOT c.relispartition
+       AND n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname !~ '^pg_(toast|temp)'
+     ORDER BY 1" | while IFS=$'\t' read -r tbl small; do
+    if [ "$small" = t ]; then
+      psql -X -At -F $'\t' -d "$db" -v ON_ERROR_STOP=1 \
+        -c "SELECT '$db', '$tbl', count(*), coalesce(md5(string_agg(md5(t::text), '' ORDER BY md5(t::text))), '-') FROM $tbl t"
+    else
+      psql -X -At -F $'\t' -d "$db" -v ON_ERROR_STOP=1 -c "SELECT '$db', '$tbl', count(*), '-' FROM $tbl"
+    fi
+  done
+}
+
+user_dbs() { psql -X -At -d postgres -c "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname <> 'postgres' ORDER BY 1"; }
+
+dump() ( # subshell: the EXIT trap removes the work directory
+  is_primary || { log "dump: not the primary, skipped"; return 0; }
+  : "${SCF_DUMP_AGE_RECIPIENT:?}" "${SCF_DUMP_BASEURL:?}" "${SCF_DUMP_CONTAINER:?}"
+  local name work t0 db
+  name=$(date -u +%Y-%m-%dT%H%M%SZ); t0=$(now)
+  work=$(mktemp -d "${TMPDIR:-/tmp}/scf-dump.XXXXXX")
+  trap 'rm -rf "$work"' EXIT
+  mkdir "$work/d"
+  log "dump $name: start"
+  # One snapshot per database (pg_dump), plus the roles without their passwords (they come from SOPS on import).
+  pg_dumpall --globals-only --no-role-passwords >"$work/d/globals.sql"
+  for db in $(user_dbs); do
+    pg_dump -Fc -Z zstd -d "$db" -f "$work/d/$db.dump"
+    manifest "$db" >>"$work/d/manifest.tsv"
+  done
+  user_dbs >"$work/d/databases.txt"
+  # Owner, ACL and connection settings of each database: restored by `pg_restore --create`, compared on import.
+  dbacl >"$work/d/dbacl.tsv"
+  tar -C "$work/d" -cf - . | age -r "$SCF_DUMP_AGE_RECIPIENT" -o "$work/dump.tar.age"
+  (cd "$work" && sha256sum dump.tar.age >SHA256SUMS)
+  scf-azblob put "$SCF_DUMP_BASEURL" "$SCF_DUMP_CONTAINER" "$(dump_sas)" "dumps/$name/dump.tar.age" "$work/dump.tar.age"
+  # SHA256SUMS last: its presence marks a complete dump.
+  scf-azblob put "$SCF_DUMP_BASEURL" "$SCF_DUMP_CONTAINER" "$(dump_sas)" "dumps/$name/SHA256SUMS" "$work/SHA256SUMS"
+  metric_piece dump "scf_backup_logical_dump_last_success_timestamp_seconds $(now)
+scf_backup_logical_dump_bytes $(stat -c %s "$work/dump.tar.age")"
+  metrics_publish
+  log "dump $name: uploaded ($(stat -c %s "$work/dump.tar.age") bytes, $(($(now) - t0)) s)"
+  # The out-of-band record an import checks against (dump-restore --expect-sha256): this line goes to the journal /
+  # container log of the database node, not to the dump store.
+  log "dump $name sha256 $(cut -d' ' -f1 "$work/SHA256SUMS")"
+  # Retention: 5 weekly dumps (C-29). Older ones become previous versions, which the lifecycle rule removes (C-110).
+  local cutoff old
+  cutoff=$(date -u -d "-$DUMP_KEEP_DAYS days" +%Y-%m-%dT%H%M%SZ)
+  for old in $(dump_list); do
+    [[ $old < $cutoff ]] || continue
+    for f in SHA256SUMS dump.tar.age; do
+      scf-azblob delete "$SCF_DUMP_BASEURL" "$SCF_DUMP_CONTAINER" "$(dump_sas)" "dumps/$old/$f" || true
+    done
+    log "dump $old: expired"
+  done
+)
+
+dump_restore() ( # subshell: the EXIT trap removes the work directory
+  local name=$1 expect="" trust=0 work t0 db stage=args got
+  shift
+  t0=$(now)
+  fail() { echo "DUMP-RESTORE FAIL dump=$name stage=$stage reason=\"$1\" total=$(($(now) - t0))s"; return 1; }
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --expect-sha256) expect=${2:-}; shift 2 || { fail "--expect-sha256 needs a value"; return 1; } ;;
+      --trust-stored-checksum) trust=1; shift ;;
+      *) fail "unknown argument $1"; return 1 ;;
+    esac
+  done
+  if [ -n "$expect" ]; then
+    [[ $expect =~ ^[0-9a-f]{64}$ ]] || { fail "--expect-sha256 is not 64 lowercase hex digits"; return 1; }
+  elif [ $trust = 1 ]; then
+    log "WARNING dump-restore $name: --trust-stored-checksum — integrity checked only against the SHA256SUMS stored next to the dump, which a writer of the store can replace"
+  else
+    fail "no out-of-band checksum: pass --expect-sha256 <hash from the dump's log> (the stored SHA256SUMS can be rewritten by anyone who can write the dump store)"
+    return 1
+  fi
+  : "${SCF_DUMP_AGE_IDENTITY_FILE:?}" "${SCF_DUMP_BASEURL:?}" "${SCF_DUMP_CONTAINER:?}"
+  stage=download
+  work=$(mktemp -d "${TMPDIR:-/tmp}/scf-dump-restore.XXXXXX")
+  trap 'rm -rf "$work"' EXIT
+  scf-azblob get "$SCF_DUMP_BASEURL" "$SCF_DUMP_CONTAINER" "$(dump_sas)" "dumps/$name/SHA256SUMS" "$work/SHA256SUMS" || { fail "SHA256SUMS missing"; return 1; }
+  scf-azblob get "$SCF_DUMP_BASEURL" "$SCF_DUMP_CONTAINER" "$(dump_sas)" "dumps/$name/dump.tar.age" "$work/dump.tar.age" || { fail "dump missing"; return 1; }
+  stage=verify
+  got=$(sha256sum "$work/dump.tar.age" | cut -d' ' -f1)
+  if [ -n "$expect" ]; then
+    [ "$got" = "$expect" ] || { fail "sha256 $got is not the out-of-band $expect"; return 1; }
+  fi
+  (cd "$work" && sha256sum -c --quiet SHA256SUMS) || { fail "sha256 mismatch with the stored SHA256SUMS"; return 1; }
+  stage=decrypt
+  mkdir "$work/d"
+  age -d -i "$SCF_DUMP_AGE_IDENTITY_FILE" "$work/dump.tar.age" | tar -C "$work/d" -xf - || { fail "age/tar failed"; return 1; }
+  stage=restore
+  # Roles first (without passwords), then each database from its own archive. --create restores the database itself
+  # with its owner, ACL and settings (without it a plain CREATE DATABASE gives PUBLIC CONNECT back, e.g. on umami).
+  psql -X -q -d postgres -f "$work/d/globals.sql" >/dev/null 2>"$work/globals.err" || true
+  for db in $(cat "$work/d/databases.txt"); do
+    pg_restore --create --exit-on-error -d postgres "$work/d/$db.dump" 2>"$work/restore-$db.err" || { fail "pg_restore $db: $(tail -n1 "$work/restore-$db.err" | tr '"' "'")"; return 1; }
+  done
+  stage=compare
+  for db in $(cat "$work/d/databases.txt"); do manifest "$db"; done >"$work/manifest.after"
+  if ! diff -q "$work/d/manifest.tsv" "$work/manifest.after" >/dev/null; then
+    got=$(diff "$work/d/manifest.tsv" "$work/manifest.after" | grep -c '^[<>]' || true)
+    fail "manifest differs in $got lines"; return 1
+  fi
+  if [ -s "$work/d/dbacl.tsv" ]; then # dumps made before 2026-11-18 have no record of it
+    dbacl >"$work/dbacl.after"
+    diff -q "$work/d/dbacl.tsv" "$work/dbacl.after" >/dev/null || { fail "database owner/ACL differ: $(diff "$work/d/dbacl.tsv" "$work/dbacl.after" | grep '^>' | tr '\t\n' '  ' | tr -d '"' | cut -c1-200)"; return 1; }
+  fi
+  echo "DUMP-RESTORE PASS dump=$name databases=$(wc -l <"$work/d/databases.txt") tables=$(wc -l <"$work/d/manifest.tsv") checksum=$([ -n "$expect" ] && echo out-of-band || echo stored-only) total=$(($(now) - t0))s"
+)
+
+cmd=${1:-}; shift || true
+mkdir -p "$STATE_DIR" 2>/dev/null || true
+case $cmd in
+  daemon) daemon ;;
+  scheduled) scheduled ;;
+  backup) backup "${1:?type}" "${2:?repository}" ;;
+  check) check ;;
+  metrics) metrics_from_info ;;
+  stanza) stanza_ready ;;
+  dump) dump ;;
+  dump-list) dump_list ;;
+  dump-restore) dump_restore "${1:?dump name}" "${@:2}" ;;
+  replica-restore) replica_restore ;;
+  pgbackrest) pgbr "$@" ;; # pass-through with the credentials loaded (operators, tests)
+  *) sed -n '3,40p' "$0" >&2; exit 2 ;;
+esac
