@@ -1,0 +1,32 @@
+{
+  "name": "tests",
+  "version": "0.1.0",
+  "description": "Cross-cutting suites: e2e web and API, bot/inflation simulations, data-inventory scan, load, chaos, isolation-matrix report (ADR-0026).",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.19.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "biome check .",
+    "test": "vitest run --project unit",
+    "e2e": "vitest run --project e2e",
+    "quickstarts": "vitest run --project e2e quickstarts",
+    "quickstarts:frameworks": "playwright test -c quickstarts/frameworks/playwright.config.ts",
+    "quickstarts:backends": "quickstarts/backends/run.sh",
+    "privacy-docs": "vitest run -c privacy-docs/vitest.config.ts",
+    "stack:up": "stack/up.sh",
+    "stack:down": "stack/down.sh",
+    "load": "node load/run.ts",
+    "chaos": "node chaos/run.ts",
+    "isolation": "node isolation/run.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

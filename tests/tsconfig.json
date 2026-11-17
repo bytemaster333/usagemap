@@ -1,0 +1,22 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true
+  },
+  "include": [
+    "lib",
+    "e2e",
+    "bot",
+    "inventory",
+    "load",
+    "chaos",
+    "isolation",
+    "quickstarts",
+    "onboarding",
+    "vitest.config.ts"
+  ]
+}
