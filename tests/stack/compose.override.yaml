@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: Apache-2.0
+# Test needs on top of the real infra/compose stack (project `scf-wsl`, host ports 56300–56319). Everything else
+# — gateway with the OTLP front door, Collector on the private otlp network (C-130), writer, jobs, portal — is the
+# shared stack unchanged. Host ports come from infra/compose's own variables, set by stack/up.sh:
+#   SCF_INGEST_PORT=56300 (gateway TLS, also OTLP/HTTP)   SCF_CONTROL_PLANE_PORT=56302   SCF_PORTAL_PORT=56303
+# This file adds only:
+#   - 56301: the gateway's /metrics and /healthz on 127.0.0.1 (the suites read the spool gauges);
+#   - a stand-in Horizon (SEP-53 sign-in of unfunded test accounts without internet);
+#   - the `botnet` network (10.213.47.0/24) and range lists that classify it as `datacenter`, for the bot
+#     simulation's "cloud" client (SCF_WSL_WORK/rangelists, written by stack/up.sh);
+#   - SCF_CREATE_LIMIT_PER_HOUR high on the control plane: every fixture is created from one client address, so the
+#     production default (60 creating calls per subnet per hour, C-64) would 429 a full run. Raised here instead of
+#     restarting the control plane before each run.
+services:
+  gateway:
+    environment:
+      GW_RANGELISTS_DIR: /run/gw-rangelists
+      GW_COUNTER_PERIOD: 5s
+      GW_SNAPSHOT_INTERVAL: 5s
+    volumes:
+      - ${SCF_WSL_WORK:?run tests/stack/up.sh}/rangelists:/run/gw-rangelists:ro
+    networks:
+      core: {}
+      public: {}
+      botnet: { ipv4_address: 10.213.47.2 }
+    ports: !override ["127.0.0.1:${SCF_INGEST_PORT:-56300}:8443", "127.0.0.1:56301:9464"]
+
+  control-plane:
+    environment:
+      SCF_HORIZON_URL: http://fake-horizon:8000
+      SCF_CREATE_LIMIT_PER_HOUR: "100000"
+    depends_on:
+      fake-horizon: { condition: service_started }
+
+  # Answers 404 for every account (unfunded: master key weight 1, thresholds 0). Same as apps/portal/e2e/real.
+  fake-horizon:
+    image: node:24.19.0-alpine3.23@sha256:244cc2b53f46f9e876304391d17682b0ddae9ac33491f4857e25e35a36ba7995
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    user: "1000:1000"
+    networks: [public]
+    command:
+      - node
+      - -e
+      - 'require(''node:http'').createServer((q,s)=>{s.writeHead(404,{''content-type'':''application/json''});s.end(''{"status":404}'')}).listen(8000)'
+
+networks:
+  botnet:
+    internal: true
+    ipam:
+      config: [{ subnet: 10.213.47.0/24 }]
