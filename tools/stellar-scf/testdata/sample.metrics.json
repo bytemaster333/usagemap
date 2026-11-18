@@ -1,0 +1,348 @@
+{
+ "resourceMetrics": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "anchor-api"
+      }
+     },
+     {
+      "key": "host.name",
+      "value": {
+       "stringValue": "build-host-7"
+      }
+     },
+     {
+      "key": "process.command_args",
+      "value": {
+       "stringValue": "node server.js --token=abc"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "@opentelemetry/instrumentation-http"
+     },
+     "metrics": [
+      {
+       "name": "http.server.request.duration",
+       "unit": "s",
+       "histogram": {
+        "aggregationTemporality": 2,
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "http.route",
+            "value": {
+             "stringValue": "/sep24/transactions/{id}"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": "200"
+            }
+           },
+           {
+            "key": "url.full",
+            "value": {
+             "stringValue": "https://api.example/sep24/transactions/abc?token=x"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499140000000000",
+          "timeUnixNano": "1794499200000000000",
+          "count": "40",
+          "sum": 0.8,
+          "bucketCounts": [
+           "0",
+           "0",
+           "40",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1
+          ]
+         },
+         {
+          "attributes": [
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "url.path",
+            "value": {
+             "stringValue": "/accounts/GA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVSGZ"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": "200"
+            }
+           },
+           {
+            "key": "client.address",
+            "value": {
+             "stringValue": "203.0.113.9"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499140000000000",
+          "timeUnixNano": "1794499200000000000",
+          "count": "12",
+          "sum": 0.24,
+          "bucketCounts": [
+           "0",
+           "0",
+           "12",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1
+          ]
+         },
+         {
+          "attributes": [
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "POST"
+            }
+           },
+           {
+            "key": "http.route",
+            "value": {
+             "stringValue": "/auth"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": "200"
+            }
+           },
+           {
+            "key": "user_agent.original",
+            "value": {
+             "stringValue": "Mozilla/5.0"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499140000000000",
+          "timeUnixNano": "1794499200000000000",
+          "count": "9",
+          "sum": 0.18,
+          "bucketCounts": [
+           "0",
+           "0",
+           "9",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1
+          ]
+         }
+        ]
+       }
+      },
+      {
+       "name": "http.client.request.duration",
+       "unit": "s",
+       "histogram": {
+        "aggregationTemporality": 2,
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "POST"
+            }
+           },
+           {
+            "key": "server.address",
+            "value": {
+             "stringValue": "rpc.example"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499140000000000",
+          "timeUnixNano": "1794499200000000000",
+          "count": "30",
+          "sum": 0.6,
+          "bucketCounts": [
+           "0",
+           "0",
+           "30",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1
+          ]
+         }
+        ]
+       }
+      },
+      {
+       "name": "process.cpu.time",
+       "unit": "s",
+       "sum": {
+        "aggregationTemporality": 2,
+        "isMonotonic": true,
+        "dataPoints": [
+         {
+          "attributes": [],
+          "startTimeUnixNano": "1794499140000000000",
+          "timeUnixNano": "1794499200000000000",
+          "asDouble": 1.5
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "undeclared-worker"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "x"
+     },
+     "metrics": [
+      {
+       "name": "http.server.request.duration",
+       "unit": "s",
+       "histogram": {
+        "aggregationTemporality": 2,
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "http.request.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "http.route",
+            "value": {
+             "stringValue": "/health"
+            }
+           },
+           {
+            "key": "http.response.status_code",
+            "value": {
+             "intValue": "200"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794499140000000000",
+          "timeUnixNano": "1794499200000000000",
+          "count": "5",
+          "sum": 0.1,
+          "bucketCounts": [
+           "0",
+           "0",
+           "5",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0.005,
+           0.01,
+           0.025,
+           0.05,
+           0.1,
+           0.25,
+           0.5,
+           1
+          ]
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+# UsageMap tracker pin check (GitHub Action, also runnable locally). Node standard library only.
+#
+#   tools/pin-action/run check [DIR]   scan DIR (default .) against the live release list; env INPUT_* as in action.yml
+#   tools/pin-action/run selftest      unit tests + the action run against the fixture repositories (no network)
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cmd="${1:-}"; [ $# -gt 0 ] && shift
+case "${cmd}" in
+  check) INPUT_PATH="${1:-${INPUT_PATH:-.}}" exec node "${here}/src/main.mjs" ;;
+  selftest) cd "${here}/../.."; if command -v mise >/dev/null 2>&1; then eval "$(mise env -s bash)"; fi; node --test "$@" "${here}"/test/*.test.mjs ;;
+  *) sed -n '3,6p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac

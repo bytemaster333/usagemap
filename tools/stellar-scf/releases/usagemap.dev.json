@@ -1,0 +1,28 @@
+{
+  "comment": "Snapshot of GET https://app.usagemap.dev/v1/tracker/versions taken 2026-11-19, used by `stellar scf init` without --api. The files are served by the ingest hosts below; `init --api` reads the live list instead.",
+  "fetched_at": "2026-11-19",
+  "portal": "https://app.usagemap.dev",
+  "ingest_hosts": ["https://e1.usagemap.dev", "https://e2.usagemap.dev"],
+  "versions": [
+    {
+      "version": "1.1.0",
+      "status": "active",
+      "released_at": "2026-11-16T00:00:00.000Z",
+      "files": [
+        {
+          "profile": "standard",
+          "url": "/lib/1.1.0/standard.js",
+          "integrity": "sha384-AYjFWyBUxxvOL92oDDKxAus7EAPjONT2RDrOiuPh4XUiEJNKkMaZqGVBDw4Lqn0+",
+          "gzip_bytes": 2811
+        },
+        {
+          "profile": "strict",
+          "url": "/lib/1.1.0/strict.js",
+          "integrity": "sha384-ttV+rR22bWKREx01kjl8WFwxw9PYYHc60cbX3fEWCbzlJikl4ERzGJiGEyNDjvhv",
+          "gzip_bytes": 2443
+        }
+      ],
+      "advisory_url": null
+    }
+  ]
+}

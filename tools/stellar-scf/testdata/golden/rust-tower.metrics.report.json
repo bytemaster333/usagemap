@@ -1,0 +1,85 @@
+{
+  "signal": "metrics",
+  "rules_version": "scf-path-rules/1.1.0",
+  "received_at": "2026-11-12T16:03:25Z (given)",
+  "input_items": 17,
+  "kept_items": 7,
+  "kept": [
+    {
+      "name": "http.server.request.duration",
+      "service": "s06b-rust-tower",
+      "method": "GET",
+      "route": "/assets/{code}/{issuer}",
+      "status": 200,
+      "count": 6
+    },
+    {
+      "name": "http.server.request.duration",
+      "service": "s06b-rust-tower",
+      "method": "GET",
+      "route": "/boom",
+      "status": 500,
+      "count": 3
+    },
+    {
+      "name": "http.server.request.duration",
+      "service": "s06b-rust-tower",
+      "method": "POST",
+      "route": "/payments",
+      "status": 400,
+      "count": 5
+    },
+    {
+      "name": "http.server.request.duration",
+      "service": "s06b-rust-tower",
+      "method": "GET",
+      "route": "/accounts/{id}",
+      "status": 404,
+      "count": 2
+    },
+    {
+      "name": "http.server.request.duration",
+      "service": "s06b-rust-tower",
+      "method": "GET",
+      "route": "/health",
+      "status": 200,
+      "count": 15
+    },
+    {
+      "name": "http.server.request.duration",
+      "service": "s06b-rust-tower",
+      "method": "GET",
+      "route": "/accounts/{id}",
+      "status": 200,
+      "count": 10
+    },
+    {
+      "name": "http.server.request.duration",
+      "service": "s06b-rust-tower",
+      "method": "GET",
+      "route": "{unknown}",
+      "status": 404,
+      "count": 3
+    }
+  ],
+  "redacted": [],
+  "dropped": [
+    {
+      "reason": "metric_not_allowed",
+      "service": "s06b-rust-tower",
+      "count": 10
+    }
+  ],
+  "removed_attributes": [
+    "network.protocol.name",
+    "network.protocol.version",
+    "telemetry.sdk.language",
+    "telemetry.sdk.name",
+    "telemetry.sdk.version",
+    "url.scheme"
+  ],
+  "hints": [
+    "metric_not_allowed: only http.server.request.duration (or legacy http.server.duration) is stored; other metrics are dropped by design — filter them in your SDK views to save bandwidth.",
+    "route {unknown}: the metric point has no http.route; enable your framework's instrumentation (Express, Fastify, Spring, Django…) — url.path is never used for metrics."
+  ]
+}

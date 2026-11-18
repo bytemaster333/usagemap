@@ -1,0 +1,45 @@
+{
+  "signal": "metrics",
+  "received_at": "2026-11-19T14:09:38Z (given)",
+  "input_items": 18,
+  "kept_items": 0,
+  "kept": [],
+  "redacted": [],
+  "dropped": [
+    {
+      "reason": "client_metric_ignored",
+      "service": "stellar-dapp-api-py",
+      "count": 10
+    },
+    {
+      "reason": "metric_not_allowed",
+      "service": "stellar-dapp-api-py",
+      "count": 8
+    }
+  ],
+  "removed_attributes": [
+    "deployment.environment.name",
+    "error.type",
+    "http.request.method",
+    "http.response.status_code",
+    "rpc.method",
+    "rpc.status_code",
+    "rpc.system.name",
+    "service.instance.id",
+    "service.name",
+    "stellar.network",
+    "stellar.sim.error_class",
+    "stellar.sim.outcome",
+    "stellar.tx.result_class",
+    "stellar.tx.status",
+    "stellar.tx.via",
+    "telemetry.sdk.language",
+    "telemetry.sdk.name",
+    "telemetry.sdk.version",
+    "url.template"
+  ],
+  "hints": [
+    "client_metric_ignored: this client-side metric (http.client.*, rpc.client.*) is not on UsageMap's allow-list: only the client metrics named in the API onboarding guide are stored; drop the others in your SDK views.",
+    "metric_not_allowed: only http.server.request.duration (or legacy http.server.duration) is stored; other metrics are dropped by design — filter them in your SDK views to save bandwidth."
+  ]
+}

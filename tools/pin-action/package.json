@@ -1,0 +1,9 @@
+{
+  "name": "@usagemap/pin-action",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "GitHub Action that checks UsageMap tracker <script> pins (version + SRI + crossorigin) and writes a patch with the proposed pins. Node standard library only; not a workspace package and never published to npm.",
+  "dependencies": {},
+  "devDependencies": {}
+}

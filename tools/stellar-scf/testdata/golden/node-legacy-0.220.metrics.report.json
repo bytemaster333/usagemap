@@ -1,0 +1,87 @@
+{
+  "signal": "metrics",
+  "rules_version": "scf-path-rules/1.1.0",
+  "received_at": "2026-11-12T15:52:47Z (given)",
+  "input_items": 6,
+  "kept_items": 6,
+  "kept": [
+    {
+      "name": "http.server.duration",
+      "service": "s06a-node-0.220.0",
+      "method": "GET",
+      "route": "/health",
+      "status": 200,
+      "count": 11
+    },
+    {
+      "name": "http.server.duration",
+      "service": "s06a-node-0.220.0",
+      "method": "GET",
+      "route": "/accounts/{id}",
+      "status": 200,
+      "count": 20
+    },
+    {
+      "name": "http.server.duration",
+      "service": "s06a-node-0.220.0",
+      "method": "GET",
+      "route": "/accounts/{id}",
+      "status": 404,
+      "count": 5
+    },
+    {
+      "name": "http.server.duration",
+      "service": "s06a-node-0.220.0",
+      "method": "GET",
+      "route": "/assets/{code}/{issuer}",
+      "status": 200,
+      "count": 10
+    },
+    {
+      "name": "http.server.duration",
+      "service": "s06a-node-0.220.0",
+      "method": "GET",
+      "route": "/boom",
+      "status": 500,
+      "count": 5
+    },
+    {
+      "name": "http.server.duration",
+      "service": "s06a-node-0.220.0",
+      "method": "GET",
+      "route": "{unknown}",
+      "status": 404,
+      "count": 3
+    }
+  ],
+  "redacted": [],
+  "dropped": [],
+  "removed_attributes": [
+    "host.arch",
+    "host.id",
+    "host.name",
+    "http.flavor",
+    "http.method",
+    "http.scheme",
+    "http.status_code",
+    "net.host.name",
+    "net.host.port",
+    "process.command",
+    "process.command_args",
+    "process.executable.name",
+    "process.executable.path",
+    "process.owner",
+    "process.pid",
+    "process.runtime.description",
+    "process.runtime.name",
+    "process.runtime.version",
+    "spike.seen.content-type",
+    "spike.seen.user-agent",
+    "telemetry.sdk.language",
+    "telemetry.sdk.name",
+    "telemetry.sdk.version"
+  ],
+  "hints": [
+    "route {unknown}: the metric point has no http.route; enable your framework's instrumentation (Express, Fastify, Spring, Django…) — url.path is never used for metrics."
+  ]
+}

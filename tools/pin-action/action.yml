@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: Apache-2.0
+name: UsageMap tracker pin check
+description: >-
+  Checks that every UsageMap tracker <script> in the repository is pinned to a released, non-withdrawn version with
+  the release's SRI hash and crossorigin="anonymous", and writes a patch with the proposed pins. It reads only the
+  public tracker release list, uses no token, and never pushes, commits or opens pull requests.
+author: UsageMap
+branding:
+  icon: lock
+  color: blue
+inputs:
+  manifest-url:
+    description: >-
+      Public tracker release list: the portal's /v1/tracker/versions (has the withdrawn status), or an ingest host's
+      /lib/manifest.json. https only. The only network request the action makes.
+    required: false
+    default: https://app.usagemap.dev/v1/tracker/versions
+  manifest-file:
+    description: A local release list (same formats) instead of manifest-url; then no network request is made.
+    required: false
+    default: ""
+  hosts:
+    description: Comma-separated ingest hosts whose /lib/<version>/<profile>.js tags are checked.
+    required: false
+    default: e1.usagemap.dev,e2.usagemap.dev
+  path:
+    description: Directory to scan.
+    required: false
+    default: "."
+  exclude:
+    description: Comma-separated directory names that are never entered.
+    required: false
+    default: node_modules,.git
+  patch-file:
+    description: Where the patch with the proposed pins is written (only when something should change).
+    required: false
+    default: usagemap-tracker-pins.patch
+  upgrade:
+    description: >-
+      "true": every proposal moves the tag to the newest active release. "false": a tag on an active release whose
+      attributes are wrong keeps its version, and an outdated but correct pin is only reported.
+    required: false
+    default: "true"
+  fail-on-outdated:
+    description: Fail on a correct pin of an older release too (default only warns).
+    required: false
+    default: "false"
+outputs:
+  tags:
+    description: Number of tracker tags found.
+  errors:
+    description: Tags with an error (unknown or withdrawn version, missing or wrong SRI hash, missing crossorigin).
+  warnings:
+    description: Correct pins of an older release.
+  patch-file:
+    description: Path of the written patch, empty when nothing should change.
+runs:
+  using: node24
+  main: src/main.mjs

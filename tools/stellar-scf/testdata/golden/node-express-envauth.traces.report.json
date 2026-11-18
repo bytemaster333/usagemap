@@ -1,0 +1,107 @@
+{
+  "signal": "traces",
+  "rules_version": "scf-path-rules/1.1.0",
+  "received_at": "2026-11-12T15:52:39Z (given)",
+  "input_items": 42,
+  "kept_items": 18,
+  "kept": [
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-express-sdk-envauth",
+      "method": "GET",
+      "route": "/health",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-express-sdk-envauth",
+      "method": "GET",
+      "route": "/accounts/{id}",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-express-sdk-envauth",
+      "method": "GET",
+      "route": "/accounts/{id}",
+      "status": 404,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-express-sdk-envauth",
+      "method": "GET",
+      "route": "/assets/{code}/{issuer}",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-express-sdk-envauth",
+      "method": "GET",
+      "route": "/boom",
+      "status": 500,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-express-sdk-envauth",
+      "method": "GET",
+      "route": "/nope/unmatched-canary-path",
+      "status": 404,
+      "count": 3
+    }
+  ],
+  "redacted": [],
+  "dropped": [
+    {
+      "reason": "span_not_server",
+      "service": "s06a-express-sdk-envauth",
+      "count": 24
+    }
+  ],
+  "removed_attributes": [
+    "client.address",
+    "error.type",
+    "express.name",
+    "express.type",
+    "host.arch",
+    "host.id",
+    "host.name",
+    "network.peer.address",
+    "network.peer.port",
+    "network.protocol.version",
+    "os.type",
+    "os.version",
+    "process.command",
+    "process.command_args",
+    "process.executable.name",
+    "process.executable.path",
+    "process.owner",
+    "process.pid",
+    "process.runtime.description",
+    "process.runtime.name",
+    "process.runtime.version",
+    "router.name",
+    "router.type",
+    "router.version",
+    "server.address",
+    "server.port",
+    "spike.seen.api-key",
+    "spike.seen.authorization",
+    "spike.seen.content-type",
+    "spike.seen.user-agent",
+    "telemetry.sdk.language",
+    "telemetry.sdk.name",
+    "telemetry.sdk.version",
+    "url.path",
+    "url.query",
+    "url.scheme",
+    "user_agent.original"
+  ],
+  "hints": [
+    "span_not_server: only SERVER spans count; CLIENT/INTERNAL spans are dropped. Sending metrics instead of traces avoids the bandwidth."
+  ]
+}

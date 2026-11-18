@@ -1,0 +1,90 @@
+{
+  "signal": "traces",
+  "rules_version": "scf-path-rules/1.1.0",
+  "received_at": "2026-11-12T15:53:11Z (given)",
+  "input_items": 30,
+  "kept_items": 18,
+  "kept": [
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-default",
+      "method": "GET",
+      "route": "/health",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-default",
+      "method": "GET",
+      "route": "/accounts/{account_id}",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-default",
+      "method": "GET",
+      "route": "/accounts/{account_id}",
+      "status": 404,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-default",
+      "method": "GET",
+      "route": "/assets/{code}/{issuer}",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-default",
+      "method": "GET",
+      "route": "/boom",
+      "status": 500,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-default",
+      "method": "GET",
+      "route": "/nope/unmatched-canary-path",
+      "status": 404,
+      "count": 3
+    }
+  ],
+  "redacted": [],
+  "dropped": [
+    {
+      "reason": "span_not_server",
+      "service": "s06a-fastapi-default",
+      "count": 12
+    }
+  ],
+  "removed_attributes": [
+    "asgi.event.type",
+    "http.flavor",
+    "http.host",
+    "http.method",
+    "http.scheme",
+    "http.server_name",
+    "http.status_code",
+    "http.target",
+    "http.url",
+    "http.user_agent",
+    "net.host.port",
+    "net.peer.ip",
+    "net.peer.port",
+    "spike.seen.api-key",
+    "spike.seen.content-type",
+    "spike.seen.user-agent",
+    "spike.seen.x-vendor-key",
+    "telemetry.sdk.language",
+    "telemetry.sdk.name",
+    "telemetry.sdk.version"
+  ],
+  "hints": [
+    "span_not_server: only SERVER spans count; CLIENT/INTERNAL spans are dropped. Sending metrics instead of traces avoids the bandwidth."
+  ]
+}

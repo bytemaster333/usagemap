@@ -1,0 +1,26 @@
+{
+  "signal": "metrics",
+  "received_at": "2026-11-19T14:17:34Z (given)",
+  "input_items": 10,
+  "kept_items": 0,
+  "kept": [],
+  "redacted": [],
+  "dropped": [
+    {
+      "reason": "metric_not_allowed",
+      "service": "partner-dapp-api",
+      "count": 10
+    }
+  ],
+  "removed_attributes": [
+    "deployment.environment.name",
+    "service.name",
+    "stellar.network",
+    "stellar.partner",
+    "stellar.partner.operation",
+    "stellar.partner.outcome"
+  ],
+  "hints": [
+    "metric_not_allowed: only http.server.request.duration (or legacy http.server.duration) is stored; other metrics are dropped by design — filter them in your SDK views to save bandwidth."
+  ]
+}

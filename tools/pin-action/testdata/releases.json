@@ -1,0 +1,11 @@
+[
+  {"version":"1.1.0","status":"active","released_at":"2026-11-16T00:00:00.000Z","files":[
+    {"profile":"standard","url":"/lib/1.1.0/standard.js","integrity":"sha384-AYjFWyBUxxvOL92oDDKxAus7EAPjONT2RDrOiuPh4XUiEJNKkMaZqGVBDw4Lqn0+"},
+    {"profile":"strict","url":"/lib/1.1.0/strict.js","integrity":"sha384-ttV+rR22bWKREx01kjl8WFwxw9PYYHc60cbX3fEWCbzlJikl4ERzGJiGEyNDjvhv"}],"advisory_url":null},
+  {"version":"1.0.1","status":"withdrawn","released_at":"2026-11-14T00:00:00.000Z","files":[
+    {"profile":"standard","url":"/lib/1.0.1/standard.js","integrity":"sha384-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"},
+    {"profile":"strict","url":"/lib/1.0.1/strict.js","integrity":"sha384-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"}],"advisory_url":"https://usagemap.dev/advisories/example"},
+  {"version":"1.0.0","status":"active","released_at":"2026-11-12T00:00:00.000Z","files":[
+    {"profile":"standard","url":"/lib/1.0.0/standard.js","integrity":"sha384-grGHJaIn1S7+QsKcbybsmEiu1LXgxcbaz4buMHrOZKdbGyYIStg+BbK8eJuYeX8K"},
+    {"profile":"strict","url":"/lib/1.0.0/strict.js","integrity":"sha384-gbYqCs3Lbddg6Db5dI0EHQcSrYJ3O7/3vCYBPbhT6om3e+f89IkQkiwlLBzlABwP"}],"advisory_url":null}
+]

@@ -1,0 +1,88 @@
+{
+  "signal": "traces",
+  "rules_version": "scf-path-rules/1.1.0",
+  "received_at": "2026-11-12T15:52:59Z (given)",
+  "input_items": 21,
+  "kept_items": 18,
+  "kept": [
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-next-sdk",
+      "method": "GET",
+      "route": "/health",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-next-sdk",
+      "method": "GET",
+      "route": "/accounts/{id}",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-next-sdk",
+      "method": "GET",
+      "route": "/accounts/{id}",
+      "status": 404,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-next-sdk",
+      "method": "GET",
+      "route": "/assets/{code}/{issuer}",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-next-sdk",
+      "method": "GET",
+      "route": "/boom",
+      "status": 500,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-next-sdk",
+      "method": "GET",
+      "route": "/nope/unmatched-canary-path",
+      "status": 404,
+      "count": 3
+    }
+  ],
+  "redacted": [],
+  "dropped": [
+    {
+      "reason": "span_not_server",
+      "service": "s06a-next-sdk",
+      "count": 3
+    }
+  ],
+  "removed_attributes": [
+    "cloud.provider",
+    "error.type",
+    "http.method",
+    "http.status_code",
+    "http.target",
+    "next.route",
+    "next.rsc",
+    "next.span_category",
+    "next.span_name",
+    "next.span_type",
+    "node.env",
+    "operation.name",
+    "process.runtime.name",
+    "resource.name",
+    "spike.seen.content-type",
+    "spike.seen.user-agent",
+    "spike.seen.x-vendor-key",
+    "vercel.runtime"
+  ],
+  "hints": [
+    "span_not_server: only SERVER spans count; CLIENT/INTERNAL spans are dropped. Sending metrics instead of traces avoids the bandwidth."
+  ]
+}

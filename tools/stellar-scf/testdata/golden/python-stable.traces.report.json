@@ -1,0 +1,88 @@
+{
+  "signal": "traces",
+  "rules_version": "scf-path-rules/1.1.0",
+  "received_at": "2026-11-12T15:53:16Z (given)",
+  "input_items": 30,
+  "kept_items": 18,
+  "kept": [
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-stable",
+      "method": "GET",
+      "route": "/health",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-stable",
+      "method": "GET",
+      "route": "/accounts/{account_id}",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-stable",
+      "method": "GET",
+      "route": "/accounts/{account_id}",
+      "status": 404,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-stable",
+      "method": "GET",
+      "route": "/assets/{code}/{issuer}",
+      "status": 200,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-stable",
+      "method": "GET",
+      "route": "/boom",
+      "status": 500,
+      "count": 3
+    },
+    {
+      "name": "span (SERVER)",
+      "service": "s06a-fastapi-stable",
+      "method": "GET",
+      "route": "/nope/unmatched-canary-path",
+      "status": 404,
+      "count": 3
+    }
+  ],
+  "redacted": [],
+  "dropped": [
+    {
+      "reason": "span_not_server",
+      "service": "s06a-fastapi-stable",
+      "count": 12
+    }
+  ],
+  "removed_attributes": [
+    "asgi.event.type",
+    "client.address",
+    "client.port",
+    "error.type",
+    "network.protocol.version",
+    "server.address",
+    "server.port",
+    "spike.seen.api-key",
+    "spike.seen.content-type",
+    "spike.seen.user-agent",
+    "spike.seen.x-vendor-key",
+    "telemetry.sdk.language",
+    "telemetry.sdk.name",
+    "telemetry.sdk.version",
+    "url.path",
+    "url.query",
+    "url.scheme",
+    "user_agent.original"
+  ],
+  "hints": [
+    "span_not_server: only SERVER spans count; CLIENT/INTERNAL spans are dropped. Sending metrics instead of traces avoids the bandwidth."
+  ]
+}
