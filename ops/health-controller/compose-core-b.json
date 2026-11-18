@@ -1,0 +1,50 @@
+{
+  "instance": "core-b",
+  "interval": "10s",
+  "probe_timeout": "4s",
+  "provider_timeout": "5s",
+  "nodes": [
+    {
+      "id": "edge-a1",
+      "ipv4": "192.0.2.11",
+      "ipv6": "2001:db8:e::11",
+      "health_url": "http://gateway:9464/healthz",
+      "ingest_url": "https://gateway:8443"
+    },
+    { "id": "edge-a2", "ipv4": "192.0.2.12", "health_url": "http://status:8080/healthz" }
+  ],
+  "hostnames": [
+    {
+      "name": "ingest-a.example-analytics.org",
+      "zone": "example-analytics.org",
+      "ttl": 60,
+      "nodes": ["edge-a1", "edge-a2"]
+    },
+    {
+      "name": "ingest-b.example-analytics.net",
+      "zone": "example-analytics.net",
+      "ttl": 60,
+      "nodes": ["edge-a1", "edge-a2"]
+    }
+  ],
+  "providers": [
+    {
+      "name": "dns-a",
+      "kind": "http",
+      "endpoint": "http://dns-a:8053",
+      "token_file": "/run/secrets/dns_token"
+    },
+    {
+      "name": "dns-b",
+      "kind": "http",
+      "endpoint": "http://dns-b:8053",
+      "token_file": "/run/secrets/dns_token"
+    }
+  ],
+  "canary": {
+    "site_key": "SmokeIntegration000001",
+    "origin": "https://site.test",
+    "tracker_version": "1.0.0"
+  },
+  "peers": ["http://hc-mon-c:9470"]
+}

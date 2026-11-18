@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# Support holiday calendar (docs/sla.md §9.2–9.3; read by tools/support/sla.ts).
+# Dates on which the support clock does not run, in addition to Saturdays and Sundays.
+# One `- YYYY-MM-DD` per line (comments allowed). The business-day time zone is SCF_SUPPORT_TZ (default UTC).
+# Empty: weekends only.

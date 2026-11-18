@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+# Sloth v0.16 spec for SLO-1 ingest availability (ADR-0031, C-78). The SLI is the probe-round quorum verdict recorded
+# as scf:probe_quorum:bad (1 bad, 0 good, absent unknown) in ops/alerts/recording.rules.yaml. Sloth's own alerts are
+# disabled: the plan's named burn-rate alerts (IngestBurnRateFast/Slow, IngestBudgetTicket) live in
+# ops/alerts/slo.rules.yaml over these recording rules.
+#   sloth generate -i ops/slo/ingest.sloth.yaml   (output structure mirrored in ops/alerts/recording.rules.yaml)
+version: prometheus/v1
+service: ingest
+labels:
+  sloth_id: ingest-availability
+slos:
+  - name: availability
+    objective: 99.99
+    description: Probe rounds (30 s, 3 sources, 2-of-3 quorum) in which an ingest hostname accepted the canary within 2 s.
+    sli:
+      raw:
+        errorRatioQuery: avg_over_time(scf:probe_quorum:bad{kind="round",target="ingest"}[{{.window}}])
+    alerting:
+      pageAlert: { disable: true }
+      ticketAlert: { disable: true }

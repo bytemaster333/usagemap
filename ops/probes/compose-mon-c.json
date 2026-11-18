@@ -1,0 +1,25 @@
+{
+  "source": "mon-c",
+  "hosts": {
+    "host-a": "https://ingest-a.example-analytics.org:8443",
+    "host-b": "https://ingest-b.example-analytics.net:8443"
+  },
+  "nodes": { "edge-a1": "https://gateway:8443" },
+  "site_key": "SmokeIntegration000001",
+  "origin": "https://site.test",
+  "tracker_version": "1.0.0",
+  "interval": "30s",
+  "deadline": "2s",
+  "store_dir": "/var/lib/scf-probes",
+  "metrics_addr": ":9480",
+  "ingest_ca_file": "/run/secrets/scf_ca",
+  "journey": {
+    "every": "60s",
+    "api": "http://control-plane:8080",
+    "portal_origin": "http://localhost:56332",
+    "seed_file": "/run/secrets/journey_seed",
+    "tenant_id": "0193b7e2-0000-7000-8000-00000000050a",
+    "site_id": "0193b7e2-0000-7000-8000-0000000005a1",
+    "require_data": true
+  }
+}

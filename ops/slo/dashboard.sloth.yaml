@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Sloth v0.16 spec for SLO-4 dashboard availability (ADR-0031, C-93): signed-in synthetic journeys every 60 s from
+# the three probe sources, 2-of-3 quorum. Alerts: DashboardBurnRateFast/Slow in ops/alerts/slo.rules.yaml.
+version: prometheus/v1
+service: dashboard
+labels:
+  sloth_id: dashboard-availability
+slos:
+  - name: availability
+    objective: 99.9
+    description: Signed-in journeys (web overview, API overview, operator API) that succeeded within 3 s per step.
+    sli:
+      raw:
+        errorRatioQuery: avg_over_time(scf:probe_quorum:bad{kind="journey",target="dashboard"}[{{.window}}])
+    alerting:
+      pageAlert: { disable: true }
+      ticketAlert: { disable: true }
