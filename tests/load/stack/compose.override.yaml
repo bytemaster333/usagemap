@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: Apache-2.0
+# Engine-ceiling stack (engine ceiling run and the tools/forge end-to-end test): the real infra/compose stack plus
+# only what these runs need, on their own Compose project (rvt) and host ports 56540–56549 so they never collide
+# with tests/stack (scf-wsl, 56300–56319):
+#   SCF_INGEST_PORT=56540 (gateway TLS, also OTLP/HTTP)  56541 gateway /metrics + /healthz
+#   SCF_CONTROL_PLANE_PORT=56542   SCF_PORTAL_PORT=56543
+# Added: counters and snapshots every 5 s (the forge tool and the ceiling run read counters back), a stand-in Horizon
+# (SEP-53 sign-in of unfunded test accounts without internet) and a raised create limit (every fixture comes from one
+# address). No other change: the gateway, engine proxy, Umami, Collector and writer are the shipped configuration.
+services:
+  gateway:
+    environment:
+      GW_COUNTER_PERIOD: 5s
+      GW_SNAPSHOT_INTERVAL: 5s
+      # The shipped default is 16 (services/gateway/internal/config); the ceiling run's sensitivity step raises it
+      # (RVT_FORWARD_WORKERS=64 tests/load/stack/up.sh) to tell the forwarder's concurrency from Umami's own limit.
+      GW_FORWARD_WORKERS: ${RVT_FORWARD_WORKERS:-16}
+    ports:
+      !override [
+        "127.0.0.1:${SCF_INGEST_PORT:-56540}:8443",
+        "127.0.0.1:${SCF_GATEWAY_METRICS_PORT:-56541}:9464",
+      ]
+
+  control-plane:
+    environment:
+      SCF_HORIZON_URL: http://fake-horizon:8000
+      SCF_CREATE_LIMIT_PER_HOUR: "100000"
+    depends_on:
+      fake-horizon: { condition: service_started }
+
+  # Answers 404 for every account (unfunded), as in tests/stack.
+  fake-horizon:
+    image: node:24.19.0-alpine3.23@sha256:244cc2b53f46f9e876304391d17682b0ddae9ac33491f4857e25e35a36ba7995
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    user: "1000:1000"
+    networks: [public]
+    command:
+      - node
+      - -e
+      - 'require(''node:http'').createServer((q,s)=>{s.writeHead(404,{''content-type'':''application/json''});s.end(''{"status":404}'')}).listen(8000)'
