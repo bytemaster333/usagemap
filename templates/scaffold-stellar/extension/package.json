@@ -1,0 +1,18 @@
+{
+  "name": "stellar-scaffold-usagemap",
+  "version": "0.1.0",
+  "description": "Scaffold Stellar extension: records the project's deployed contract ids and (opt-in, with a key) registers them with UsageMap's Registered Footprint.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "stellar-scaffold-usagemap": "./bin/stellar-scaffold-usagemap"
+  },
+  "files": [
+    "bin",
+    "lib.mjs"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  }
+}

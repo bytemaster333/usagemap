@@ -1,0 +1,19 @@
+#!/usr/bin/env node
+// SPDX-License-Identifier: Apache-2.0
+// Scaffold Stellar extension entry point; the logic is in ../lib.mjs.
+import { readFileSync } from "node:fs";
+import { run } from "../lib.mjs";
+
+const argv = process.argv.slice(2);
+const stdin = argv[0] === "manifest" ? "" : readFileSync(0, "utf8");
+try {
+  process.exitCode = await run(argv, {
+    stdin,
+    env: process.env,
+    out: (line) => process.stdout.write(`${line}\n`),
+    err: (line) => process.stderr.write(`${line}\n`),
+  });
+} catch (e) {
+  process.stderr.write(`usagemap: ${e instanceof Error ? e.message : "failed"}\n`);
+  process.exitCode = 1;
+}
