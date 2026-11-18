@@ -1,0 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
+import { index, type RouteConfig, route } from "@react-router/dev/routes";
+
+export default [index("routes/home.tsx"), route("about", "routes/about.tsx")] satisfies RouteConfig;

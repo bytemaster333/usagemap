@@ -1,0 +1,14 @@
+{
+  "name": "example-vitepress",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev docs",
+    "build": "vitepress build docs"
+  },
+  "devDependencies": {
+    "vitepress": "1.6.4"
+  }
+}

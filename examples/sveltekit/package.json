@@ -1,0 +1,26 @@
+{
+  "name": "example-sveltekit",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "imports": {
+    "#lib": "./src/lib",
+    "#lib/*": "./src/lib/*"
+  },
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "start": "node build"
+  },
+  "dependencies": {
+    "@usagemap/tracker": "file:../../tracker"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "6.0.2",
+    "@sveltejs/kit": "3.2.0",
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "svelte": "5.57.3",
+    "vite": "8.3.8"
+  }
+}

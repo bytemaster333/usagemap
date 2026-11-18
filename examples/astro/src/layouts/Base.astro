@@ -1,0 +1,28 @@
+---
+// src/layouts/Base.astro — the snippet goes in the <head> of the layout every page uses
+import { ClientRouter } from "astro:transitions";
+
+// your site key (portal: site → Snippet), set at build time: PUBLIC_SCF_SITE=… pnpm build
+const site = import.meta.env.PUBLIC_SCF_SITE;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Example: Astro</title>
+    <script
+      is:inline
+      src="https://ingest-a.example-analytics.org/lib/1.2.0/standard.js"
+      integrity="sha384-9cCOUUPE6uUu1Hwc1k3dMe7p64S2BpjVx5u4FoYVgXXomF744QWb1rSVHZqK7MRu"
+      crossorigin="anonymous"
+      data-site={site}
+      defer
+    ></script>
+    <ClientRouter />
+  </head>
+  <body>
+    <nav><a href="/">Home</a> <a href="/about/">About</a></nav>
+    <slot />
+  </body>
+</html>

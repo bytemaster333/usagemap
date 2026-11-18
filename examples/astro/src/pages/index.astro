@@ -1,0 +1,11 @@
+---
+// src/pages/index.astro — a custom event through the classic script's window.scf
+import Base from "../layouts/Base.astro";
+---
+
+<Base>
+  <h1>Home</h1>
+  <button type="button" onclick="window.scf && window.scf.track('signup', { plan: 'free' })">
+    Sign up
+  </button>
+</Base>

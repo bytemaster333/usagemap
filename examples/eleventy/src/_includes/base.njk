@@ -1,0 +1,20 @@
+{# src/_includes/base.njk — the snippet goes in the <head> of the layout every page uses #}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }}</title>
+    <script
+      src="https://ingest-a.example-analytics.org/lib/1.2.0/standard.js"
+      integrity="sha384-9cCOUUPE6uUu1Hwc1k3dMe7p64S2BpjVx5u4FoYVgXXomF744QWb1rSVHZqK7MRu"
+      crossorigin="anonymous"
+      data-site="{{ scf.site }}"
+      defer
+    ></script>
+  </head>
+  <body>
+    <nav><a href="/">Home</a> <a href="/about/">About</a></nav>
+    {{ content | safe }}
+  </body>
+</html>

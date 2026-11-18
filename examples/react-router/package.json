@@ -1,0 +1,29 @@
+{
+  "name": "example-react-router",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "react-router dev",
+    "build": "react-router build",
+    "start": "react-router-serve ./build/server/index.js"
+  },
+  "dependencies": {
+    "@react-router/node": "8.5.1",
+    "@react-router/serve": "8.5.1",
+    "@usagemap/tracker": "file:../../tracker",
+    "isbot": "5.2.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router": "8.5.1"
+  },
+  "devDependencies": {
+    "@react-router/dev": "8.5.1",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.8"
+  }
+}
