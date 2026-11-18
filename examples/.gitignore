@@ -1,0 +1,30 @@
+# build output and generated files of the example apps
+node_modules/
+.next/
+next-env.d.ts
+.nuxt/
+.output/
+.svelte-kit/
+.astro/
+.react-router/
+build/
+dist/
+_site/
+*.tsbuildinfo
+.vitepress/cache/
+.docusaurus/
+# other runtimes (Rust, Python, Dart/Flutter, Wrangler, Expo, Vercel, Java)
+target/
+.venv/
+__pycache__/
+*.pyc
+.dart_tool/
+.flutter-plugins*
+.wrangler/
+.expo/
+.vercel/
+.gradle/
+.deno/
+.env
+.env.*
+!.env.example

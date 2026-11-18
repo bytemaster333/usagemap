@@ -1,0 +1,24 @@
+# Example apps (licence exception D11: examples only, never shipped). Their own workspace and lockfile, separate from
+# the product's: the licence gate scans the root lockfile, not this one. Same supply-chain settings as the root.
+packages:
+  - "*"
+  # Expo/React Native: run on a phone or emulator with its own `npm install` (README); not installed here
+  - "!mobile-react-native"
+
+# never install a version younger than 3 days (as the root workspace)
+minimumReleaseAge: 4320
+
+# Install scripts: default deny, every one listed. All have prebuilt or pure-JavaScript fallbacks; none is needed for
+# a browser bundle.
+allowBuilds:
+  "@reown/appkit": false
+  bufferutil: false
+  core-js: false
+  esbuild: false
+  keccak: false
+  protobufjs: false
+  secp256k1: false
+  utf-8-validate: false
+  # workerd (Cloudflare Workers runtime, wrangler): the binary comes from its platform package; its postinstall
+  # only checks that, so it is not needed
+  workerd: false
