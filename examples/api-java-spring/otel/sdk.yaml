@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0
+# Dual export with the OpenTelemetry Java agent 2.33.1: OTEL_CONFIG_FILE=otel/sdk.yaml. ${VAR} is substituted from
+# the environment. Your APM gets traces, metrics and logs as before; UsageMap gets metrics only. The agent has no
+# per-reader filter, so UsageMap also receives jvm.* and other metrics, which it drops before storage.
+file_format: "1.2"
+resource:
+  attributes:
+    - name: service.name
+      value: ${OTEL_SERVICE_NAME}
+  detection/development:
+    detectors:
+      - service: # adds service.instance.id (no detector runs by default in declarative mode)
+tracer_provider:
+  processors:
+    - batch:
+        exporter:
+          otlp_http:
+            endpoint: ${APM_OTLP_ENDPOINT}/v1/traces
+            headers: [{ name: api-key, value: "${APM_API_KEY}" }]
+meter_provider:
+  # Exemplars would copy span attributes (client.address from X-Forwarded-For, url.query, user_agent.original) into
+  # every export, to your APM and to UsageMap alike. Measured with agent 2.33.1; switch them off.
+  exemplar_filter: always_off
+  readers:
+    - periodic:
+        exporter:
+          otlp_http:
+            endpoint: ${APM_OTLP_ENDPOINT}/v1/metrics
+            headers: [{ name: api-key, value: "${APM_API_KEY}" }]
+    - periodic:
+        exporter:
+          otlp_http:
+            endpoint: ${SCF_OTLP_ENDPOINT}/v1/metrics
+            headers: [{ name: Authorization, value: "Bearer ${SCF_OTLP_TOKEN}" }]
+            temporality_preference: cumulative
+            default_histogram_aggregation: explicit_bucket_histogram
+logger_provider:
+  processors:
+    - batch:
+        exporter:
+          otlp_http:
+            endpoint: ${APM_OTLP_ENDPOINT}/v1/logs
+            headers: [{ name: api-key, value: "${APM_API_KEY}" }]
+propagator:
+  composite: [{ tracecontext }, { baggage }]

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+[package]
+name = "example-api-rust-axum"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+
+[dependencies]
+axum = "=0.8.9"
+tokio = { version = "=1.54.1", features = ["rt-multi-thread", "macros", "signal", "net"] }
+opentelemetry = "=0.33.1"
+opentelemetry_sdk = "=0.33.1"
+opentelemetry-otlp = { version = "=0.33.1", features = ["reqwest-rustls"] }            # https support
+opentelemetry-instrumentation-tower = { version = "=0.19.0", features = ["axum"] }     # 'axum' is not a default feature
+tracing-subscriber = { version = "=0.3.23", features = ["env-filter"] }                # export errors are reported here

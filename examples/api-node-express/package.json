@@ -1,0 +1,22 @@
+{
+  "name": "example-api-node-express",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "start:scf-only": "node --experimental-loader=@opentelemetry/instrumentation/hook.mjs --import @opentelemetry/auto-instrumentations-node/register app.mjs",
+    "start:dual-export": "node --import ./otel-dual-export.mjs app.mjs"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "1.10.0",
+    "@opentelemetry/auto-instrumentations-node": "0.83.0",
+    "@opentelemetry/exporter-metrics-otlp-proto": "0.301.1",
+    "@opentelemetry/exporter-trace-otlp-proto": "0.301.1",
+    "@opentelemetry/instrumentation": "0.301.1",
+    "@opentelemetry/sdk-metrics": "3.1.1",
+    "@opentelemetry/sdk-node": "0.301.1",
+    "@opentelemetry/sdk-trace": "3.1.1",
+    "express": "5.3.0"
+  }
+}
