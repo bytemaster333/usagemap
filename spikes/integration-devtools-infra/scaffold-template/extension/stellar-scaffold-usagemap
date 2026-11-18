@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+// SPDX-License-Identifier: Apache-2.0
+// Scaffold Stellar extension entry point; the logic is in usagemap-ext.mjs.
+import { main } from "./usagemap-ext.mjs";
+
+try {
+	process.exitCode = main(process.argv.slice(2));
+} catch (e) {
+	process.stderr.write(`usagemap: ${e.message}\n`);
+	process.exitCode = 1;
+}

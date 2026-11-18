@@ -1,0 +1,173 @@
+{
+  "date": "2026-11-18T21:14:58.060Z",
+  "rpc_host": "soroban-testnet.stellar.org",
+  "horizon_host": "horizon-testnet.stellar.org",
+  "steps": [
+    "getNetwork: ok",
+    "getHealth: ok (healthy)",
+    "getHealth: ok (healthy)",
+    "getHealth: ok (healthy)",
+    "getLatestLedger: ok",
+    "getFeeStats: ok",
+    "getVersionInfo: ok",
+    "getTransaction(random hash): ok (NOT_FOUND)",
+    "simulateTransaction(SAC.decimals): ok",
+    "horizon.feeStats: ok",
+    "horizon.ledgers.limit(1): ok",
+    "horizon.loadAccount(random): threw Error"
+  ],
+  "points": [
+    {
+      "metric": "rpc.client.call.duration",
+      "unit": "s",
+      "attributes": {
+        "rpc.system.name": "jsonrpc",
+        "rpc.method": "getNetwork",
+        "stellar.network": "unknown"
+      },
+      "count": 1,
+      "sum_s": 0.5624,
+      "min_s": 0.5623761190000001,
+      "max_s": 0.5623761190000001
+    },
+    {
+      "metric": "rpc.client.call.duration",
+      "unit": "s",
+      "attributes": {
+        "rpc.system.name": "jsonrpc",
+        "rpc.method": "getHealth",
+        "stellar.network": "testnet"
+      },
+      "count": 3,
+      "sum_s": 0.4533,
+      "min_s": 0.14668134899999996,
+      "max_s": 0.15580312000000004
+    },
+    {
+      "metric": "rpc.client.call.duration",
+      "unit": "s",
+      "attributes": {
+        "rpc.system.name": "jsonrpc",
+        "rpc.method": "getLatestLedger",
+        "stellar.network": "testnet"
+      },
+      "count": 1,
+      "sum_s": 0.2631,
+      "min_s": 0.263099078,
+      "max_s": 0.263099078
+    },
+    {
+      "metric": "rpc.client.call.duration",
+      "unit": "s",
+      "attributes": {
+        "rpc.system.name": "jsonrpc",
+        "rpc.method": "getFeeStats",
+        "stellar.network": "testnet"
+      },
+      "count": 1,
+      "sum_s": 0.1388,
+      "min_s": 0.13877776500000027,
+      "max_s": 0.13877776500000027
+    },
+    {
+      "metric": "rpc.client.call.duration",
+      "unit": "s",
+      "attributes": {
+        "rpc.system.name": "jsonrpc",
+        "rpc.method": "getVersionInfo",
+        "stellar.network": "testnet"
+      },
+      "count": 1,
+      "sum_s": 0.1405,
+      "min_s": 0.1405474250000002,
+      "max_s": 0.1405474250000002
+    },
+    {
+      "metric": "rpc.client.call.duration",
+      "unit": "s",
+      "attributes": {
+        "rpc.system.name": "jsonrpc",
+        "rpc.method": "getTransaction",
+        "stellar.network": "testnet"
+      },
+      "count": 1,
+      "sum_s": 0.1447,
+      "min_s": 0.14466273300000013,
+      "max_s": 0.14466273300000013
+    },
+    {
+      "metric": "rpc.client.call.duration",
+      "unit": "s",
+      "attributes": {
+        "rpc.system.name": "jsonrpc",
+        "rpc.method": "simulateTransaction",
+        "stellar.network": "testnet"
+      },
+      "count": 1,
+      "sum_s": 0.1516,
+      "min_s": 0.15162017000000014,
+      "max_s": 0.15162017000000014
+    },
+    {
+      "metric": "stellar.tx.polls",
+      "unit": "{call}",
+      "attributes": {
+        "stellar.tx.status": "NOT_FOUND",
+        "stellar.network": "testnet"
+      },
+      "value": 1
+    },
+    {
+      "metric": "stellar.tx.simulations",
+      "unit": "{call}",
+      "attributes": {
+        "stellar.sim.outcome": "success",
+        "stellar.network": "testnet"
+      },
+      "value": 1
+    },
+    {
+      "metric": "http.client.request.duration",
+      "unit": "s",
+      "attributes": {
+        "http.request.method": "GET",
+        "url.template": "/fee_stats",
+        "http.response.status_code": 200,
+        "stellar.network": "testnet"
+      },
+      "count": 1,
+      "sum_s": 0.6459,
+      "min_s": 0.645872844,
+      "max_s": 0.645872844
+    },
+    {
+      "metric": "http.client.request.duration",
+      "unit": "s",
+      "attributes": {
+        "http.request.method": "GET",
+        "url.template": "/ledgers",
+        "http.response.status_code": 200,
+        "stellar.network": "testnet"
+      },
+      "count": 1,
+      "sum_s": 0.1434,
+      "min_s": 0.14342871300000024,
+      "max_s": 0.14342871300000024
+    },
+    {
+      "metric": "http.client.request.duration",
+      "unit": "s",
+      "attributes": {
+        "http.request.method": "GET",
+        "url.template": "/accounts/{id}",
+        "http.response.status_code": 404,
+        "stellar.network": "testnet",
+        "error.type": "404"
+      },
+      "count": 1,
+      "sum_s": 0.1491,
+      "min_s": 0.14914289499999994,
+      "max_s": 0.14914289499999994
+    }
+  ]
+}

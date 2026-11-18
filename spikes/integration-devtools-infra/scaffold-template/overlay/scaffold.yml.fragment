@@ -1,0 +1,11 @@
+# --- UsageMap: append to scaffold.yml (version: 2) ---
+# The extension is a binary named stellar-scaffold-usagemap on PATH. It only
+# reads what Scaffold passes on stdin after each deploy (network name, contract
+# name and id, wasm hash) and records the project's OWN contracts so they can be
+# registered for on-chain verification. It never reads accounts or identities.
+extensions:
+  usagemap:
+    # Networks whose deployments are recorded; local deployments are throwaway.
+    networks: [testnet, mainnet]
+    # Where the list is written (relative to the project root).
+    out: .usagemap/contracts.json

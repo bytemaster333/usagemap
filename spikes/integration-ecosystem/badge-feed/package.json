@@ -1,0 +1,12 @@
+{
+  "name": "spike-integration-ecosystem-badge-feed",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Spike: SVG badges, Shields endpoint JSON and a DAOIP-5-keyed bulk feed from metrics-endpoint/1 documents of the DEMO cohort. No dependencies.",
+  "scripts": {
+    "run": "node run.ts",
+    "test": "node --test test/*.test.ts"
+  }
+}

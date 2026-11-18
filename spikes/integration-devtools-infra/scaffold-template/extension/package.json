@@ -1,0 +1,9 @@
+{
+	"name": "stellar-scaffold-usagemap-spike",
+	"private": true,
+	"version": "0.0.0",
+	"license": "Apache-2.0",
+	"type": "module",
+	"bin": { "stellar-scaffold-usagemap": "./stellar-scaffold-usagemap" },
+	"scripts": { "test": "node --test test/*.test.mjs" }
+}

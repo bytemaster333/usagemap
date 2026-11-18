@@ -1,0 +1,17 @@
+# build outputs and runtime state of throwaway spikes; READMEs, sources and small evidence are kept
+node_modules/
+.venv/
+.next/
+__pycache__/
+target/
+obj/
+bin/
+.work/
+.state/
+s04-collector-build/work/
+s06a-dual-export-node-python/out/
+s06b-dual-export-go-rust-jvm-dotnet/out/
+s07-pow-timing/build/
+# evidence logs are kept (the repository root ignores *.log and *.out)
+!*.log
+!*.out

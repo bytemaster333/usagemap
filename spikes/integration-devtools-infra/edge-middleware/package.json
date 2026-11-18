@@ -1,0 +1,10 @@
+{
+	"name": "usagemap-edge-spike",
+	"private": true,
+	"version": "0.0.0",
+	"license": "Apache-2.0",
+	"type": "module",
+	"scripts": {
+		"test": "node --test test/*.test.mjs"
+	}
+}

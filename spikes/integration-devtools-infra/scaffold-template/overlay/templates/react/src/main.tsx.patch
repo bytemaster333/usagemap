@@ -1,0 +1,7 @@
+--- a/templates/react/src/main.tsx
++++ b/templates/react/src/main.tsx
+@@ -1,3 +1,4 @@
++import "./usagemap" // first: wraps Stellar Wallets Kit before app-lib/wallet.ts copies its methods
+ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+ import { StrictMode } from "react"
+ import { createRoot } from "react-dom/client"

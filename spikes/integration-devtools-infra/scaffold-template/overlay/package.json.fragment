@@ -1,0 +1,6 @@
+{
+	"//": "Add to templates/react/package.json dependencies (exact pins; the tracker is versioned and immutable).",
+	"dependencies": {
+		"@usagemap/tracker": "1.1.0"
+	}
+}
