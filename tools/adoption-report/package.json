@@ -1,0 +1,9 @@
+{
+  "name": "@usagemap/adoption-report",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Adoption report from the SCF-operator metrics API (projects instrumented for web and API, date ranges, counts with small-count floors). Node standard library only. Not a workspace package and never published.",
+  "dependencies": {},
+  "devDependencies": {}
+}

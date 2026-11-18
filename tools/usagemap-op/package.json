@@ -1,0 +1,9 @@
+{
+  "name": "@usagemap/usagemap-op",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "SCF-operator command line over the UsageMap operator APIs (/op/v1 with an operator key, /v1/operator with an operator portal session): projects, coverage, invite links, removal, adoption report, handover fingerprint diff. Node standard library only. Not a workspace package and never published.",
+  "dependencies": {},
+  "devDependencies": {}
+}

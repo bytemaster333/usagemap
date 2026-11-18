@@ -1,0 +1,9 @@
+{
+  "name": "@usagemap/forge",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "\"Prove it yourself\" script: forged, naive and replayed tracker traffic is not counted, a real browser is, every answer looks the same; tracker SRI; Stellar address and seed redaction on the API path. Node standard library only (Playwright from the tests workspace when present). Not a workspace package and never published.",
+  "dependencies": {},
+  "devDependencies": {}
+}

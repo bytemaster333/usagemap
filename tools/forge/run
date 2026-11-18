@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+# "Prove it yourself" script. Node standard library only (Playwright from the tests workspace for step d).
+#
+#   tools/forge/run check --site KEY --origin https://DOMAIN [options]   (node tools/forge/forge.ts --help)
+#   tools/forge/run selftest     unit tests (no network)
+#   tools/forge/run e2e          end to end against tests/load/stack (needs the stack up)
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cmd="${1:-}"; [ $# -gt 0 ] && shift
+cd "${here}/../.."; if command -v mise >/dev/null 2>&1; then eval "$(mise env -s bash)"; fi
+case "${cmd}" in
+  check) exec node "${here}/forge.ts" "$@" ;;
+  selftest) node --test "$@" "${here}"/test/*.test.ts ;;
+  e2e) eval "$(tests/load/stack/env.sh)"; exec node "${here}/test/stack-e2e.ts" "$@" ;;
+  *) sed -n '3,8p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac

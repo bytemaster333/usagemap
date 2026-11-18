@@ -1,0 +1,9 @@
+{
+  "name": "@usagemap/mcp",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Local stdio MCP server over the UsageMap operator and tenant metrics APIs (plan E8): read-only tools, Node standard library only, no SDK dependency. Not a workspace package and never published.",
+  "dependencies": {},
+  "devDependencies": {}
+}

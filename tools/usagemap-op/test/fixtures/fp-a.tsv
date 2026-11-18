@@ -1,0 +1,7 @@
+scf	table	scf.tenants	3 aaaa1111
+scf	table	scf.sites	5 bbbb2222
+scf	sequence	scf.audit_seq	42 t
+scf	schema	columns	c0ffee
+scf	database	owner	scf_owner
+umami	table	public.website_event	251 cccc3333
+-	role	scf_app	dddd4444

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+# usagemap-op: SCF-operator command line (docs/guides/first-projects.md). Node standard library only.
+#
+#   tools/usagemap-op/run <command> [options]   projects | coverage | invite | enrol-on-behalf | remove | adoption-report | verify-migration | help
+#   tools/usagemap-op/run selftest              tests against a mock server (no network); LIVE=1 adds a dry run on the live host's public endpoints
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cmd="${1:-}"
+case "${cmd}" in
+  selftest) shift; cd "${here}/../.."; if command -v mise >/dev/null 2>&1; then eval "$(mise env -s bash)"; fi; node --test "$@" "${here}"/test/*.test.ts ;;
+  "") sed -n '3,6p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  *) exec node "${here}/cli.ts" "$@" ;;
+esac

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+# Adoption report from the SCF-operator metrics API. Node standard library only.
+#
+#   tools/adoption-report/run report --api URL --operator-key-file FILE [--start D] [--end D] [--operator-view-url URL] [--out DIR] [--json]
+#   tools/adoption-report/run selftest      tests on recorded fixtures (no network)
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cmd="${1:-}"; [ $# -gt 0 ] && shift
+case "${cmd}" in
+  report) exec node "${here}/report.ts" "$@" ;;
+  selftest) cd "${here}/../.."; if command -v mise >/dev/null 2>&1; then eval "$(mise env -s bash)"; fi; node --test "$@" "${here}"/test/*.test.ts ;;
+  *) sed -n '3,6p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac
