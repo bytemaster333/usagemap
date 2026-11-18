@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# Test inventory: every "node" is the test container itself (connection local).
+all:
+  vars:
+    ansible_connection: local
+    ansible_python_interpreter: /usr/local/bin/python3
+  children:
+    edge: { hosts: { edge-a1: {} } }
+    core: { hosts: { core-a: {} } }
+    postgres: { hosts: { core-a: {} } }
+    mon: { hosts: { mon-c: {} } }
+    egress: { hosts: { egress-1: {} } }
+    probe: { hosts: {} }
+    db: { hosts: {} }

@@ -1,0 +1,269 @@
+# SPDX-License-Identifier: Apache-2.0
+# Role tests (infra/ansible/tests/run.sh): PKI issuance and rotation checks, the umami role/database task against a
+# real PostgreSQL 18, and the rendered configuration of PgBouncer, nftables, the egress proxy and the drill units.
+- name: Test setup
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Work directory
+      ansible.builtin.file:
+        path: "{{ scf_test_dir }}"
+        state: directory
+        mode: "0700"
+
+- name: PKI — issue
+  hosts: edge-a1:core-a
+  gather_facts: false
+  vars: &pki_vars
+    scf_pki_dir: "{{ scf_test_dir }}/pki"
+    scf_pki_node_dir: "{{ scf_test_dir }}/nodes/{{ inventory_hostname }}"
+    scf_pki_skip_chown: true
+    scf_pki_ca_key_passphrase: test-only-ca-passphrase
+    scf_pki_mesh_domain: mesh.scf.internal
+  roles: [pki]
+
+- name: PKI — assertions
+  hosts: edge-a1:core-a
+  gather_facts: false
+  vars: *pki_vars
+  tasks:
+    - name: Role defaults (identities per class), without overriding the play's paths
+      ansible.builtin.include_vars:
+        file: ../roles/pki/defaults/main.yml
+        name: pkidef
+    - name: Identities and class
+      ansible.builtin.set_fact:
+        scf_pki_identities: "{{ pkidef.scf_pki_identities }}"
+        scf_pki_node_class: "{{ (group_names | intersect(['edge', 'core', 'db', 'mon', 'probe', 'egress'])) | first }}"
+    - name: Inspect every issued certificate
+      args:
+        executable: /bin/bash
+      ansible.builtin.shell: |
+        set -euo pipefail
+        f={{ scf_pki_node_dir }}/{{ item.cn }}.pem
+        openssl verify -CAfile {{ scf_pki_node_dir }}/ca.pem "$f" >/dev/null
+        printf '%s|%s|%s|%s\n' "$(openssl x509 -in "$f" -noout -subject -nameopt compat)" \
+          "$(openssl x509 -in "$f" -noout -ext extendedKeyUsage | tail -n1 | tr -d ' ')" \
+          "$(openssl x509 -in "$f" -noout -ext subjectAltName 2>/dev/null | tail -n1 | tr -d ' ')" \
+          "$(stat -c %a {{ scf_pki_node_dir }}/{{ item.cn }}-key.pem)"
+      loop: "{{ scf_pki_identities[scf_pki_node_class] }}"
+      register: certs
+      changed_when: false
+    - name: One OU naming the role, CN = node name, EKU, key 0600 (C-60, C-113, C-114)
+      ansible.builtin.assert:
+        that:
+          - r.stdout.split('|')[0] == 'subject=' ~ (('/OU=' ~ r.item.ou) if r.item.ou else '') ~ '/CN=' ~ r.item.cn
+          - (r.item.eku is search('clientAuth')) == (r.stdout.split('|')[1] is search('ClientAuthentication'))
+          - (r.item.eku is search('serverAuth')) == (r.stdout.split('|')[1] is search('ServerAuthentication'))
+          - r.item.san | length == 0 or r.stdout.split('|')[2] is search('DNS:' ~ r.item.san[0])
+          - r.stdout.split('|')[3] == '600'
+        quiet: true
+      loop: "{{ certs.results }}"
+      loop_control:
+        loop_var: r
+        label: "{{ r.item.cn }}"
+    - name: Expected identities
+      ansible.builtin.assert:
+        that: >-
+          (inventory_hostname == 'edge-a1' and certs.results | length == 1 and certs.results[0].stdout is search('/OU=edge/CN=edge-a1'))
+          or (inventory_hostname == 'core-a' and certs.results | length == 7)
+    - name: Fingerprints before the second run
+      ansible.builtin.command: "openssl x509 -in {{ scf_pki_dir }}/issued/{{ item.cn }}.pem -noout -fingerprint -sha256"
+      loop: "{{ scf_pki_identities[scf_pki_node_class] }}"
+      register: fp1
+      changed_when: false
+
+- name: PKI — second run keeps valid certificates
+  hosts: edge-a1:core-a
+  gather_facts: false
+  vars: *pki_vars
+  roles: [pki]
+  post_tasks:
+    - name: Fingerprints after the second run
+      ansible.builtin.command: "openssl x509 -in {{ scf_pki_dir }}/issued/{{ item.cn }}.pem -noout -fingerprint -sha256"
+      loop: "{{ scf_pki_identities[scf_pki_node_class] }}"
+      register: fp2
+      changed_when: false
+    - name: Nothing re-issued
+      ansible.builtin.assert:
+        that: fp1.results | map(attribute='stdout') | list == fp2.results | map(attribute='stdout') | list
+
+- name: PKI — an expiring certificate is renewed
+  hosts: edge-a1
+  gather_facts: false
+  vars:
+    <<: *pki_vars
+    scf_pki_renew_before_days: 400 # every 397-day leaf is "expiring"
+  roles: [pki]
+  post_tasks:
+    - name: Fingerprint after renewal
+      ansible.builtin.command: "openssl x509 -in {{ scf_pki_dir }}/issued/edge-a1.pem -noout -fingerprint -sha256"
+      register: fp3
+      changed_when: false
+    - name: Renewed
+      ansible.builtin.assert:
+        that: fp3.stdout != fp2.results[0].stdout
+
+- name: PostgreSQL role — umami role and database against a real server
+  hosts: core-a
+  gather_facts: false
+  vars: &pg_vars
+    scf_postgres_dir: "{{ scf_test_dir }}/postgres"
+    scf_postgres_data_dir: "{{ scf_test_dir }}/postgres-data"
+    scf_postgres_manage_containers: false
+    scf_postgres_skip_chown: true
+    scf_postgres_psql:
+      ["psql", "-X", "-v", "ON_ERROR_STOP=1", "-h", "pgtest", "-U", "postgres", "-d", "postgres"]
+    scf_postgres_psql_env: { PGPASSWORD: "{{ lookup('env', 'PGTEST_PASSWORD') }}" }
+    scf_postgres_is_primary_cmd: ["true"]
+    scf_scram_verifier: /repo/infra/compose/ha/bin/scf-scram-verifier
+  roles: [postgres]
+  post_tasks:
+    - name: Login as umami_app with the SOPS password, and what the role may do
+      ansible.builtin.command:
+        argv:
+          - psql
+          - -XAt
+          - -h
+          - pgtest
+          - -U
+          - umami_app
+          - -d
+          - umami
+          - -c
+          - >-
+            select current_user, (select datdba::regrole::text from pg_database where datname='umami'),
+            (select rolsuper or rolcreatedb or rolcreaterole from pg_roles where rolname='umami_app')
+      environment: { PGPASSWORD: "{{ scf_umami_db_password }}" }
+      register: login
+      changed_when: false
+    - name: Owner, no privileges
+      ansible.builtin.assert:
+        that: login.stdout == 'umami_app|umami_app|f'
+    - name: Verifier stored, never clear text
+      ansible.builtin.command:
+        argv:
+          [
+            psql,
+            -X,
+            -At,
+            -h,
+            pgtest,
+            -U,
+            postgres,
+            -c,
+            "select left(rolpassword, 14) from pg_authid where rolname = 'umami_app'",
+          ]
+      environment: "{{ scf_postgres_psql_env }}"
+      register: pw
+      changed_when: false
+    - name: SCRAM
+      ansible.builtin.assert:
+        that: pw.stdout == 'SCRAM-SHA-256$'
+
+- name: PostgreSQL role — second run changes nothing in the database
+  hosts: core-a
+  gather_facts: false
+  vars: *pg_vars
+  roles: [postgres]
+  post_tasks:
+    - name: Idempotent
+      ansible.builtin.assert:
+        that: scf_umami_sql is not changed
+    - name: Rendered node configuration
+      ansible.builtin.slurp:
+        src: "{{ scf_test_dir }}/postgres/{{ item }}"
+      loop: [compose.yaml, haproxy.cfg]
+      register: pgconf
+    - name: DCS TLS (F15) — etcd client + peer TLS with client-certificate auth, Patroni REST API over TLS
+      vars:
+        compose: "{{ pgconf.results[0].content | b64decode }}"
+        haproxy: "{{ pgconf.results[1].content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - compose is not search('http://')
+          - compose is search('--listen-client-urls=https://core-a.mesh.scf.internal:2379')
+          - compose is search('--client-cert-auth') and compose is search('--peer-client-cert-auth')
+          - compose is search('--trusted-ca-file=/certs/ca.pem') and compose is search('--peer-trusted-ca-file=/certs/ca.pem')
+          - compose is search('mon-c=https://mon-c.mesh.scf.internal:2380')
+          - compose is search('/etc/scf/pki-dcs/core-a-patroni.pem:/run/secrets/patroni_rest_cert:ro')
+          - haproxy is search('check port 8008 check-ssl verify required ca-file /usr/local/etc/haproxy/dcs-ca.pem')
+
+- name: Rendered configuration
+  hosts: core-a:edge-a1:egress-1:mon-c
+  gather_facts: false
+  vars:
+    scf_test_out: "{{ scf_test_dir }}/render/{{ inventory_hostname }}"
+  tasks:
+    - name: Output directory
+      ansible.builtin.file:
+        path: "{{ scf_test_out }}"
+        state: directory
+        mode: "0700"
+    - name: PgBouncer (core)
+      when: inventory_hostname == 'core-a'
+      ansible.builtin.include_role:
+        name: pgbouncer
+      vars:
+        scf_pgbouncer_dir: "{{ scf_test_out }}/pgbouncer"
+        scf_pgbouncer_manage_containers: false
+        scf_pgbouncer_skip_chown: true
+    - name: Nftables (every class)
+      ansible.builtin.template:
+        src: ../roles/common/templates/nftables.conf.j2
+        dest: "{{ scf_test_out }}/nftables.conf"
+        mode: "0644"
+      vars:
+        scf_node_class: "{{ (group_names | intersect(['edge', 'core', 'db', 'mon', 'probe', 'egress'])) | first }}"
+        scf_nft_output_extra: { egress: ["tcp dport { 80, 443 } accept"] }
+        scf_ssh_admin_cidrs: []
+        scf_public_tcp_ports: [443] # role default (roles/common/defaults: 443, + 80 with scf_http_redirect)
+    - name: Egress proxy
+      when: inventory_hostname == 'egress-1'
+      ansible.builtin.include_role:
+        name: egress_proxy
+      vars:
+        scf_egress_render_only: true
+        scf_egress_conf: "{{ scf_test_out }}/squid.conf"
+    - name: Restore drill (mon)
+      when: inventory_hostname == 'mon-c'
+      ansible.builtin.include_role:
+        name: restore_drill
+      vars:
+        scf_drill_dir: "{{ scf_test_out }}/drill"
+        scf_drill_render_only: true
+        scf_drill_systemd_dir: "{{ scf_test_out }}/drill"
+        scf_drill_skip_chown: true
+    - name: Read back
+      ansible.builtin.slurp:
+        src: "{{ item }}"
+      loop: "{{ [scf_test_out ~ '/nftables.conf'] + scf_extra[inventory_hostname] | default([]) }}"
+      vars:
+        scf_extra:
+          core-a:
+            [
+              "{{ scf_test_out }}/pgbouncer/pgbouncer.ini",
+              "{{ scf_test_out }}/pgbouncer/userlist.txt",
+            ]
+          egress-1: ["{{ scf_test_out }}/squid.conf"]
+          mon-c: ["{{ scf_test_out }}/drill/pgbackrest.conf"]
+      register: rendered
+    - name: Assertions
+      vars:
+        f: "{{ dict(rendered.results | map(attribute='item') | map('basename') | zip(rendered.results | map(attribute='content') | map('b64decode'))) }}"
+      ansible.builtin.assert:
+        that:
+          - f['nftables.conf'] is search('chain output \\{\\n\\s+type filter hook output priority 0; policy drop;')
+          - f['nftables.conf'] is not search('flush ruleset')
+          - (f['nftables.conf'] is search('tcp dport \\{ 80, 443 \\} accept')) == (inventory_hostname == 'egress-1')
+          - (f['nftables.conf'] is search('tcp dport [{] 443 [}] accept')) == (inventory_hostname in ['core-a', 'edge-a1', 'mon-c'])
+          - inventory_hostname != 'core-a' or f['pgbouncer.ini'] is search('scf = host=127.0.0.1 port=5000 dbname=scf')
+          - inventory_hostname != 'core-a' or f['pgbouncer.ini'] is search('pool_mode = transaction')
+          - inventory_hostname != 'core-a' or f['pgbouncer.ini'] is search('log_connections = 0')
+          - inventory_hostname != 'core-a' or f['userlist.txt'] is search('"scf_app" "')
+          - inventory_hostname != 'core-a' or f['userlist.txt'] is not search('postgres')
+          - inventory_hostname != 'egress-1' or f['squid.conf'] is search('http_access deny all\\s*$')
+          - inventory_hostname != 'egress-1' or f['squid.conf'] is search('access_log none')
+          - inventory_hostname != 'egress-1' or f['squid.conf'] is search('http_access allow src_edge dst_edge')
+          - inventory_hostname != 'egress-1' or f['squid.conf'] is not search('acl dst_db ')
+          - inventory_hostname != 'mon-c' or (f['pgbackrest.conf'] is search('repo2-azure-key-type=auto') and f['pgbackrest.conf'] is not search('repo1'))

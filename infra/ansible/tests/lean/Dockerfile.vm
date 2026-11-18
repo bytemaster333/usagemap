@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1.20@sha256:26147acbda4f14c5add9946e2fd2ed543fc402884fd75146bd342a7f6271dc1d
+# SPDX-License-Identifier: Apache-2.0
+# ci-scan: skip test-only stand-in for the Azure VM (Debian 13 with systemd and sshd), never deployed
+# A Debian 13 "VM" for the lean-profile role test (tests/lean/run.sh): systemd as PID 1, sshd, the admin user of the
+# OpenTofu module (scfadmin, key-only, passwordless sudo like the Azure image's cloud-init user). Runs privileged so
+# the role can install Docker Engine inside it and bring the whole stack up (Docker in Docker).
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
+RUN set -eux; apt-get update; apt-get install -y --no-install-recommends systemd systemd-sysv dbus openssh-server \
+      sudo python3 ca-certificates iproute2 nftables openssl kmod procps curl e2fsprogs; \
+    rm -rf /var/lib/apt/lists/*; \
+    useradd -m -s /bin/bash scfadmin; echo 'scfadmin ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/90-scfadmin; \
+    install -d -m 0700 -o scfadmin -g scfadmin /home/scfadmin/.ssh; \
+    systemctl mask getty@tty1.service console-getty.service systemd-logind.service; \
+    systemctl enable ssh; \
+    # chrony would set the HOST clock from a privileged container: never started here
+    systemctl mask chrony.service chronyd.service
+ARG TEST_PUBKEY
+RUN echo "$TEST_PUBKEY" >/home/scfadmin/.ssh/authorized_keys && chown scfadmin: /home/scfadmin/.ssh/authorized_keys && \
+    chmod 0600 /home/scfadmin/.ssh/authorized_keys
+STOPSIGNAL SIGRTMIN+3
+CMD ["/lib/systemd/systemd"]

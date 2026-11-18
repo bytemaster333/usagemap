@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: Apache-2.0
+# Configure every host from inventory (ADR-0019). Run from a service-operator workstation with SOPS-decrypted
+# secrets (C-79), never from CI:  ansible-playbook playbooks/site.yml
+- name: Baseline for every host
+  hosts: all
+  become: true
+  roles: [common]
+
+- name: Node certificates (private CA on the workstation)
+  hosts: edge:core
+  become: true
+  roles: [pki]
+
+- name: Egress proxy
+  hosts: egress
+  become: true
+  roles: [egress_proxy]
+
+- name: DCS certificates (F15) — etcd client/peer TLS with client certificates, Patroni REST API over TLS
+  hosts: postgres:mon
+  become: true
+  vars:
+    scf_pki_dir: "{{ playbook_dir }}/../.pki-dcs" # a CA of its own: no other node certificate is an etcd client
+    scf_pki_node_dir: /etc/scf/pki-dcs
+    scf_pki_ca_subject: "/O=UsageMap/CN=UsageMap DCS CA"
+    scf_pki_identities: "{{ scf_dcs_identities }}"
+  roles: [pki]
+
+- name: Database nodes and etcd witness
+  hosts: postgres:mon
+  become: true
+  serial: 1 # one database node at a time (Patroni switchover procedure for planned work)
+  roles: [postgres]
+
+- name: PgBouncer on core nodes
+  hosts: core
+  become: true
+  roles: [pgbouncer]
+
+- name: Weekly restore drill
+  hosts: mon
+  become: true
+  roles: [restore_drill]

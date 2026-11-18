@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Inventory of the v1 small host (docs/guides/deploy-v1.md): copy to $DEPLOY_DIR/ansible/inventory.yml and set the
+# address from `tofu output app` (ingest_public_ip). Paths are the ones scripts/play-v1.sh mounts in the tool container.
+all:
+  children:
+    lean:
+      children:
+        app:
+          hosts:
+            usagemap-host:
+              ansible_host: 203.0.113.10
+              ansible_user: admin # the VM's admin user (tofu variable admin_username)
+              ansible_ssh_private_key_file: /keys/id
+              ansible_ssh_common_args: -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/state/known_hosts -o ServerAliveInterval=15 -o ServerAliveCountMax=4
+              ansible_python_interpreter: /usr/bin/python3
+        standby:
+          hosts: {}

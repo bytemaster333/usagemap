@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: Apache-2.0
+# Lean Azure profile (C-123): the whole Compose stack on one VM (`app`), optionally a standby VM (`standby`) that runs
+# the weekly restore drill and is the cold-standby target. Run from a service-operator workstation with
+# SOPS-decrypted secrets (C-79), never from CI:
+#   ansible-playbook -i inventory/lean.yml playbooks/lean.yml
+- name: Data disk (Docker data root, PostgreSQL, every volume — C-109)
+  hosts: app:standby
+  become: true
+  tasks:
+    - name: Mount the data disk on {{ scf_data_dir | default('/srv/scf') }}
+      ansible.builtin.include_tasks: tasks/data-disk.yml
+      when: scf_data_disk_device | default('') | length > 0
+
+- name: Baseline (SSH, unattended security upgrades, journald cap, host firewall)
+  hosts: app:standby
+  become: true
+  roles: [common]
+
+- name: Docker Engine (pinned)
+  hosts: app:standby
+  become: true
+  roles: [docker_engine]
+
+- name: Node certificates of the stack (private CA on the workstation)
+  hosts: app
+  become: true
+  roles: [pki]
+
+- name: The Compose stack with production settings
+  hosts: app
+  become: true
+  roles: [compose_stack]
+
+- name: Weekly restore drill (standby VM when present, else the app VM)
+  hosts: "{{ 'standby' if groups['standby'] | default([]) | length > 0 else 'app' }}"
+  become: true
+  vars:
+    scf_image_postgres: "{{ hostvars[groups['app'][0]]['scf_images']['postgres_ha'] }}"
+    scf_drill_db_dir: /opt/scf/current/db
+    scf_drill_docker_network: "{{ 'scf-backup' if 'standby' in group_names else 'scf_backup' }}"
+    scf_drill_create_network: "{{ 'standby' in group_names }}" # on the app VM the stack's `backup` network is used
+    scf_drill_metrics_dir: "{{ scf_data_dir | default('/srv/scf') }}/metrics" # the node exporter's textfile directory
+  pre_tasks:
+    - name: Release db/ for the drill (standby VM)
+      when: "'standby' in group_names"
+      ansible.builtin.include_role:
+        name: compose_stack
+        tasks_from: release.yml
+  roles: [restore_drill]

@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: Apache-2.0
+# Non-secret defaults for every host. Secrets (passwords, cipher passes, the CA key passphrase, the age recipient)
+# live in group_vars/all.sops.yaml, encrypted with SOPS + age (ADR-0019, C-79; see all.sops.yaml.example).
+scf_mesh_domain: mesh.scf.internal
+scf_vnet_cidrs: [10.40.0.0/16, 10.41.0.0/16]
+scf_egress_proxy: "egress-1.{{ scf_mesh_domain }}:3128"
+scf_azure_dns_resolver: 168.63.129.16
+# Images by digest only (ADR-0019, ADR-0023); set by the release being deployed.
+scf_image_postgres: "ghcr.io/scf-analytics/postgres-ha@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+scf_image_etcd: "gcr.io/etcd-development/etcd:v3.6.16@sha256:b29d816b546a1966fe7034a33b34e231fa98c47ce4d2883f70b0555020b22132"
+scf_image_haproxy: "haproxy:3.2.26-alpine@sha256:1c3568e520453cc8ba98c39501febcf450429c80e6cc27ecad779961d76e597c"
+scf_image_pgbouncer: "edoburu/pgbouncer:latest@sha256:8638aa563607256d3c7440437534195f1066a92b68015d89ae9d6b935b444a6d"
+# Backup repositories (from `tofu output backup_repositories`): managed identity, no keys (key type `auto`).
+scf_backup_repos:
+  - { n: 1, account: scfbackuprepo1x, container: pgbackrest }
+  - { n: 2, account: scfbackuprepo2x, container: pgbackrest }
+# DCS identities (F15), issued by the pki role from the DCS CA (playbooks/site.yml): etcd member certificate (server +
+# client for peer traffic; etcd runs as root in its image) and Patroni's certificate (REST API server and etcd client;
+# uid 999), SAN = mesh name and localhost.
+scf_dcs_identities:
+  core: &scf_dcs_db
+    - cn: "{{ inventory_hostname }}-etcd"
+      ou: ""
+      eku: "serverAuth,clientAuth"
+      san: ["{{ inventory_hostname }}.{{ scf_mesh_domain }}", localhost]
+      owner: 0
+    - cn: "{{ inventory_hostname }}-patroni"
+      ou: ""
+      eku: "serverAuth,clientAuth"
+      san: ["{{ inventory_hostname }}.{{ scf_mesh_domain }}", localhost]
+      owner: 999
+  db: *scf_dcs_db
+  mon:
+    - cn: "{{ inventory_hostname }}-etcd"
+      ou: ""
+      eku: "serverAuth,clientAuth"
+      san: ["{{ inventory_hostname }}.{{ scf_mesh_domain }}", localhost]
+      owner: 0

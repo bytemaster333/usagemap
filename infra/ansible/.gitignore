@@ -1,0 +1,6 @@
+# Workstation PKI output and generated inventory never go to git.
+.pki/
+inventory/azure.yml
+group_vars/*.sops.yaml.dec
+inventory.lean.yml
+.pki-dcs/

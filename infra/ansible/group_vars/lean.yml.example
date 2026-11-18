@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: Apache-2.0
+# Non-secret settings of the lean profile (C-123) → copy to group_vars/lean.yml. Secrets go to group_vars/lean.sops.yaml
+# (scripts/gen-stack-secrets.sh | sops --encrypt …). The inventory itself is generated from the OpenTofu outputs:
+#   tofu -chdir=infra/opentofu/envs/azure-lean output -json | infra/ansible/scripts/inventory-from-tofu.py --lean > infra/ansible/inventory.lean.yml
+scf_azure_subscription_id: 00000000-0000-0000-0000-000000000000 # lego's DNS-01 zone discovery
+scf_release_ref: v1.0.0 # the release tag being deployed (git archive of infra/compose, ops/, db/)
+scf_acme_email: "" # optional role address of the operating team (never a personal address)
+# Images of the release, by digest (the release manifest, C-79; the role refuses tags).
+scf_images:
+  postgres_ha: ghcr.io/scf-analytics/postgres-ha@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  db_migrate: ghcr.io/scf-analytics/db-migrate@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  umami: ghcr.io/scf-analytics/umami@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  umami_migrate: ghcr.io/scf-analytics/umami-migrate@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  engine_proxy: ghcr.io/scf-analytics/engine-proxy@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  control_plane: ghcr.io/scf-analytics/control-plane@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  portal: ghcr.io/scf-analytics/portal@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  jobs: ghcr.io/scf-analytics/jobs@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  metrics_writer: ghcr.io/scf-analytics/metrics-writer@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  gateway: ghcr.io/scf-analytics/gateway@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  otelcol: ghcr.io/scf-analytics/otelcol@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  ops: ghcr.io/scf-analytics/ops@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  mcp: ghcr.io/scf-analytics/mcp@sha256:0000000000000000000000000000000000000000000000000000000000000000
+scf_release_repo: ORG/REPO # the release signer's repository (cosign keyless identity)
+scf_release_signer_workflow: .github/workflows/SIGNER.yml # the workflow in that repository that signs the release
+# The signed tracker releases of this release, downloaded with `gh release download tracker-vX.Y.Z --dir …` (one
+# directory per version in infra/compose/tracker-releases.json; checked and compared with the gateway image).
+scf_tracker_releases: [/srv/releases/tracker-v1.0.0, /srv/releases/tracker-v1.1.0, /srv/releases/tracker-v1.2.0]
+# Alertmanager channels: webhooks go to scf_stack_secrets.alert_webhooks (SOPS); e-mail per receiver here.
+# The deploy is refused while maintainers-critical, maintainers-warning or security-responders has no channel.
+scf_alert_emails: {} # e.g. { maintainers-critical: ops@example.org, security-responders: security@example.org }
+scf_alert_smtp_smarthost: "" # host:port, e.g. smtp.example.org:587 (the port is opened in the host firewall)
+scf_alert_smtp_from: ""
+scf_alert_deadman_required: false # true once the outside heartbeat monitor (deadman_ping_url) exists
+# Optional: Horizon/RPC, registry sources for the jobs service.
+scf_jobs_extra_env: {}

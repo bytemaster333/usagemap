@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+# Inventory shape. Generate the real one from the OpenTofu outputs:
+#   tofu -chdir=infra/opentofu/envs/azure-eu output -json nodes | infra/ansible/scripts/inventory-from-tofu.py > infra/ansible/inventory/azure.yml
+# Groups = node classes; `postgres` = the two PostgreSQL nodes (ADR-0020). Addresses are private (mesh/VNet).
+all:
+  vars:
+    ansible_user: scfadmin
+  children:
+    edge:
+      hosts:
+        edge-a1: { ansible_host: 10.40.1.4 }
+        edge-a2: { ansible_host: 10.40.1.5 }
+        edge-b1: { ansible_host: 10.40.1.6 }
+        edge-b2: { ansible_host: 10.40.1.7 }
+    core:
+      hosts:
+        core-a: { ansible_host: 10.40.2.4 }
+        core-b: { ansible_host: 10.40.2.5 }
+    postgres:
+      hosts:
+        core-a: {}
+        core-b: {}
+    mon:
+      hosts:
+        mon-c: { ansible_host: 10.41.1.4 }
+    probe:
+      hosts:
+        probe-d: { ansible_host: 203.0.113.20 }
+    egress:
+      hosts:
+        egress-1: { ansible_host: 10.40.4.4 }

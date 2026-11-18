@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+# Shape of group_vars/all.sops.yaml (encrypt with: sops --encrypt --age <recipients> --in-place). Placeholders only.
+scf_pg_superuser_password: CHANGE-ME
+scf_pg_replication_password: CHANGE-ME
+scf_pg_rewind_password: CHANGE-ME
+scf_patroni_restapi_password: CHANGE-ME
+scf_umami_db_password: CHANGE-ME
+scf_pgbackrest_cipher_pass: { "1": CHANGE-ME, "2": CHANGE-ME }
+scf_dump_age_recipient: age1CHANGEME
+scf_pgbouncer_users: { scf_app: CHANGE-ME, scf_jobs: CHANGE-ME, scf_writer: CHANGE-ME, scf_metrics_ro: CHANGE-ME, scf_umami_ro: CHANGE-ME }
+scf_pki_ca_key_passphrase: CHANGE-ME

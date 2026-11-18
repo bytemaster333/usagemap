@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: Apache-2.0
+# Format the attached data disk once (ext4, label scf-data) and mount it by UUID before Docker starts. On Azure the
+# LUN-0 disk is /dev/disk/azure/scsi1/lun0 (udev rules of the Debian Azure image) — verify on the first deployment
+# (docs/guides/deploy-azure.md). An existing filesystem is never re-formatted.
+- name: Existing filesystem?
+  ansible.builtin.command:
+    argv: [blkid, -s, UUID, -o, value, "{{ scf_data_disk_device }}"]
+  register: scf_data_uuid
+  changed_when: false
+  failed_when: scf_data_uuid.rc not in [0, 2]
+
+- name: Format (first run only)
+  when: scf_data_uuid.stdout | length == 0
+  ansible.builtin.command:
+    argv: [mkfs.ext4, -q, -L, scf-data, "{{ scf_data_disk_device }}"]
+  changed_when: true
+
+- name: UUID
+  ansible.builtin.command:
+    argv: [blkid, -s, UUID, -o, value, "{{ scf_data_disk_device }}"]
+  register: scf_data_uuid
+  changed_when: false
+
+- name: Mount point
+  ansible.builtin.file:
+    path: "{{ scf_data_dir | default('/srv/scf') }}"
+    state: directory
+    mode: "0755"
+
+- name: Fstab entry (noatime, before Docker)
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: '^\S+\s+{{ scf_data_dir | default("/srv/scf") }}\s'
+    line: "UUID={{ scf_data_uuid.stdout }} {{ scf_data_dir | default('/srv/scf') }} ext4 defaults,noatime,nofail,x-systemd.before=docker.service 0 2"
+  register: scf_fstab
+
+- name: Mounted
+  ansible.builtin.command:
+    argv: [mount, "{{ scf_data_dir | default('/srv/scf') }}"]
+  register: scf_mount
+  changed_when: scf_mount.rc == 0
+  failed_when: scf_mount.rc != 0 and 'already mounted' not in scf_mount.stderr

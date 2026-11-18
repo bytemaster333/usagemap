@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# The test VM (tests/lean/Dockerfile.vm) on the test network, reached over SSH like the Azure VM.
+all:
+  children:
+    lean:
+      children:
+        app:
+          hosts:
+            app-1:
+              ansible_host: 172.31.250.10
+              ansible_user: scfadmin
+              ansible_ssh_private_key_file: /tmp/scf-lean-test/id_ed25519
+              ansible_ssh_common_args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+              ansible_python_interpreter: /usr/bin/python3
+        standby:
+          hosts: {}

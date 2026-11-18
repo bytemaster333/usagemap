@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# Ansible collections, pinned (ADR-0019). GPL-3.0, run as separate tools, never linked into our code.
+collections:
+  - name: community.sops # SOPS-encrypted group_vars (C-79)
+    version: 2.5.1

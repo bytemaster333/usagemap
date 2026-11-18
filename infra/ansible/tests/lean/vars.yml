@@ -1,0 +1,81 @@
+# SPDX-License-Identifier: Apache-2.0
+# Test settings of the lean-profile role test (tests/lean/run.sh): the production roles, with the three things a test
+# cannot have replaced — ACME (certificates from the private CA instead), Azure Blob (two local pgBackRest
+# repositories instead, scf_backup_repo_type=posix) and a registry (the images are loaded into the VM's Docker).
+scf_release_src: /repo
+scf_release_ref: WORKTREE
+scf_images_require_digest: false
+scf_images_pull: false
+scf_acme_enabled: false
+scf_pki_dir: /tmp/scf-lean-test/pki
+scf_pki_extra_identities:
+  - cn: ingest
+    ou: ""
+    eku: serverAuth
+    san: [ingest-a.lean.test, ingest-b.lean.test]
+    owner: 65532
+  - cn: portal
+    ou: ""
+    eku: serverAuth
+    san: [app.lean.test, status.lean.test]
+    owner: 65532
+scf_ingest_hostnames: [ingest-a.lean.test, ingest-b.lean.test]
+scf_portal_hostname: app.lean.test
+scf_status_hostname: status.lean.test
+scf_ingest_bind_ip: 172.31.250.10
+scf_portal_bind_ip: 172.31.251.11
+scf_vnet_cidrs: [172.31.250.0/24]
+scf_azure_dns_resolver: 127.0.0.11
+scf_backup_repo_type: posix
+scf_backup_tick: 10
+scf_backup_repos:
+  - n: 1
+    account: unused
+    container: pgbackrest
+  - n: 2
+    account: unused
+    container: pgbackrest
+scf_postgres_shared_buffers: 256MB
+scf_postgres_effective_cache_size: 1GB
+scf_collector_queue_bytes: "268435456"
+scf_data_disk_device: ""
+# restore drill on the app VM (no standby in the test), reading the local repository 2
+# The drill play takes the image from scf_images in production (group_vars/lean.yml); here group_vars/all.yml is
+# passed as extra vars, so its placeholder digest must be overridden as well.
+scf_image_postgres: scf-lean.test/postgres-ha:release
+scf_drill_extra_volumes: ["/srv/scf/pgbackrest-repo:/var/lib/pgbackrest-repo:ro"]
+# The images of the release under test, retagged by run.sh from the local build tags (rebuild them from this tree
+# first: make build / the compose build — a stale db-migrate image fails on a changed migration ledger) into a
+# registry-like namespace that no Compose default uses: a service the production override does not pin (like the old
+# `dev-settings` with usagemap/db-migrate:dev) is then caught by the role's merged-image check instead of passing because
+# the test happened to load that very tag.
+scf_images:
+  postgres_ha: scf-lean.test/postgres-ha:release
+  db_migrate: scf-lean.test/db-migrate:release
+  umami: scf-lean.test/umami:release
+  umami_migrate: scf-lean.test/umami-migrate:release
+  engine_proxy: scf-lean.test/engine-proxy:release
+  control_plane: scf-lean.test/control-plane:release
+  portal: scf-lean.test/portal:release
+  jobs: scf-lean.test/jobs:release
+  metrics_writer: scf-lean.test/metrics-writer:release
+  gateway: scf-lean.test/gateway:release
+  otelcol: scf-lean.test/otelcol:release
+  ops: scf-lean.test/ops:release
+  mcp: scf-lean.test/mcp:release
+scf_images_verify_signatures: false # no signed images in a test
+# Tracker release directories built by run.sh from tracker/dist in the release layout (SHA256SUMS, release.json);
+# unsigned, so only the signature step is skipped — the checksum, version and gateway-image checks run.
+scf_tracker_releases:
+  [/tmp/scf-lean-test/tracker-release/1.0.0, /tmp/scf-lean-test/tracker-release/1.1.0,
+   /tmp/scf-lean-test/tracker-release/1.2.0]
+scf_tracker_verify_signatures: false
+# Range lists: an unreachable source, so the weekly update fails deterministically offline and records it.
+scf_rangelist_sources:
+  - name: unreachable
+    class: datacenter
+    url: "https://rangelists.lean.test/none.txt"
+    format: lines
+# The test VM runs on `public` like production but must not download pubnet ledger files (several GB) in a test.
+scf_jobs_extra_env:
+  SCF_ONCHAIN_LEDGER_SOURCE_URL: none

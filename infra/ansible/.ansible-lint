@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+profile: production
+offline: true
+skip_list:
+  # Every variable of this repository carries the project-wide `scf_` namespace instead of a per-role prefix, so
+  # values shared by several roles (images, mesh domain, SOPS secrets) keep one name.
+  - var-naming[no-role-prefix]
+exclude_paths:
+  - tests/group_vars_test.yml

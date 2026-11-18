@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: Apache-2.0
+# v1 small host (docs/guides/deploy-v1.md): copy to $DEPLOY_DIR/ansible/v1.yml. Non-secret settings; secrets in
+# $DEPLOY_DIR/secrets/deploy-secrets.yml (scripts/v1-secrets.sh). Values below are a working small-host configuration.
+scf_release_src: /repo
+scf_release_ref: 0a1b2c3   # the commit build-release.sh built
+scf_images_require_digest: false      # no registry yet: images shipped over SSH, pinned by image ID (scf_image_ids)
+scf_images_pull: false
+scf_images_verify_signatures: false   # no signed release images
+scf_tracker_verify_signatures: false  # tracker release dir extracted from the gateway image (unsigned)
+scf_tracker_releases: [/release/tracker-1.1.0]
+scf_tracker_versions:
+  - { version: "1.1.0", released_at: "2026-11-16T00:00:00Z", status: "active" }
+scf_ingest_hostnames: [e1.usagemap.dev, e2.usagemap.dev]
+scf_portal_hostname: app.usagemap.dev
+scf_status_hostname: status.usagemap.dev
+scf_landing_hostname: usagemap.dev
+scf_landing_src: /landing
+scf_docs_hostname: docs.usagemap.dev    # C-152: apps/docs static export (DOCS_DIR of play-v1.sh)
+scf_docs_src: /docs-site
+scf_http_redirect: true
+scf_ingest_bind_ip: 10.60.1.10
+scf_portal_bind_ip: 10.60.1.11
+scf_vnet_cidrs: [10.60.0.0/16]
+scf_ssh_admin_cidrs: [198.51.100.10/32]   # the operator address(es), as in v1.tfvars
+scf_data_disk_device: ""
+# ACME: lego DNS-01 at Cloudflare (CF_DNS_API_TOKEN in scf_stack_secrets.acme_env)
+scf_acme_dns_provider: cloudflare
+# The host firewall admits DNS only to the platform resolver, which caches the negative answer for the challenge
+# name: no propagation polling; wait a fixed 60 s (the provider publishes to its name servers within seconds).
+scf_acme_env: { LEGO_DNS_PROPAGATION_WAIT: "60s" }
+# Backups: repository 1 local on the VM disk (fast PITR), repository 2 = the storage account (off-host), container SAS.
+scf_backup_repos:
+  - { n: 1, type: posix, account: unused, container: unused }
+  - { n: 2, type: azure, key_type: sas, account: usagemapbackup1, container: pgbackrest }
+scf_backup_public_endpoint: true
+# Alerts: e-mail to the operations contact through the alert mailer Worker (runbook alert-email). ops/scripts/cloudflare-email-setup.sh prints the URL; the bearer secret goes into
+# scf_stack_secrets.alert_email_worker_token (scripts/v1-secrets.sh --merge-only). Fallback while the Worker is not
+# deployed yet: comment out the URL and set scf_alert_local_only: true with a reason (alerts then stay on the VM).
+scf_alert_email_worker_url: "https://usagemap-alert-mailer.<workers.dev subdomain>.workers.dev/v1/alertmanager"
+scf_alert_local_only: false
+# scf_alert_local_only_reason: "alert mailer not deployed yet (runbook alert-email): alerts are recorded in VictoriaLogs and visible in Grafana/Prometheus on the VM"
+# Sizing for a 2 vCPU / 8 GiB VM
+scf_postgres_shared_buffers: 1GB
+scf_postgres_effective_cache_size: 3GB
+scf_collector_queue_bytes: "536870912"
+# On-chain correlation and the Ecosystem Usage Map (job usage_map, migration 0075) read a local mirror of the public
+# pubnet ledger files (≈ 3 GB per day, onchain-reader README; the mirror keeps 7 days ≈ 20 GB of the disk).
+# The smallest windows: 2 days each. Check `df -h /` after the first 06:00/07:30 UTC runs; to stop the download set
+# SCF_ONCHAIN_LEDGER_SOURCE_URL: none (the mirror then stays empty and the usage map has no new days).
+scf_jobs_extra_env:
+  SCF_ONCHAIN_LOOKBACK_DAYS: "2"
+  SCF_USAGE_MAP_LOOKBACK_DAYS: "2"
+  SCF_REGISTRY_SOURCES: stellarlight,pg_atlas   # registry_sync: the public SCF project registries (onboarding picker)
+# restore drill on the app VM; drill image = the release's postgres-ha
+scf_image_postgres: "{{ scf_images.postgres_ha }}"
+scf_drill_extra_volumes: []
+scf_pki_dir: /state/pki
+# Host egress (role common): the lean defaults + the platform's guest-agent endpoint (168.63.129.16:32526).
+scf_nft_output_extra:
+  app: ["tcp dport { 80, 443 } accept", "udp dport 123 accept", "ip daddr 168.63.129.16 tcp dport 32526 accept"]
+scf_gatus_enabled: true
+# Probe canary + signed-in journey (tenant `usagemap`, site `canary`, domain app.usagemap.dev; live-onboard.ts)
+scf_probe_site_key: ""                  # from live-onboard.ts (onboard.json, site "canary")
+scf_probe_tenant_id: ""
+scf_probe_site_id: ""
+scf_backup_tick: 67 # off the 60 s archive_timeout beat (images before the scf-backup stanza retry fix)
+scf_probe_otlp: true
+# Daily seal on TESTNET (C-135; mainnet only as an explicit operator decision)
+scf_seal_enabled: true
+scf_seal_network: testnet
+# Honest status page for a single host
+scf_status_min_voters: 1
+scf_status_objective: "99.5%"
+scf_status_objective_of: "per month for tracking and the dashboard. A target, not a guarantee."
+scf_status_objectives: "The v1 objective is 99.5 % availability for ingest and for the dashboard (one VM, no failover; docs/sla.md §1.1) — an objective we measure and report against, not a guarantee."
+scf_status_placement: "This page runs on the same VM as the service it monitors, so it goes down with it; an independent probe at the operator records outages for the monthly report. It uses no third-party service and sets no cookies."
+# Status end to end (ops image with tracker_api / fresh_within)
+scf_probe_tracker_check: true
+scf_probe_fresh_within: "15m"
+scf_probe_nodes: {}

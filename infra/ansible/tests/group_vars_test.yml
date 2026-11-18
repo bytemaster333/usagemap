@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+# Test-only values standing in for the SOPS file. Never real secrets.
+scf_test_dir: /tmp/scf-ansible-test
+scf_pg_superuser_password: test-superuser
+scf_pg_replication_password: test-replication
+scf_pg_rewind_password: test-rewind
+scf_patroni_restapi_password: test-restapi
+scf_umami_db_password: test-umami-0123456789abcdef
+scf_pgbackrest_cipher_pass: { "1": test-cipher-1, "2": test-cipher-2 }
+scf_dump_age_recipient: age1testonlyrecipient
+scf_pgbouncer_users: { scf_app: test-app, scf_jobs: test-jobs }
