@@ -1,0 +1,55 @@
+{
+  "name": "@usagemap/stellar-otel",
+  "version": "0.1.0",
+  "description": "OpenTelemetry metrics for js-stellar-sdk RPC and Horizon calls (server side): latency per method or route, submit/poll/simulate outcome classes, never addresses, hashes or XDR.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "biome check .",
+    "test": "vitest run",
+    "test:testnet": "STELLAR_OTEL_TESTNET=1 vitest run test/testnet.smoke.test.ts",
+    "collector-fixture": "node scripts/collector-fixture.ts"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": ">=1.9.0 <2.0.0",
+    "@stellar/stellar-sdk": ">=13.0.0 <18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@stellar/stellar-sdk": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@opentelemetry/api": "1.10.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.301.2",
+    "@opentelemetry/resources": "3.1.1",
+    "@opentelemetry/sdk-metrics": "3.1.1",
+    "@stellar/stellar-sdk": "17.4.0",
+    "@types/node": "24.19.2",
+    "stellar-sdk-v13": "npm:@stellar/stellar-sdk@13.3.0",
+    "stellar-sdk-v14": "npm:@stellar/stellar-sdk@14.6.1",
+    "stellar-sdk-v14-module": "npm:@stellar/stellar-sdk@14.1.0",
+    "stellar-sdk-v15": "npm:@stellar/stellar-sdk@15.1.0",
+    "stellar-sdk-v16": "npm:@stellar/stellar-sdk@16.4.1",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}
