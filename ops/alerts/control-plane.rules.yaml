@@ -1,0 +1,125 @@
+# SPDX-License-Identifier: Apache-2.0
+# Monitoring plan §4.4 — the alerts on the control plane's own metrics (scf_cp_*, services/control-plane/src/obs/
+# metrics.ts): scraped as job control-plane (control-plane:9464, internal only); scf_cp_verifier_blocked_targets_total
+# comes from the jobs service, which runs the domain verifier (C-125). Labels are fixed words from closed sets; the only
+# per-person label is the pseudonymous operator_ref.
+#
+# Counters with labels appear only with their first event, so "any event" conditions also match a series that is new
+# in the window (`x unless x offset 10m`): increase() cannot see a series' first sample.
+groups:
+  - name: scf-control-plane-recording
+    interval: 1m
+    rules:
+      - record: scf:cp_operator_reads:increase1h
+        expr: sum by (operator_ref) (increase(scf_cp_operator_reads_total[1h]))
+      - record: scf:cp_signups:increase1h
+        expr: sum(increase(scf_cp_signups_total[1h]))
+      - record: scf:cp_create_rate_limited:increase1h
+        expr: sum(increase(scf_cp_rate_limited_total{route_class="create"}[1h]))
+  - name: scf-control-plane
+    interval: 1m
+    rules:
+      # TM-OPR-01.M.1: reads by one SCF operator in the last hour > 3× that person's 30-day p99 of hourly reads; a floor
+      # of 50 reads/hour keeps a new operator without history from paging on the first busy hour.
+      - alert: SCFOperatorBulkRead
+        expr: |
+          scf:cp_operator_reads:increase1h
+            > 3 * quantile_over_time(0.99, scf:cp_operator_reads:increase1h[30d] offset 1h)
+          and scf:cp_operator_reads:increase1h > 50
+        labels: { severity: warning, monitor_id: TM-OPR-01.M.1, team: security }
+        annotations:
+          summary: "SCF operator {{ $labels.operator_ref }} read more in the last hour than 3× their 30-day p99"
+          description: Bulk cross-tenant reads by one operator (C-17); compare with the audit log (operator.read.*) and notify the operator_admins.
+          runbook_url: ops/runbooks/operator-activity.md
+      # TM-OPR-06.M.1: passkey failures ≥ 5 in 10 m, a new passkey, recovery, break-glass or a failed step-up.
+      - alert: SCFOperatorAuthAnomaly
+        expr: |
+          label_replace(
+            sum(increase(scf_cp_auth_events_total{method="passkey",outcome="passkey_failed"}[10m])) >= 5,
+            "outcome", "passkey_failed", "", "")
+          or sum by (outcome) (increase(scf_cp_auth_events_total{outcome=~"passkey_registered|recovery|break_glass|step_up_failed"}[10m]) > 0)
+          or sum by (outcome) (
+               scf_cp_auth_events_total{outcome=~"passkey_registered|recovery|break_glass|step_up_failed"}
+               unless scf_cp_auth_events_total offset 10m)
+        labels: { severity: warning, monitor_id: TM-OPR-06.M.1, team: security }
+        annotations:
+          summary: "Passkey/step-up anomaly: {{ $labels.outcome }}"
+          description: >-
+            Passkeys are required for SCF operators (C-09); a burst of failed assertions, a new passkey, a recovery,
+            break-glass use or a failed step-up needs a look at the audit log (auth.* rows). The counter does not
+            separate operators from tenant members who use a passkey.
+          runbook_url: ops/runbooks/auth-anomaly.md
+      # TM-AUT-03.M.1: failed sign-ins (GitHub, SEP-53, passkey) > 5× the same 15 minutes a week earlier, for 15 m; the
+      # baseline is at least 10 failures/hour so an idle week does not make every failure a spike.
+      - alert: AuthFailureSpike
+        expr: |
+          sum(rate(scf_cp_auth_events_total{outcome="failed"}[15m]))
+            > 5 * clamp_min(sum(rate(scf_cp_auth_events_total{outcome="failed"}[15m] offset 1w)) or vector(0), 10 / 3600)
+        for: 15m
+        labels: { severity: warning, monitor_id: TM-AUT-03.M.1 }
+        annotations:
+          summary: Failed sign-ins at more than 5× the same time last week
+          description: Credential stuffing, a broken identity provider or a SEP-53 client bug.
+          runbook_url: ops/runbooks/auth-anomaly.md
+      # TM-ISO-10.M.1: an operator API key with a bad checksum or seen in a URL (any), or rate-limited in every minute of
+      # the last 10. The "new network class" part has no signal yet (coverage.json).
+      - alert: OpKeyAnomaly
+        expr: |
+          sum by (kind) (increase(scf_cp_op_key_events_total{kind=~"bad_checksum|key_in_url"}[10m]) > 0)
+          or sum by (kind) (
+               scf_cp_op_key_events_total{kind=~"bad_checksum|key_in_url"} unless scf_cp_op_key_events_total offset 10m)
+          or label_replace(
+               min_over_time((sum(increase(scf_cp_op_key_events_total{kind="rate_limited"}[2m])) > bool 0)[10m:1m]) == 1,
+               "kind", "rate_limited", "", "")
+        labels: { severity: warning, monitor_id: TM-ISO-10.M.1, team: security }
+        annotations:
+          summary: "Operator API key anomaly: {{ $labels.kind }}"
+          description: >-
+            bad_checksum = a mistyped or forged key; key_in_url = a key presented in a URL (revoked automatically when
+            it matches, C-119); rate_limited = a key at its limit for 10 minutes.
+          runbook_url: ops/runbooks/api-key-anomaly.md
+      # TM-OTL-05.M.2 (op-key part): any operator API key accepted after its revocation beyond the cache bound.
+      - alert: RevokedTokenStillAccepted
+        expr: sum(increase(scf_cp_op_key_accepted_after_revocation_total[10m])) > 0
+        labels: { severity: critical, monitor_id: TM-OTL-05.M.2, team: security }
+        annotations:
+          summary: An operator API key was accepted after its revocation
+          description: The revocation check (per request against the database, C-06) did not hold; treat the key as compromised.
+          runbook_url: ops/runbooks/revocation-propagation.md
+      # TM-ENR-06.M.1: tenant signups, or creating calls refused by the C-64 per-identity/per-subnet limits, in the last
+      # hour > 10× the hourly average of the previous 7 days (at least 1/hour).
+      - alert: SignupBurst
+        expr: |
+          label_replace(
+            scf:cp_signups:increase1h
+              > 10 * clamp_min(avg_over_time(scf:cp_signups:increase1h[7d] offset 1h) or vector(0), 1),
+            "signal", "signups", "", "")
+          or label_replace(
+            scf:cp_create_rate_limited:increase1h
+              > 10 * clamp_min(avg_over_time(scf:cp_create_rate_limited:increase1h[7d] offset 1h) or vector(0), 1),
+            "signal", "create_rate_limited", "", "")
+        labels: { severity: warning, monitor_id: TM-ENR-06.M.1 }
+        annotations:
+          summary: "{{ $labels.signal }} in the last hour over 10× the 7-day hourly average"
+          description: Scripted enrollment or tenant/site creation (C-64); review new tenants and tombstones, notify the operator_admins.
+          runbook_url: ops/runbooks/enrollment-abuse.md
+      # TM-ENR-07.M.1: the domain verifier (jobs service) refused more than 10 targets in an hour as private, loopback
+      # or our own addresses.
+      - alert: VerifierEgressDenied
+        expr: sum by (class) (increase(scf_cp_verifier_blocked_targets_total[1h])) > 10
+        labels: { severity: warning, monitor_id: TM-ENR-07.M.1, team: security }
+        annotations:
+          summary: "Domain verifier refused more than 10 {{ $labels.class }} targets in an hour"
+          description: A tenant may be using domain verification to probe internal addresses (SSRF attempt).
+          runbook_url: ops/runbooks/verifier-ssrf.md
+      # Plan C1 #12: the control plane's reconcile found portal sites and Umami websites out of step (kind orphan: an
+      # Umami website without a portal site; missing: a portal site without its website; misplaced: a website in
+      # another tenant's Umami team). Transient during a creation or purge, so only for 2 h.
+      - alert: UmamiSiteDrift
+        expr: max by (kind) (scf_cp_umami_site_drift) > 0
+        for: 2h
+        labels: { severity: warning, monitor_id: TM-ISO-05.M.2, team: security }
+        annotations:
+          summary: "{{ $value }} portal site(s) and Umami website(s) out of step ({{ $labels.kind }}) for 2 h"
+          description: The tenancy mapping between the portal and Umami has diverged; a misplaced website can expose one tenant's data to another tenant's Umami team.
+          runbook_url: ops/runbooks/adapter-errors.md

@@ -1,0 +1,302 @@
+{
+  "$comment": "Every alert of docs/monitoring-plan.md §4.4 and where it lives. status: rule = a Prometheus rule in ops/alerts/*.rules.yaml with promtool tests; partial = a rule exists for the part whose signal exists, the rest needs the metric in 'missing'; metric_missing = no rule yet because the signal does not exist — 'missing' names the exact metric the owner must export; outside = not a Prometheus alert (portal notice, job, external check). Checked by ops/internal/alertlint (go test ./internal/alertlint).",
+  "alerts": {
+    "IngestBurnRateFast": { "status": "rule" },
+    "IngestBurnRateSlow": { "status": "rule" },
+    "IngestBudgetTicket": { "status": "rule" },
+    "DashboardBurnRateFast": { "status": "rule" },
+    "DashboardBurnRateSlow": { "status": "rule" },
+    "ProbeQuorumFailing": { "status": "rule" },
+    "SingleVantageFailing": { "status": "rule" },
+    "IngestHostnameDegraded": { "status": "rule" },
+    "EdgeNodeProbeFailing": { "status": "rule" },
+    "FreshnessSLOAtRisk": {
+      "status": "metric_missing",
+      "owner": "probes",
+      "missing": "scf_freshness_canary_visible_total{source,path_kind,within} — canaries timed from send to visibility through the public read API (within = 5m | 60m | late), every 5 min"
+    },
+    "FreshnessStalled": {
+      "status": "metric_missing",
+      "owner": "probes",
+      "missing": "scf_freshness_canary_last_visible_timestamp_seconds{source,path_kind}"
+    },
+    "EdgeNodeDown": { "status": "rule" },
+    "IngestCapacityDegraded": {
+      "status": "partial",
+      "owner": "health controller",
+      "missing": "provider label on node verdicts, e.g. scf_health_controller_node_up{node,provider} — for the 'all nodes of one provider unhealthy' part"
+    },
+    "HealthControllerNoLease": { "status": "rule" },
+    "EngineProxyDown": { "status": "rule" },
+    "CacheTokenHitLow": { "status": "rule" },
+    "DNSRecordDrift": {
+      "status": "partial",
+      "owner": "DNS as code",
+      "missing": "scf_dns_static_drift{provider,zone} from the DNS-as-code check of the static records (C-27); the health-controller part is a rule"
+    },
+    "DNSRecordForeign": {
+      "status": "metric_missing",
+      "owner": "DNS as code",
+      "missing": "scf_dns_foreign_records{provider,zone} — published records pointing outside the IP inventory"
+    },
+    "CertExpiring": { "status": "rule" },
+    "RangeListsStale": { "status": "rule" },
+    "SupportResponseDue": {
+      "status": "outside",
+      "where": "support-ticket automation (labels at business day 4 and 8)"
+    },
+    "SpoolAge": { "status": "rule" },
+    "SpoolDepthHigh": { "status": "rule" },
+    "SpoolDiscarded": { "status": "rule" },
+    "ForwardErrors": { "status": "rule" },
+    "DuplicateForwardsHigh": {
+      "status": "rule",
+      "note": "counts deliveries after an attempt whose outcome is unknown (written request + transport error or 500/502/504); a crash between Umami storing and the spool ack is not counted (C-124)"
+    },
+    "DurabilityDiscrepancy": {
+      "status": "metric_missing",
+      "owner": "jobs, durability_reconcile",
+      "missing": "scf_durability_discrepancy{node} (records fsync'd − acknowledged − expired − queued, per node and day) and scf_durability_report_timestamp_seconds{node}"
+    },
+    "CanaryCountMismatch": {
+      "status": "metric_missing",
+      "owner": "jobs, durability_reconcile",
+      "missing": "scf_durability_canary_shortfall{source} — canary events sent minus counted in Umami for the last drained hour"
+    },
+    "ReconciliationStale": {
+      "status": "rule",
+      "note": "fires once job durability_reconcile exists (scf_job_last_success_timestamp_seconds{job_name=\"durability_reconcile\"})"
+    },
+    "WriterDedupeAnomaly": { "status": "rule" },
+    "WriterRejectedData": { "status": "rule" },
+    "StreamResetsHigh": {
+      "status": "outside",
+      "where": "portal notice to the tenant (control plane, from api data-quality counters); no per-tenant Prometheus label by design"
+    },
+    "RejectedWebSpikePlatform": {
+      "status": "rule",
+      "note": "scf_gateway_reasons_total carries suspect and rejected reason codes together (no verdict label)"
+    },
+    "VerifiedShareDropPlatform": { "status": "rule" },
+    "OTLPRejectedSpike": {
+      "status": "rule",
+      "note": "reason time_bounds is decided by the metrics writer (too_old/future), not by the gateway"
+    },
+    "CardinalityOverflow": {
+      "status": "outside",
+      "where": "portal notice to the tenant (control plane)"
+    },
+    "CardinalityOverflowPlatform": {
+      "status": "partial",
+      "owner": "writer",
+      "missing": "scf_writer_route_overflow_tenants (tenants with a route sent to {overflow} today) — for the '> 5 tenants' part; the memory-limiter part is a rule"
+    },
+    "RedactedValuesSeen": {
+      "status": "outside",
+      "where": "portal notice to the tenant (control plane)"
+    },
+    "RedactedBurst": { "status": "rule" },
+    "CollectorQueueHigh": {
+      "status": "rule",
+      "note": "oldest-batch age is not exported by the v0.165 queue; the 72-hour cap is enforced by the writer (C-112)"
+    },
+    "CollectorExportFailing": { "status": "rule" },
+    "CollectorSanitiseDrops": { "status": "rule" },
+    "CollectorReceivedAtFallback": { "status": "rule" },
+    "CollectorSpanFilterHit": { "status": "rule" },
+    "WriterListenerClosed": { "status": "rule" },
+    "KDayRegenerated": { "status": "rule" },
+    "SiteRateLimited": {
+      "status": "partial",
+      "owner": "portal",
+      "missing": "the tenant-facing portal notice (portal function, not a Prometheus alert); the maintainer warning (> 10 sites in an hour) is the rule"
+    },
+    "SuspectSurgeOnSite": {
+      "status": "outside",
+      "where": "portal notice to the tenant and operator_admins (trust score, control plane)"
+    },
+    "SnapshotStale": { "status": "rule" },
+    "CanaryIsolationBreach": {
+      "status": "metric_missing",
+      "owner": "isolation canary runner",
+      "missing": "scf_isolation_canary_breaches_total{surface}"
+    },
+    "CanaryProbeFailing": {
+      "status": "metric_missing",
+      "owner": "isolation canary runner",
+      "missing": "scf_isolation_canary_last_success_timestamp_seconds"
+    },
+    "RLSCoverageDrift": {
+      "status": "metric_missing",
+      "owner": "jobs",
+      "missing": "scf_rls_coverage_violations (rows of the scheduled RLS-coverage query)"
+    },
+    "AdapterForbidden": {
+      "status": "rule",
+      "note": "from the engine proxy's answers to reader/provisioner calls"
+    },
+    "CrossTenantFanout": {
+      "status": "metric_missing",
+      "owner": "control plane / jobs",
+      "missing": "scf_cross_tenant_contexts{actor_class} (tenant contexts touched per 10 min outside allow-listed jobs)"
+    },
+    "AuditChainBroken": {
+      "status": "metric_missing",
+      "owner": "jobs, audit verification",
+      "missing": "scf_audit_chain_verify_ok (1/0) — or scf_job_last_success_timestamp_seconds{job_name=\"audit_verify\"} plus scf_job_anomalies_total{reason=\"audit_chain_broken\"}"
+    },
+    "AuditChainUnverified": {
+      "status": "metric_missing",
+      "owner": "jobs",
+      "missing": "scf_job_last_success_timestamp_seconds{job_name=\"audit_verify\"} (job not built yet)"
+    },
+    "AuditAnchorMissing": {
+      "status": "metric_missing",
+      "owner": "jobs, audit_anchor",
+      "missing": "scf_audit_anchor_last_published_day_timestamp_seconds"
+    },
+    "AuditAnchorMismatch": {
+      "status": "metric_missing",
+      "owner": "jobs, audit_anchor",
+      "missing": "scf_audit_anchor_mismatches_total"
+    },
+    "SCFOperatorBulkRead": {
+      "status": "rule",
+      "note": "scf_cp_operator_reads_total{operator_ref} counts GET operations of the operator console per pseudonymous operator; floor of 50 reads/hour (control-plane.rules.yaml)"
+    },
+    "SCFOperatorPrivilegedAction": {
+      "status": "outside",
+      "where": "portal notice to all operator_admins (control plane, audit rows)"
+    },
+    "SCFOperatorAuthAnomaly": {
+      "status": "rule",
+      "note": "scf_cp_auth_events_total does not separate SCF operators from tenant members who use a passkey"
+    },
+    "AuthFailureSpike": { "status": "rule" },
+    "OpKeyAnomaly": {
+      "status": "partial",
+      "owner": "control plane",
+      "missing": "scf_cp_op_key_events_total{kind=\"new_network_class\"} — a key used from a network class it was not seen from before (the key's network classes are not tracked yet); bad_checksum, key_in_url and rate_limited are a rule"
+    },
+    "RevokedTokenStillAccepted": {
+      "status": "partial",
+      "owner": "gateway",
+      "missing": "scf_gateway_ing_token_accepted_after_revocation_total — an ing token accepted > 60 s after revocation by a node with a fresh snapshot; the op-key part (scf_cp_op_key_accepted_after_revocation_total) is a rule"
+    },
+    "SnapshotSignatureInvalid": { "status": "rule" },
+    "EgressDenied": {
+      "status": "metric_missing",
+      "owner": "host firewall, IaC",
+      "missing": "scf_egress_dropped_packets_total{component} from the host firewall counters"
+    },
+    "UnexpectedListener": {
+      "status": "metric_missing",
+      "owner": "scanner",
+      "missing": "scf_listener_scan_diff{scanner} (daily external and internal scan vs hardening.md §2)"
+    },
+    "NodeVerdictDivergence": {
+      "status": "rule",
+      "note": "verified share per node; per-tenant traffic share needs per-node tenant counters (not exported, by design)"
+    },
+    "KDayDivergence": { "status": "rule" },
+    "ProxyDenied": { "status": "rule" },
+    "TrackerHashDrift": {
+      "status": "metric_missing",
+      "owner": "probes",
+      "missing": "scf_tracker_hash_drift{target,version} (hourly fetch per node vs the signed manifest; 410 check for withdrawn versions)"
+    },
+    "NpmUnexpectedVersion": {
+      "status": "outside",
+      "where": "external check (npm version list vs release list)"
+    },
+    "ReproducibleBuildMismatch": { "status": "outside", "where": "independent rebuild job" },
+    "CTUnexpectedCertificate": {
+      "status": "outside",
+      "where": "certificate-transparency watch (external CT monitor, ADR-0023)"
+    },
+    "DependencyAdvisoryUrgent": {
+      "status": "metric_missing",
+      "owner": "security responders",
+      "missing": "scf_advisories_open{severity} (advisories matching a pinned dependency, runtime or image)"
+    },
+    "UmamiUpstreamSecuritySignal": {
+      "status": "metric_missing",
+      "owner": "security responders",
+      "missing": "scf_advisories_open_by_kind{kind=\"umami\",severity} (Umami upstream advisories against the pinned engine)"
+    },
+    "OnchainLedgerAnchorMismatch": { "status": "rule" },
+    "OnchainLedgerAnchorUnverified": { "status": "rule" },
+    "DeployVerifyFailed": {
+      "status": "outside",
+      "where": "deploy playbook (cosign verify), reported by the playbook"
+    },
+    "MonitoringNodeAccess": {
+      "status": "metric_missing",
+      "owner": "mon-c host",
+      "missing": "scf_host_access_events_total{kind} (login, sudo, new_listener, inbound_flow) from auditd/journald on mon-c"
+    },
+    "SigningAccountChanged": {
+      "status": "metric_missing",
+      "owner": "jobs, on-chain watch",
+      "missing": "scf_signing_account_changes_total{account_role}"
+    },
+    "LogPIIDetected": { "status": "rule" },
+    "SignupBurst": { "status": "rule" },
+    "DomainReclaimed": {
+      "status": "outside",
+      "where": "portal notice to operator_admins (control plane)"
+    },
+    "VerifierEgressDenied": {
+      "status": "rule",
+      "note": "exported by the jobs service, which runs the domain verifier (C-125)"
+    },
+    "SSHSession": {
+      "status": "metric_missing",
+      "owner": "hosts",
+      "missing": "scf_host_access_events_total{kind=\"ssh_session\"}"
+    },
+    "DiskPredictedFull": { "status": "rule" },
+    "DiskHigh": { "status": "rule" },
+    "IngestAboveTested": { "status": "rule" },
+    "EdgeCPUHigh": {
+      "status": "rule",
+      "note": "needs the scrape label role=\"edge\" on node_exporter targets (ops/prometheus)"
+    },
+    "ConnectionsNearMax": { "status": "rule" },
+    "PatroniNoLeader": { "status": "rule" },
+    "ReplicationLagHigh": { "status": "rule" },
+    "EtcdMembersLow": { "status": "rule" },
+    "XIDWraparoundRisk": {
+      "status": "metric_missing",
+      "owner": "postgres_exporter custom query",
+      "missing": "pg_xid_wraparound_ratio (age(datfrozenxid) / 2^31, custom query)"
+    },
+    "WALArchiveFailing": { "status": "rule" },
+    "BackupFullStale": { "status": "rule" },
+    "BackupDiffStale": { "status": "rule" },
+    "BackupCheckFailing": {
+      "status": "partial",
+      "owner": "backups",
+      "missing": "rule on scf_backup_check_success (pgbackrest check, hourly) built; still missing: scf_backup_verify_ok{repo} (pgbackrest verify output parsed for missing/WARN lines), scf_backup_repo_versioning_ok{repo}, scf_backup_repo_lifecycle_ok{repo}, scf_backup_credential_cannot_delete_versions{repo}"
+    },
+    "LogicalDumpStale": { "status": "rule" },
+    "RestoreDrillStale": { "status": "rule" },
+    "RestoreDrillIntegrityMismatch": { "status": "rule" },
+    "Watchdog": { "status": "rule" },
+    "DeadMansSwitchMissed": {
+      "status": "outside",
+      "where": "scheduled GitHub workflow .github/workflows/deadman.yml (every 5 min) running ops/deadman/check.sh against the status host's heartbeat.json"
+    },
+    "NotificationsFailing": { "status": "rule" },
+    "NTPOffset": { "status": "rule" },
+    "WireGuardStale": {
+      "status": "metric_missing",
+      "owner": "hosts",
+      "missing": "wireguard_latest_handshake_seconds{peer} (prometheus_wireguard_exporter, MIT) on every host"
+    },
+    "SealHistoryMismatch": { "status": "rule" },
+    "SpoolCorruptFrames": { "status": "rule" },
+    "EventKeyEvictions": { "status": "rule" },
+    "UmamiSiteDrift": { "status": "rule" }
+  }
+}

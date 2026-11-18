@@ -1,0 +1,414 @@
+# SPDX-License-Identifier: Apache-2.0
+# promtool test rules ops/alerts/tests/security-platform.test.yaml — security.rules.yaml and platform.rules.yaml.
+rule_files: [../recording.rules.yaml, ../security.rules.yaml, ../platform.rules.yaml]
+evaluation_interval: 1m
+tests:
+  # 1. Engine proxy: Umami refuses a reader call; a node outside its allow-list is denied (gate_closed is ignored).
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_engine_proxy_requests_total{instance="core-a",role="reader",route="/api/websites/{id}/stats",code="403"}',
+          values: "0x10 1x20",
+        }
+      - {
+          series: 'scf_engine_proxy_requests_total{instance="core-a",role="reader",route="/api/websites/{id}/stats",code="200"}',
+          values: "0+10x30",
+        }
+      - {
+          series: 'scf_engine_proxy_denials_total{instance="core-a",node="edge-a1",role="edge",reason="not_allowed"}',
+          values: "0x10 1x20",
+        }
+      - {
+          series: 'scf_engine_proxy_denials_total{instance="core-a",node="unknown",role="unknown",reason="gate_closed"}',
+          values: "0+1x30",
+        }
+    alert_rule_test:
+      - { eval_time: 5m, alertname: AdapterForbidden, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: AdapterForbidden
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-ISO-05.M.1,
+                team: security,
+                role: reader,
+                route: "/api/websites/{id}/stats",
+                code: "403",
+              }
+            exp_annotations:
+              {
+                description: The adapter's view of Umami's tenancy may have diverged.,
+                runbook_url: ops/runbooks/adapter-errors.md,
+                summary: "Umami answered 403 to a tenant-scoped reader call (/api/websites/{id}/stats)",
+              }
+      - { eval_time: 5m, alertname: ProxyDenied, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: ProxyDenied
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                monitor_id: TM-EDG-08.M.3,
+                team: security,
+                instance: core-a,
+                node: edge-a1,
+                role: edge,
+                reason: not_allowed,
+              }
+            exp_annotations:
+              {
+                description: "An unknown certificate, or a path or parameter outside the caller's allow-list (C-60, C-74).",
+                runbook_url: ops/runbooks/engine-proxy.md,
+                summary: "Engine proxy refused edge-a1 (edge): not_allowed",
+              }
+
+  # 2. A forged snapshot; the log scanner finds an address.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_gateway_snapshot_verify_failures{instance="edge-b1",reason="signature"}',
+          values: "0x10 1x20",
+        }
+      - {
+          series: 'scf_gateway_snapshot_rollback_refused_total{instance="edge-b1"}',
+          values: "0x30",
+        }
+      - { series: 'scf_log_pii_findings_total{instance="mon-c",class="ipv4"}', values: "0x10 2x20" }
+      - {
+          series: 'scf_log_pii_findings_total{instance="mon-c",class="user_agent"}',
+          values: "0x30",
+        }
+    alert_rule_test:
+      - { eval_time: 5m, alertname: SnapshotSignatureInvalid, exp_alerts: [] }
+      - eval_time: 12m
+        alertname: SnapshotSignatureInvalid
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, monitor_id: TM-EDG-10.M.2, team: security, instance: edge-b1 }
+            exp_annotations:
+              {
+                description: Someone may be offering a forged or replayed snapshot (C-62).,
+                runbook_url: ops/runbooks/snapshot-stale.md,
+                summary: edge-b1 refused a snapshot (bad signature or older sequence),
+              }
+      - { eval_time: 5m, alertname: LogPIIDetected, exp_alerts: [] }
+      - eval_time: 12m
+        alertname: LogPIIDetected
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, monitor_id: TM-PRV-06.M.1, team: security, class: ipv4 }
+            exp_annotations:
+              {
+                description: The log scanner found personal data or a secret shape in VictoriaLogs; the text itself is never exported.,
+                runbook_url: ops/runbooks/log-pii.md,
+                summary: Operational logs contain a ipv4 shape,
+              }
+
+  # 3. One edge node's verified share drifts away from its three peers.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_gateway_events_total{instance="edge-a1",verdict="verified"}',
+          values: "0+90x200",
+        }
+      - {
+          series: 'scf_gateway_events_total{instance="edge-a1",verdict="suspect"}',
+          values: "0+10x200",
+        }
+      - {
+          series: 'scf_gateway_events_total{instance="edge-a2",verdict="verified"}',
+          values: "0+88x200",
+        }
+      - {
+          series: 'scf_gateway_events_total{instance="edge-a2",verdict="suspect"}',
+          values: "0+12x200",
+        }
+      - {
+          series: 'scf_gateway_events_total{instance="edge-b1",verdict="verified"}',
+          values: "0+91x200",
+        }
+      - {
+          series: 'scf_gateway_events_total{instance="edge-b1",verdict="suspect"}',
+          values: "0+9x200",
+        }
+      - {
+          series: 'scf_gateway_events_total{instance="edge-b2",verdict="verified"}',
+          values: "0+90x60 5400+40x140",
+        }
+      - {
+          series: 'scf_gateway_events_total{instance="edge-b2",verdict="suspect"}',
+          values: "0+10x60 600+60x140",
+        }
+    alert_rule_test:
+      - { eval_time: 60m, alertname: NodeVerdictDivergence, exp_alerts: [] }
+      - eval_time: 200m
+        alertname: NodeVerdictDivergence
+        exp_alerts:
+          - exp_labels:
+              { severity: warning, monitor_id: TM-EDG-03.M.1, team: security, instance: edge-b2 }
+            exp_annotations:
+              {
+                description: Possible edge compromise or a node-specific defect.,
+                runbook_url: ops/runbooks/edge-divergence.md,
+                summary: edge-b2's verified share deviates from its peers by more than 4 robust z,
+              }
+
+  # 4. Hosts: a disk filling up, high use, clock offset, CPU on an edge.
+  - interval: 5m
+    input_series:
+      - {
+          series: 'node_filesystem_avail_bytes{instance="core-a",mountpoint="/var/lib/postgresql",fstype="ext4"}',
+          values: "400-2x200",
+        }
+      - {
+          series: 'node_filesystem_size_bytes{instance="core-a",mountpoint="/var/lib/postgresql",fstype="ext4"}',
+          values: "1000x200",
+        }
+      - {
+          series: 'node_filesystem_avail_bytes{instance="core-b",mountpoint="/",fstype="ext4"}',
+          values: "900x200",
+        }
+      - {
+          series: 'node_filesystem_size_bytes{instance="core-b",mountpoint="/",fstype="ext4"}',
+          values: "1000x200",
+        }
+      - { series: 'node_timex_offset_seconds{instance="edge-a1"}', values: "0.01x10 0.3x20" }
+      - { series: 'node_timex_offset_seconds{instance="edge-a2"}', values: "0.002x30" }
+    alert_rule_test:
+      - { eval_time: 1h, alertname: DiskHigh, exp_alerts: [] }
+      - eval_time: 10h
+        alertname: DiskHigh
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: none,
+                instance: core-a,
+                mountpoint: /var/lib/postgresql,
+                fstype: ext4,
+              }
+            exp_annotations:
+              {
+                description: 84% used.,
+                runbook_url: ops/runbooks/disk-space.md,
+                summary: core-a /var/lib/postgresql more than 80 % used,
+              }
+      - { eval_time: 20m, alertname: DiskPredictedFull, exp_alerts: [] }
+      - eval_time: 7h
+        alertname: DiskPredictedFull
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-DOS-03.M.4,
+                instance: core-a,
+                mountpoint: /var/lib/postgresql,
+                fstype: ext4,
+              }
+            exp_annotations:
+              {
+                description: Linear prediction from the last 6 h.,
+                runbook_url: ops/runbooks/disk-space.md,
+                summary: core-a /var/lib/postgresql predicted full within 24 h,
+              }
+      - { eval_time: 50m, alertname: NTPOffset, exp_alerts: [] }
+      - eval_time: 80m
+        alertname: NTPOffset
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: none, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: Offset 0.3 s; probe rounds and the 72-hour cap depend on time.,
+                runbook_url: ops/runbooks/time-sync.md,
+                summary: Clock on edge-a1 off by more than 100 ms,
+              }
+  - interval: 1m
+    input_series:
+      - {
+          series: 'node_cpu_seconds_total{instance="edge-a1",role="edge",cpu="0",mode="idle"}',
+          values: "0+54x60 3240+6x140",
+        }
+      - {
+          series: 'node_cpu_seconds_total{instance="edge-a2",role="edge",cpu="0",mode="idle"}',
+          values: "0+54x200",
+        }
+    alert_rule_test:
+      - { eval_time: 50m, alertname: EdgeCPUHigh, exp_alerts: [] }
+      - eval_time: 200m
+        alertname: EdgeCPUHigh
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-02.M.2, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: 90%.,
+                runbook_url: ops/runbooks/capacity-review.md,
+                summary: p95 CPU on edge node edge-a1 above 70 % over 1 h,
+              }
+
+  # 5. Volume above 5× design; PostgreSQL connections, replication, archive; Patroni and etcd.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_gateway_events_total{instance="edge-a1",verdict="verified"}',
+          values: "0+1000x1500 1500000+20000x300",
+        }
+      - {
+          series: 'pg_stat_activity_count{instance="core-a",datname="scf",state="active"}',
+          values: "50x10 90x20",
+        }
+      - { series: 'pg_settings_max_connections{instance="core-a"}', values: "100x30" }
+      - { series: 'pg_replication_lag_seconds{instance="core-b"}', values: "1x10 60x20" }
+      - { series: 'pg_stat_archiver_failed_count{instance="core-a"}', values: "0x10 1x20" }
+      - { series: 'pg_stat_archiver_last_archive_age{instance="core-a"}', values: "10x30" }
+      - { series: 'patroni_primary{instance="core-a"}', values: "1x10 0x20" }
+      - { series: 'patroni_primary{instance="core-b"}', values: "0x30" }
+      - { series: 'etcd_server_has_leader{instance="core-a"}', values: "1x30" }
+      - { series: 'etcd_server_has_leader{instance="core-b"}', values: "1x30" }
+      - { series: 'etcd_server_has_leader{instance="mon-c"}', values: "1x10 0x20" }
+    alert_rule_test:
+      - { eval_time: 5m, alertname: ConnectionsNearMax, exp_alerts: [] }
+      - eval_time: 20m
+        alertname: ConnectionsNearMax
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: none, instance: core-a }
+            exp_annotations:
+              {
+                description: 90%.,
+                runbook_url: ops/runbooks/postgres-connections.md,
+                summary: PostgreSQL core-a above 80 % of max_connections,
+              }
+      - { eval_time: 5m, alertname: ReplicationLagHigh, exp_alerts: [] }
+      - eval_time: 20m
+        alertname: ReplicationLagHigh
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-04.M.5, instance: core-b }
+            exp_annotations:
+              {
+                description: Lag 1m 0s.,
+                runbook_url: ops/runbooks/postgres-replication.md,
+                summary: Replica core-b more than 30 s behind,
+              }
+      - { eval_time: 5m, alertname: WALArchiveFailing, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: WALArchiveFailing
+        exp_alerts:
+          - exp_labels: { severity: critical, monitor_id: TM-OPS-01.M.1, instance: core-a }
+            exp_annotations:
+              {
+                description: Point-in-time recovery is at risk.,
+                runbook_url: ops/runbooks/backup-failure.md,
+                summary: WAL archiving on core-a failing or more than 5 min behind,
+              }
+      - { eval_time: 5m, alertname: PatroniNoLeader, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: PatroniNoLeader
+        exp_alerts:
+          - exp_labels: { severity: critical, monitor_id: TM-DOS-04.M.4 }
+            exp_annotations:
+              {
+                description: Writes fail; the portal serves read-only from the replica (ADR-0020).,
+                runbook_url: ops/runbooks/postgres-failover.md,
+                summary: The Patroni cluster has no leader,
+              }
+      - { eval_time: 5m, alertname: EtcdMembersLow, exp_alerts: [] }
+      - eval_time: 20m
+        alertname: EtcdMembersLow
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-04.M.6 }
+            exp_annotations:
+              {
+                description: 2 member(s) see a leader.,
+                runbook_url: ops/runbooks/postgres-failover.md,
+                summary: Fewer than 3 healthy etcd members,
+              }
+      - { eval_time: 24h, alertname: IngestAboveTested, exp_alerts: [] }
+      - eval_time: 29h
+        alertname: IngestAboveTested
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-02.M.1 }
+            exp_annotations:
+              {
+                description: "10× is the tested level (ADR-0026, C-48); plan capacity now.",
+                runbook_url: ops/runbooks/capacity-review.md,
+                summary: Daily volume above 5× the design target,
+              }
+
+  # 6. The Watchdog always fires; Alertmanager cannot deliver.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'alertmanager_notifications_failed_total{instance="mon-c",integration="email"}',
+          values: "0x10 0+1x40",
+        }
+      - {
+          series: 'alertmanager_notifications_failed_total{instance="mon-c",integration="webhook"}',
+          values: "0x50",
+        }
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: Watchdog
+        exp_alerts:
+          - exp_labels: { severity: none, monitor_id: none }
+            exp_annotations:
+              {
+                description: Alertmanager sends it every 5 minutes to the status host; a scheduled GitHub workflow alarms when it stops (C-30).,
+                runbook_url: ops/runbooks/dead-mans-switch.md,
+                summary: Always-firing heartbeat for the dead-man's switch,
+              }
+      - { eval_time: 10m, alertname: NotificationsFailing, exp_alerts: [] }
+      - eval_time: 40m
+        alertname: NotificationsFailing
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: none, integration: email }
+            exp_annotations:
+              {
+                description: Routed via the other channel.,
+                runbook_url: ops/runbooks/alert-delivery.md,
+                summary: Alertmanager cannot deliver through email,
+              }
+
+  # PatroniNoLeader without primary series (C-123): silent on the lean profile (no `patroni` scrape job at all);
+  # fires in the HA profile when the Patroni targets are scraped but none reports patroni_primary (all down).
+  - interval: 1m
+    input_series:
+      - { series: 'pg_up{job="postgres",instance="postgres-exporter:9187"}', values: "1x30" }
+    alert_rule_test:
+      - { eval_time: 20m, alertname: PatroniNoLeader, exp_alerts: [] }
+  - interval: 1m
+    input_series:
+      - { series: 'up{job="patroni",instance="pg-a:8008"}', values: "0x30" }
+      - { series: 'up{job="patroni",instance="pg-b:8008"}', values: "0x30" }
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: PatroniNoLeader
+        exp_alerts:
+          - exp_labels: { severity: critical, monitor_id: TM-DOS-04.M.4 }
+            exp_annotations:
+              {
+                description: Writes fail; the portal serves read-only from the replica (ADR-0020).,
+                runbook_url: ops/runbooks/postgres-failover.md,
+                summary: The Patroni cluster has no leader,
+              }
+  # Seal history walk (plan C1 #10): problems on testnet fire; mainnet clean stays silent; no series, no alert.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_seal_history_problems{instance="jobs:8080",network="testnet"}',
+          values: "0x5 2x10",
+        }
+      - {
+          series: 'scf_seal_history_problems{instance="jobs:8080",network="mainnet"}',
+          values: "0x15",
+        }
+    alert_rule_test:
+      - { eval_time: 3m, alertname: SealHistoryMismatch, exp_alerts: [] }
+      - eval_time: 10m
+        alertname: SealHistoryMismatch
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, monitor_id: TM-D1-06.M.1, team: security, network: testnet }
+            exp_annotations:
+              summary: "Seal history on testnet: 2 problem(s) between the ledger and the published days"
+              description: A published seal day no longer matches its ledger transaction, or a seal transaction appeared that the platform did not publish. Possible rewrite of a past seal or a compromised seal key.
+              runbook_url: ops/runbooks/audit-chain.md

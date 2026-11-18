@@ -1,0 +1,161 @@
+# SPDX-License-Identifier: Apache-2.0
+# Monitoring plan §4.4 "SLO and availability". Every alert carries severity, monitor_id and runbook_url (checked by
+# ops/internal/alertlint). Burn-rate thresholds (ADR-0022, ADR-0031): 14.4× over 1 h and 5 m, 6× over 6 h and 30 m
+# (critical), 1× over 3 d and 6 h (warning, opens an issue). The budget is the profile's (recording.rules.yaml
+# slo:error_budget:ratio: 99.99 % / 99.9 % scale-out; 99.5 % lean, DV-41, where one probe source decides — a self-view).
+groups:
+  - name: scf-slo-availability
+    interval: 30s
+    rules:
+      - alert: IngestBurnRateFast
+        expr: |
+          slo:sli_error:ratio_rate1h{sloth_id="ingest-availability"} > on (sloth_id) group_left () (14.4 * slo:error_budget:ratio{sloth_id="ingest-availability"})
+          and slo:sli_error:ratio_rate5m{sloth_id="ingest-availability"} > on (sloth_id) group_left () (14.4 * slo:error_budget:ratio{sloth_id="ingest-availability"})
+        labels: { severity: critical, monitor_id: TM-DOS-01.M.1 }
+        annotations:
+          summary: Ingest error budget burning ≥ 14.4× over 1 h and 5 m
+          description: "At this rate the month's ingest budget (99.99 %: 4.38 min; lean profile 99.5 %: 3.65 h) is gone in about 2 days."
+          runbook_url: ops/runbooks/ingest-burn-rate.md
+      - alert: IngestBurnRateSlow
+        expr: |
+          slo:sli_error:ratio_rate6h{sloth_id="ingest-availability"} > on (sloth_id) group_left () (6 * slo:error_budget:ratio{sloth_id="ingest-availability"})
+          and slo:sli_error:ratio_rate30m{sloth_id="ingest-availability"} > on (sloth_id) group_left () (6 * slo:error_budget:ratio{sloth_id="ingest-availability"})
+        labels: { severity: critical, monitor_id: TM-DOS-01.M.2 }
+        annotations:
+          summary: Ingest error budget burning ≥ 6× over 6 h and 30 m
+          description: At this rate the month's ingest budget is gone in about 5 days.
+          runbook_url: ops/runbooks/ingest-burn-rate.md
+      - alert: IngestBudgetTicket
+        expr: |
+          slo:sli_error:ratio_rate3d{sloth_id="ingest-availability"} > on (sloth_id) group_left () (1 * slo:error_budget:ratio{sloth_id="ingest-availability"})
+          and slo:sli_error:ratio_rate6h{sloth_id="ingest-availability"} > on (sloth_id) group_left () (1 * slo:error_budget:ratio{sloth_id="ingest-availability"})
+        labels: { severity: warning, monitor_id: TM-DOS-01.M.3 }
+        annotations:
+          summary: Ingest error budget burning ≥ 1× over 3 d and 6 h
+          description: "The month's ingest budget (99.99 %: 4.38 min; lean profile 99.5 %: 3.65 h) will be used up at this rate; an issue is opened."
+          runbook_url: ops/runbooks/ingest-burn-rate.md
+      - alert: DashboardBurnRateFast
+        expr: |
+          slo:sli_error:ratio_rate1h{sloth_id="dashboard-availability"} > on (sloth_id) group_left () (14.4 * slo:error_budget:ratio{sloth_id="dashboard-availability"})
+          and slo:sli_error:ratio_rate5m{sloth_id="dashboard-availability"} > on (sloth_id) group_left () (14.4 * slo:error_budget:ratio{sloth_id="dashboard-availability"})
+        labels: { severity: critical, monitor_id: TM-DOS-04.M.1 }
+        annotations:
+          summary: Dashboard error budget burning ≥ 14.4× over 1 h and 5 m
+          description: "At this rate the month's dashboard budget (99.9 %: 43.8 min; lean profile 99.5 %: 3.65 h) is gone in about 2 days."
+          runbook_url: ops/runbooks/dashboard-burn-rate.md
+      - alert: DashboardBurnRateSlow
+        expr: |
+          slo:sli_error:ratio_rate6h{sloth_id="dashboard-availability"} > on (sloth_id) group_left () (6 * slo:error_budget:ratio{sloth_id="dashboard-availability"})
+          and slo:sli_error:ratio_rate30m{sloth_id="dashboard-availability"} > on (sloth_id) group_left () (6 * slo:error_budget:ratio{sloth_id="dashboard-availability"})
+        labels: { severity: critical, monitor_id: TM-DOS-04.M.1 }
+        annotations:
+          summary: Dashboard error budget burning ≥ 6× over 6 h and 30 m
+          description: At this rate the month's dashboard budget is gone in about 5 days.
+          runbook_url: ops/runbooks/dashboard-burn-rate.md
+      - alert: ProbeQuorumFailing
+        expr: scf:probe_quorum:bad{kind="round",target="ingest"} == 1
+        for: 30s # two consecutive bad rounds (C-78)
+        labels: { severity: critical, monitor_id: TM-DOS-01.M.4 }
+        annotations:
+          summary: The probe quorum sees ingest failing
+          description: Two consecutive rounds were bad by the quorum (2 of 3 sources; lean profile the one local source, a self-view) and no ingest hostname accepted the canary within 2 s.
+          runbook_url: ops/runbooks/ingest-probe-failure.md
+      - alert: SingleVantageFailing
+        expr: |
+          scf:probe_source_vote:bad{kind="round",target="ingest"} == 1
+          unless on (kind, target) (scf:probe_quorum:bad == 1)
+        for: 5m
+        labels: { severity: info, monitor_id: TM-DOS-01.M.5 }
+        annotations:
+          summary: "Probe source {{ $labels.group }} alone sees ingest failing"
+          description: One source fails while the others succeed; logged and published, not counted (C-78).
+          runbook_url: ops/runbooks/prober-health.md
+      - alert: IngestHostnameDegraded
+        expr: avg_over_time(scf:probe_quorum:bad{kind="host"}[10m]) > 0.01
+        for: 1m
+        labels: { severity: critical, monitor_id: TM-DOS-01.M.8 }
+        annotations:
+          summary: "Ingest hostname {{ $labels.target }}: first-attempt success below 99 % over 10 m"
+          description: The headline rounds may still be good through the other hostname (C-78); suspect the domain, registrar or a DNS provider.
+          runbook_url: ops/runbooks/ingest-hostname-degraded.md
+      - alert: EdgeNodeProbeFailing
+        expr: scf:probe_quorum:bad{kind="node"} == 1
+        for: 1m # three consecutive bad rounds
+        labels: { severity: warning, monitor_id: TM-DOS-01.M.9 }
+        annotations:
+          summary: "Edge node {{ $labels.target }} fails direct probes (2-of-3)"
+          description: Black-holed or degraded node; the health controller should remove it from DNS.
+          runbook_url: ops/runbooks/edge-node-down.md
+      - alert: EdgeNodeProbeFailing
+        expr: |
+          (scf:probe_quorum:bad{kind="node"} == 1)
+          and on (target) label_replace(max by (node) (scf_health_controller_node_up) == 1, "target", "$1", "node", "(.*)")
+        for: 5m
+        labels: { severity: critical, monitor_id: TM-DOS-01.M.9 }
+        annotations:
+          summary: "Edge node {{ $labels.target }} fails probes and is still in DNS after 5 m"
+          description: The probes see the node failing but the health controller still publishes it.
+          runbook_url: ops/runbooks/edge-node-down.md
+      - alert: EdgeNodeDown
+        expr: up{job="gateway"} == 0
+        for: 2m
+        labels: { severity: warning, monitor_id: TM-DOS-01.M.6 }
+        annotations:
+          summary: "Gateway {{ $labels.instance }} is not scraped"
+          description: The health controller removes the node from DNS after three failed rounds.
+          runbook_url: ops/runbooks/edge-node-down.md
+      - alert: IngestCapacityDegraded
+        expr: min by (hostname) (scf_health_controller_record_members{type="A"}) < 2
+        for: 1m
+        labels: { severity: critical, monitor_id: TM-DOS-01.M.7 }
+        annotations:
+          summary: "Fewer than 2 healthy nodes behind {{ $labels.hostname }}"
+          description: Losing one more node leaves the hostname on a single address (C-25).
+          runbook_url: ops/runbooks/edge-node-down.md
+      - alert: HealthControllerNoLease
+        # Absence alarms only where a health controller is deployed (a `health-controller` scrape job exists, its targets
+        # up or down): the lean profile (C-123) runs none and must stay silent.
+        expr: |
+          max(scf_health_controller_leader) < 1
+          or (count(up{job="health-controller"}) > 0 and on () absent(scf_health_controller_leader))
+        for: 2m
+        labels: { severity: critical, monitor_id: TM-DOS-05.M.1 }
+        annotations:
+          summary: No health-controller instance holds the etcd lease
+          description: Nothing removes dead edge nodes from DNS while this lasts.
+          runbook_url: ops/runbooks/dns-health-controller.md
+      - alert: EngineProxyDown
+        expr: |
+          up{job="engine-proxy"} == 0
+          or (sum by (core) (rate(scf_gateway_forward_total{outcome="core_failed"}[5m])) > 0)
+        for: 2m
+        labels: { severity: warning, monitor_id: TM-DOS-04.M.7 }
+        annotations:
+          summary: "Engine proxy {{ $labels.instance }}{{ $labels.core }} not ready, or forwarders fail over from it"
+          description: Visits routed to that core split once (C-74).
+          runbook_url: ops/runbooks/engine-proxy.md
+      - alert: EngineProxyDown
+        expr: count(up{job="engine-proxy"} == 0) == count(up{job="engine-proxy"})
+        for: 2m
+        labels: { severity: critical, monitor_id: TM-DOS-04.M.7 }
+        annotations:
+          summary: Engine proxy down on every core
+          description: Forwarders cannot deliver; events stay in the spools.
+          runbook_url: ops/runbooks/engine-proxy.md
+      - alert: CacheTokenHitLow
+        expr: |
+          scf:engine_proxy_visit_hit:ratio_rate1h
+          < quantile_over_time(0.5, scf:engine_proxy_visit_hit:ratio_rate1h[7d]) - 0.20
+        for: 1h
+        labels: { severity: warning, monitor_id: TM-DOS-04.M.8 }
+        annotations:
+          summary: Engine-proxy visit-token hit rate more than 20 points below its 7-day median
+          description: Restarts or a routing change split visits (C-74).
+          runbook_url: ops/runbooks/engine-proxy.md
+      - alert: DNSRecordDrift
+        expr: increase(scf_health_controller_dns_writes_total{reason="drift"}[15m]) > 0
+        labels: { severity: warning, monitor_id: TM-EDG-06.M.1 }
+        annotations:
+          summary: "Ingest/portal records at {{ $labels.provider }} differed from the health controller's set"
+          description: The controller corrected {{ $labels.hostname }} {{ $labels.type }}; someone or something else wrote the record set.
+          runbook_url: ops/runbooks/dns-drift.md

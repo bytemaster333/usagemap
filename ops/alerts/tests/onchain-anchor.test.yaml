@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: Apache-2.0
+# promtool test rules ops/alerts/tests/onchain-anchor.test.yaml — the scf-onchain-anchor group of security.rules.yaml (C-144).
+rule_files: [../security.rules.yaml]
+evaluation_interval: 1m
+tests:
+  # A mismatching day anchor fires at once.
+  - interval: 1m
+    input_series:
+      - series: 'scf_onchain_anchor_mismatch_days{network="public"}'
+        values: "0 1x30"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: OnchainLedgerAnchorMismatch
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, monitor_id: TM-DEL-02.M.1, team: security, network: public }
+            exp_annotations:
+              summary: "The ledger-file store disagrees with Horizon on 1 day anchor(s) (public)"
+              description: A day's anchor ledger hash in the mirrored ledger files differs from Horizon's, so the store served a forged or wrong chain (C-144). Those days were refused; nothing was stored for them. Compare a second Horizon, then empty the mirror and switch the ledger source.
+              runbook_url: ops/runbooks/audit-chain.md
+  # Anchors confirmed: nothing fires.
+  - interval: 1m
+    input_series:
+      - series: 'scf_onchain_anchor_mismatch_days{network="public"}'
+        values: "0x40"
+      - series: 'scf_onchain_anchor_unverified_days{network="public"}'
+        values: "0x40"
+    alert_rule_test:
+      - { eval_time: 35m, alertname: OnchainLedgerAnchorMismatch, exp_alerts: [] }
+      - { eval_time: 35m, alertname: OnchainLedgerAnchorUnverified, exp_alerts: [] }
+  # On-chain anchors unconfirmed for more than 26 hours.
+  - interval: 1m
+    input_series:
+      - series: 'scf_onchain_anchor_unverified_days{network="public"}'
+        values: "2x1700"
+    alert_rule_test:
+      - eval_time: 20h
+        alertname: OnchainLedgerAnchorUnverified
+        exp_alerts: []
+      - eval_time: 28h
+        alertname: OnchainLedgerAnchorUnverified
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DEL-02.M.2, network: public }
+            exp_annotations:
+              summary: "Horizon has not confirmed on-chain day anchors for 26 hours (public)"
+              description: Complete days wait unused until Horizon answers for their anchor ledger (SCF_ONCHAIN_HORIZON_URL / SCF_HORIZON_URL).
+              runbook_url: ops/runbooks/audit-chain.md

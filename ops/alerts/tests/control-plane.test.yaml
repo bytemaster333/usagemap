@@ -1,0 +1,241 @@
+# SPDX-License-Identifier: Apache-2.0
+# promtool test rules ops/alerts/tests/control-plane.test.yaml — control-plane.rules.yaml (scf_cp_*).
+rule_files: [../control-plane.rules.yaml]
+evaluation_interval: 1m
+tests:
+  # 1. SCFOperatorBulkRead: 12 reads/hour for 50 h, then ~410 in one hour.
+  - interval: 10m
+    input_series:
+      - {
+          series: 'scf_cp_operator_reads_total{job="control-plane",instance="control-plane:9464",operator_ref="3f2a9c1b7d4e"}',
+          values: "0+2x300 1000+2x12",
+        }
+    alert_rule_test:
+      - { eval_time: 49h, alertname: SCFOperatorBulkRead, exp_alerts: [] }
+      - eval_time: 50h50m
+        alertname: SCFOperatorBulkRead
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-OPR-01.M.1,
+                team: security,
+                operator_ref: 3f2a9c1b7d4e,
+              }
+            exp_annotations:
+              summary: "SCF operator 3f2a9c1b7d4e read more in the last hour than 3× their 30-day p99"
+              description: Bulk cross-tenant reads by one operator (C-17); compare with the audit log (operator.read.*) and notify the operator_admins.
+              runbook_url: ops/runbooks/operator-activity.md
+
+  # 2. SCFOperatorAuthAnomaly: 6 passkey failures within 10 m; later a first step-up failure (a new series).
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_cp_auth_events_total{job="control-plane",instance="cp",method="passkey",outcome="passkey_failed"}',
+          values: "0x10 6x30",
+        }
+      - {
+          series: 'scf_cp_auth_events_total{job="control-plane",instance="cp",method="passkey",outcome="success"}',
+          values: "0+3x40",
+        }
+      - {
+          series: 'scf_cp_auth_events_total{job="control-plane",instance="cp",method="passkey",outcome="step_up_failed"}',
+          values: "_x20 1x20",
+        }
+    alert_rule_test:
+      - { eval_time: 5m, alertname: SCFOperatorAuthAnomaly, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: SCFOperatorAuthAnomaly
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-OPR-06.M.1,
+                team: security,
+                outcome: passkey_failed,
+              }
+            exp_annotations:
+              summary: "Passkey/step-up anomaly: passkey_failed"
+              description: >-
+                Passkeys are required for SCF operators (C-09); a burst of failed assertions, a new passkey, a recovery,
+                break-glass use or a failed step-up needs a look at the audit log (auth.* rows). The counter does not
+                separate operators from tenant members who use a passkey.
+              runbook_url: ops/runbooks/auth-anomaly.md
+      - eval_time: 25m
+        alertname: SCFOperatorAuthAnomaly
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-OPR-06.M.1,
+                team: security,
+                outcome: step_up_failed,
+              }
+            exp_annotations:
+              summary: "Passkey/step-up anomaly: step_up_failed"
+              description: >-
+                Passkeys are required for SCF operators (C-09); a burst of failed assertions, a new passkey, a recovery,
+                break-glass use or a failed step-up needs a look at the audit log (auth.* rows). The counter does not
+                separate operators from tenant members who use a passkey.
+              runbook_url: ops/runbooks/auth-anomaly.md
+      - { eval_time: 38m, alertname: SCFOperatorAuthAnomaly, exp_alerts: [] }
+
+  # 3. AuthFailureSpike: 12 failed sign-ins/hour for a week, then 240/hour.
+  - interval: 5m
+    input_series:
+      - {
+          series: 'scf_cp_auth_events_total{job="control-plane",instance="cp",method="github",outcome="failed"}',
+          values: "0+1x2100 2101+20x30",
+        }
+    alert_rule_test:
+      - { eval_time: 170h, alertname: AuthFailureSpike, exp_alerts: [] }
+      - eval_time: 177h
+        alertname: AuthFailureSpike
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-AUT-03.M.1 }
+            exp_annotations:
+              summary: Failed sign-ins at more than 5× the same time last week
+              description: Credential stuffing, a broken identity provider or a SEP-53 client bug.
+              runbook_url: ops/runbooks/auth-anomaly.md
+
+  # 4. AuthFailureSpike stays silent when last week had the same failure rate.
+  - interval: 5m
+    input_series:
+      - {
+          series: 'scf_cp_auth_events_total{job="control-plane",instance="cp",method="stellar",outcome="failed"}',
+          values: "0+20x2130",
+        }
+    alert_rule_test:
+      - { eval_time: 177h, alertname: AuthFailureSpike, exp_alerts: [] }
+
+  # 5. OpKeyAnomaly: a key with a bad checksum (first event: a new series), then a key rate-limited in every minute.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_cp_op_key_events_total{job="control-plane",instance="cp",kind="bad_checksum"}',
+          values: "_x5 1x40",
+        }
+      - {
+          series: 'scf_cp_op_key_events_total{job="control-plane",instance="cp",kind="rate_limited"}',
+          values: "0x20 1+1x20",
+        }
+      - {
+          series: 'scf_cp_op_key_events_total{job="control-plane",instance="cp",kind="accepted"}',
+          values: "0+5x45",
+        }
+    alert_rule_test:
+      - { eval_time: 3m, alertname: OpKeyAnomaly, exp_alerts: [] }
+      - eval_time: 10m
+        alertname: OpKeyAnomaly
+        exp_alerts:
+          - exp_labels:
+              { severity: warning, monitor_id: TM-ISO-10.M.1, team: security, kind: bad_checksum }
+            exp_annotations:
+              summary: "Operator API key anomaly: bad_checksum"
+              description: >-
+                bad_checksum = a mistyped or forged key; key_in_url = a key presented in a URL (revoked automatically when
+                it matches, C-119); rate_limited = a key at its limit for 10 minutes.
+              runbook_url: ops/runbooks/api-key-anomaly.md
+      # rate-limited for only 5 minutes: not yet
+      - { eval_time: 26m, alertname: OpKeyAnomaly, exp_alerts: [] }
+      - eval_time: 35m
+        alertname: OpKeyAnomaly
+        exp_alerts:
+          - exp_labels:
+              { severity: warning, monitor_id: TM-ISO-10.M.1, team: security, kind: rate_limited }
+            exp_annotations:
+              summary: "Operator API key anomaly: rate_limited"
+              description: >-
+                bad_checksum = a mistyped or forged key; key_in_url = a key presented in a URL (revoked automatically when
+                it matches, C-119); rate_limited = a key at its limit for 10 minutes.
+              runbook_url: ops/runbooks/api-key-anomaly.md
+
+  # 6. RevokedTokenStillAccepted (op-key part).
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_cp_op_key_accepted_after_revocation_total{job="control-plane",instance="cp"}',
+          values: "0x10 1x10",
+        }
+    alert_rule_test:
+      - { eval_time: 5m, alertname: RevokedTokenStillAccepted, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: RevokedTokenStillAccepted
+        exp_alerts:
+          - exp_labels: { severity: critical, monitor_id: TM-OTL-05.M.2, team: security }
+            exp_annotations:
+              summary: An operator API key was accepted after its revocation
+              description: The revocation check (per request against the database, C-06) did not hold; treat the key as compromised.
+              runbook_url: ops/runbooks/revocation-propagation.md
+
+  # 7. SignupBurst: 6 signups/hour for 10 h, then 120 in one hour.
+  - interval: 10m
+    input_series:
+      - {
+          series: 'scf_cp_signups_total{job="control-plane",instance="cp"}',
+          values: "0+1x60 80+20x6",
+        }
+      - {
+          series: 'scf_cp_rate_limited_total{job="control-plane",instance="cp",route_class="create"}',
+          values: "0x66",
+        }
+    alert_rule_test:
+      - { eval_time: 9h, alertname: SignupBurst, exp_alerts: [] }
+      - eval_time: 11h
+        alertname: SignupBurst
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-ENR-06.M.1, signal: signups }
+            exp_annotations:
+              summary: "signups in the last hour over 10× the 7-day hourly average"
+              description: Scripted enrollment or tenant/site creation (C-64); review new tenants and tombstones, notify the operator_admins.
+              runbook_url: ops/runbooks/enrollment-abuse.md
+
+  # 8. VerifierEgressDenied: 60 private targets refused in an hour (jobs service); loopback stays quiet.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_cp_verifier_blocked_targets_total{job="jobs",instance="jobs:8080",class="private"}',
+          values: "0+1x70",
+        }
+      - {
+          series: 'scf_cp_verifier_blocked_targets_total{job="jobs",instance="jobs:8080",class="loopback"}',
+          values: "0+0x70",
+        }
+    alert_rule_test:
+      - { eval_time: 5m, alertname: VerifierEgressDenied, exp_alerts: [] }
+      - eval_time: 60m
+        alertname: VerifierEgressDenied
+        exp_alerts:
+          - exp_labels:
+              { severity: warning, monitor_id: TM-ENR-07.M.1, team: security, class: private }
+            exp_annotations:
+              summary: "Domain verifier refused more than 10 private targets in an hour"
+              description: A tenant may be using domain verification to probe internal addresses (SSRF attempt).
+              runbook_url: ops/runbooks/verifier-ssrf.md
+
+  # UmamiSiteDrift: a misplaced website persisting 2 h fires; a 30-minute orphan during a purge does not.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_cp_umami_site_drift{instance="control-plane:9464",kind="misplaced"}',
+          values: "0x20 1x200",
+        }
+      - {
+          series: 'scf_cp_umami_site_drift{instance="control-plane:9464",kind="orphan"}',
+          values: "0x20 1x30 0x170",
+        }
+      - {
+          series: 'scf_cp_umami_site_drift{instance="control-plane:9464",kind="missing"}',
+          values: "0x220",
+        }
+    alert_rule_test:
+      - { eval_time: 1h, alertname: UmamiSiteDrift, exp_alerts: [] }
+      - eval_time: 3h
+        alertname: UmamiSiteDrift
+        exp_alerts:
+          - exp_labels:
+              { severity: warning, monitor_id: TM-ISO-05.M.2, team: security, kind: misplaced }
+            exp_annotations:
+              summary: "1 portal site(s) and Umami website(s) out of step (misplaced) for 2 h"
+              description: The tenancy mapping between the portal and Umami has diverged; a misplaced website can expose one tenant's data to another tenant's Umami team.
+              runbook_url: ops/runbooks/adapter-errors.md

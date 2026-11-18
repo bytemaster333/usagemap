@@ -1,0 +1,664 @@
+# SPDX-License-Identifier: Apache-2.0
+# promtool test rules ops/alerts/tests/slo.test.yaml — every alert of slo.rules.yaml fires and stays silent.
+# Probe inputs: scf_probe_last_bad (1 bad / 0 good) and scf_probe_last_timestamp_seconds (= round start, so the series
+# '0+30xN' at a 30 s interval is always fresh).
+rule_files: [../recording.rules.yaml, ../slo.rules.yaml]
+evaluation_interval: 30s
+tests:
+  # 1. Ingest outage seen by mon-c and probe-d from 55m30s; the edges stay good.
+  - interval: 30s
+    input_series:
+      - {
+          series: 'scf_probe_last_bad{source="mon-c",kind="round",target="ingest"}',
+          values: "0x110 1x20",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="probe-d",kind="round",target="ingest"}',
+          values: "0x110 1x20",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="edge-a1",kind="round",target="ingest"}',
+          values: "0x130",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="edge-b1",kind="round",target="ingest"}',
+          values: "0x130",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="mon-c",kind="round",target="ingest"}',
+          values: "0+30x130",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="probe-d",kind="round",target="ingest"}',
+          values: "0+30x130",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="edge-a1",kind="round",target="ingest"}',
+          values: "0+30x130",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="edge-b1",kind="round",target="ingest"}',
+          values: "0+30x130",
+        }
+    promql_expr_test:
+      - expr: scf:probe_quorum:voters{kind="round"}
+        eval_time: 10m
+        exp_samples: [{ labels: 'scf:probe_quorum:voters{kind="round",target="ingest"}', value: 3 }]
+      - expr: scf:probe_quorum:bad{kind="round"}
+        eval_time: 60m
+        exp_samples: [{ labels: 'scf:probe_quorum:bad{kind="round",target="ingest"}', value: 1 }]
+    alert_rule_test:
+      - { eval_time: 50m, alertname: ProbeQuorumFailing, exp_alerts: [] }
+      - { eval_time: 50m, alertname: IngestBurnRateFast, exp_alerts: [] }
+      - { eval_time: 50m, alertname: IngestBurnRateSlow, exp_alerts: [] }
+      - { eval_time: 50m, alertname: IngestBudgetTicket, exp_alerts: [] }
+      - { eval_time: 50m, alertname: SingleVantageFailing, exp_alerts: [] }
+      - { eval_time: 55m30s, alertname: ProbeQuorumFailing, exp_alerts: [] } # one bad round is not enough
+      - eval_time: 60m
+        alertname: ProbeQuorumFailing
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, monitor_id: TM-DOS-01.M.4, kind: round, target: ingest }
+            exp_annotations:
+              {
+                description: "Two consecutive rounds were bad by the quorum (2 of 3 sources; lean profile the one local source, a self-view) and no ingest hostname accepted the canary within 2 s.",
+                runbook_url: ops/runbooks/ingest-probe-failure.md,
+                summary: The probe quorum sees ingest failing,
+              }
+      - eval_time: 60m
+        alertname: IngestBurnRateFast
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                monitor_id: TM-DOS-01.M.1,
+                kind: round,
+                target: ingest,
+                sloth_service: ingest,
+                sloth_slo: availability,
+                sloth_id: ingest-availability,
+              }
+            exp_annotations:
+              {
+                description: "At this rate the month's ingest budget (99.99 %: 4.38 min; lean profile 99.5 %: 3.65 h) is gone in about 2 days.",
+                runbook_url: ops/runbooks/ingest-burn-rate.md,
+                summary: Ingest error budget burning ≥ 14.4× over 1 h and 5 m,
+              }
+      - eval_time: 60m
+        alertname: IngestBurnRateSlow
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                monitor_id: TM-DOS-01.M.2,
+                kind: round,
+                target: ingest,
+                sloth_service: ingest,
+                sloth_slo: availability,
+                sloth_id: ingest-availability,
+              }
+            exp_annotations:
+              {
+                description: At this rate the month's ingest budget is gone in about 5 days.,
+                runbook_url: ops/runbooks/ingest-burn-rate.md,
+                summary: Ingest error budget burning ≥ 6× over 6 h and 30 m,
+              }
+      - eval_time: 60m
+        alertname: IngestBudgetTicket
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-DOS-01.M.3,
+                kind: round,
+                target: ingest,
+                sloth_service: ingest,
+                sloth_slo: availability,
+                sloth_id: ingest-availability,
+              }
+            exp_annotations:
+              {
+                description: "The month's ingest budget (99.99 %: 4.38 min; lean profile 99.5 %: 3.65 h) will be used up at this rate; an issue is opened.",
+                runbook_url: ops/runbooks/ingest-burn-rate.md,
+                summary: Ingest error budget burning ≥ 1× over 3 d and 6 h,
+              }
+      - { eval_time: 60m, alertname: SingleVantageFailing, exp_alerts: [] } # the quorum is bad: not a single vantage
+
+  # 2. Only mon-c fails (a flaky vantage point): no quorum, SingleVantageFailing after 5 m.
+  - interval: 30s
+    input_series:
+      - {
+          series: 'scf_probe_last_bad{source="mon-c",kind="round",target="ingest"}',
+          values: "0x20 1x40",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="probe-d",kind="round",target="ingest"}',
+          values: "0x60",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="edge-a2",kind="round",target="ingest"}',
+          values: "0x60",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="mon-c",kind="round",target="ingest"}',
+          values: "0+30x60",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="probe-d",kind="round",target="ingest"}',
+          values: "0+30x60",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="edge-a2",kind="round",target="ingest"}',
+          values: "0+30x60",
+        }
+    alert_rule_test:
+      - { eval_time: 14m, alertname: SingleVantageFailing, exp_alerts: [] }
+      - eval_time: 20m
+        alertname: SingleVantageFailing
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: info,
+                monitor_id: TM-DOS-01.M.5,
+                group: mon-c,
+                kind: round,
+                target: ingest,
+              }
+            exp_annotations:
+              {
+                description: "One source fails while the others succeed; logged and published, not counted (C-78).",
+                runbook_url: ops/runbooks/prober-health.md,
+                summary: Probe source mon-c alone sees ingest failing,
+              }
+      - { eval_time: 20m, alertname: ProbeQuorumFailing, exp_alerts: [] }
+
+  # 3. Two voters left (probe-d silent → stale after 75 s): one bad vote is not a bad round; both bad is.
+  - interval: 30s
+    input_series:
+      - {
+          series: 'scf_probe_last_bad{source="mon-c",kind="round",target="ingest"}',
+          values: "1x40",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="probe-d",kind="round",target="ingest"}',
+          values: "1x40",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="edge-b1",kind="round",target="ingest"}',
+          values: "0x20 1x20",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="mon-c",kind="round",target="ingest"}',
+          values: "0+30x40",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="probe-d",kind="round",target="ingest"}',
+          values: "0x40",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="edge-b1",kind="round",target="ingest"}',
+          values: "0+30x40",
+        }
+    alert_rule_test:
+      - { eval_time: 9m, alertname: ProbeQuorumFailing, exp_alerts: [] }
+      - eval_time: 12m
+        alertname: ProbeQuorumFailing
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, monitor_id: TM-DOS-01.M.4, kind: round, target: ingest }
+            exp_annotations:
+              {
+                description: "Two consecutive rounds were bad by the quorum (2 of 3 sources; lean profile the one local source, a self-view) and no ingest hostname accepted the canary within 2 s.",
+                runbook_url: ops/runbooks/ingest-probe-failure.md,
+                summary: The probe quorum sees ingest failing,
+              }
+
+  # 4. Ingest hostname A fails first attempts for 10 m (headline good through B); edge node edge-b2 fails direct
+  #    probes and the health controller still publishes it.
+  - interval: 30s
+    input_series:
+      - {
+          series: 'scf_probe_last_bad{source="mon-c",kind="host",target="host-a"}',
+          values: "0x20 1x40",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="probe-d",kind="host",target="host-a"}',
+          values: "0x20 1x40",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="mon-c",kind="node",target="edge-b2"}',
+          values: "0x20 1x40",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="probe-d",kind="node",target="edge-b2"}',
+          values: "0x20 1x40",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="mon-c",kind="host",target="host-a"}',
+          values: "0+30x60",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="probe-d",kind="host",target="host-a"}',
+          values: "0+30x60",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="mon-c",kind="node",target="edge-b2"}',
+          values: "0+30x60",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="probe-d",kind="node",target="edge-b2"}',
+          values: "0+30x60",
+        }
+      - {
+          series: 'scf_health_controller_node_up{instance="hc-mon-c",node="edge-b2"}',
+          values: "1x60",
+        }
+    alert_rule_test:
+      - { eval_time: 10m, alertname: IngestHostnameDegraded, exp_alerts: [] }
+      - eval_time: 13m
+        alertname: IngestHostnameDegraded
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, monitor_id: TM-DOS-01.M.8, kind: host, target: host-a }
+            exp_annotations:
+              {
+                description: "The headline rounds may still be good through the other hostname (C-78); suspect the domain, registrar or a DNS provider.",
+                runbook_url: ops/runbooks/ingest-hostname-degraded.md,
+                summary: "Ingest hostname host-a: first-attempt success below 99 % over 10 m",
+              }
+      - { eval_time: 10m30s, alertname: EdgeNodeProbeFailing, exp_alerts: [] }
+      - eval_time: 13m
+        alertname: EdgeNodeProbeFailing
+        exp_alerts:
+          - exp_labels:
+              { severity: warning, monitor_id: TM-DOS-01.M.9, kind: node, target: edge-b2 }
+            exp_annotations:
+              {
+                description: Black-holed or degraded node; the health controller should remove it from DNS.,
+                runbook_url: ops/runbooks/edge-node-down.md,
+                summary: Edge node edge-b2 fails direct probes (2-of-3),
+              }
+      - eval_time: 17m
+        alertname: EdgeNodeProbeFailing
+        exp_alerts:
+          - exp_labels:
+              { severity: warning, monitor_id: TM-DOS-01.M.9, kind: node, target: edge-b2 }
+            exp_annotations:
+              {
+                description: Black-holed or degraded node; the health controller should remove it from DNS.,
+                runbook_url: ops/runbooks/edge-node-down.md,
+                summary: Edge node edge-b2 fails direct probes (2-of-3),
+              }
+          - exp_labels:
+              { severity: critical, monitor_id: TM-DOS-01.M.9, kind: node, target: edge-b2 }
+            exp_annotations:
+              {
+                description: The probes see the node failing but the health controller still publishes it.,
+                runbook_url: ops/runbooks/edge-node-down.md,
+                summary: Edge node edge-b2 fails probes and is still in DNS after 5 m,
+              }
+
+  # 5. Dashboard journeys fail from two sources.
+  - interval: 30s
+    input_series:
+      - {
+          series: 'scf_probe_last_bad{source="mon-c",kind="journey",target="dashboard"}',
+          values: "0x40 1x20",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="probe-d",kind="journey",target="dashboard"}',
+          values: "0x40 1x20",
+        }
+      - {
+          series: 'scf_probe_last_bad{source="edge-a1",kind="journey",target="dashboard"}',
+          values: "0x60",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="mon-c",kind="journey",target="dashboard"}',
+          values: "0+30x60",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="probe-d",kind="journey",target="dashboard"}',
+          values: "0+30x60",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="edge-a1",kind="journey",target="dashboard"}',
+          values: "0+30x60",
+        }
+    alert_rule_test:
+      - { eval_time: 19m, alertname: DashboardBurnRateFast, exp_alerts: [] }
+      - { eval_time: 19m, alertname: DashboardBurnRateSlow, exp_alerts: [] }
+      - eval_time: 25m
+        alertname: DashboardBurnRateFast
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                monitor_id: TM-DOS-04.M.1,
+                kind: journey,
+                target: dashboard,
+                sloth_service: dashboard,
+                sloth_slo: availability,
+                sloth_id: dashboard-availability,
+              }
+            exp_annotations:
+              {
+                description: "At this rate the month's dashboard budget (99.9 %: 43.8 min; lean profile 99.5 %: 3.65 h) is gone in about 2 days.",
+                runbook_url: ops/runbooks/dashboard-burn-rate.md,
+                summary: Dashboard error budget burning ≥ 14.4× over 1 h and 5 m,
+              }
+      - eval_time: 25m
+        alertname: DashboardBurnRateSlow
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                monitor_id: TM-DOS-04.M.1,
+                kind: journey,
+                target: dashboard,
+                sloth_service: dashboard,
+                sloth_slo: availability,
+                sloth_id: dashboard-availability,
+              }
+            exp_annotations:
+              {
+                description: At this rate the month's dashboard budget is gone in about 5 days.,
+                runbook_url: ops/runbooks/dashboard-burn-rate.md,
+                summary: Dashboard error budget burning ≥ 6× over 6 h and 30 m,
+              }
+
+  # 6. Gateway, engine proxy, health controller, DNS.
+  - interval: 30s
+    input_series:
+      - { series: 'up{job="gateway",instance="edge-a1:9464"}', values: "1x10 0x20" }
+      - { series: 'up{job="gateway",instance="edge-a2:9464"}', values: "1x30" }
+      - { series: 'up{job="engine-proxy",instance="core-a:9464"}', values: "1x10 0x10 0x10" }
+      - { series: 'up{job="engine-proxy",instance="core-b:9464"}', values: "1x20 0x10" }
+      - { series: 'scf_health_controller_leader{instance="mon-c"}', values: "1x10 0x20" }
+      - { series: 'scf_health_controller_leader{instance="core-b"}', values: "0x30" }
+      - { series: 'up{job="health-controller",instance="hc-mon-c:9471"}', values: "1x30" }
+      - { series: 'up{job="health-controller",instance="hc-core-b:9471"}', values: "1x30" }
+      - {
+          series: 'scf_health_controller_record_members{instance="mon-c",hostname="in.domain-a.test",type="A"}',
+          values: "4x10 1x20",
+        }
+      - {
+          series: 'scf_health_controller_dns_writes_total{instance="mon-c",provider="dns-b",hostname="in.domain-a.test",type="A",reason="drift"}',
+          values: "0x10 1x20",
+        }
+      - {
+          series: 'scf_gateway_forward_total{instance="edge-a2:9464",kind="event",outcome="core_failed",core="core-b",error_kind="connect"}',
+          values: "0x5 0+5x25",
+        }
+    alert_rule_test:
+      - { eval_time: 5m, alertname: EdgeNodeDown, exp_alerts: [] }
+      - eval_time: 8m
+        alertname: EdgeNodeDown
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-DOS-01.M.6,
+                job: gateway,
+                instance: "edge-a1:9464",
+              }
+            exp_annotations:
+              {
+                description: The health controller removes the node from DNS after three failed rounds.,
+                runbook_url: ops/runbooks/edge-node-down.md,
+                summary: "Gateway edge-a1:9464 is not scraped",
+              }
+      - { eval_time: 4m, alertname: HealthControllerNoLease, exp_alerts: [] }
+      - eval_time: 8m
+        alertname: HealthControllerNoLease
+        exp_alerts:
+          - exp_labels: { severity: critical, monitor_id: TM-DOS-05.M.1 }
+            exp_annotations:
+              {
+                description: Nothing removes dead edge nodes from DNS while this lasts.,
+                runbook_url: ops/runbooks/dns-health-controller.md,
+                summary: No health-controller instance holds the etcd lease,
+              }
+      - { eval_time: 4m, alertname: IngestCapacityDegraded, exp_alerts: [] }
+      - eval_time: 7m
+        alertname: IngestCapacityDegraded
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, monitor_id: TM-DOS-01.M.7, hostname: in.domain-a.test }
+            exp_annotations:
+              {
+                description: Losing one more node leaves the hostname on a single address (C-25).,
+                runbook_url: ops/runbooks/edge-node-down.md,
+                summary: Fewer than 2 healthy nodes behind in.domain-a.test,
+              }
+      - { eval_time: 4m, alertname: DNSRecordDrift, exp_alerts: [] }
+      - eval_time: 6m
+        alertname: DNSRecordDrift
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-EDG-06.M.1,
+                instance: mon-c,
+                provider: dns-b,
+                hostname: in.domain-a.test,
+                type: A,
+                reason: drift,
+              }
+            exp_annotations:
+              {
+                description: The controller corrected in.domain-a.test A; someone or something else wrote the record set.,
+                runbook_url: ops/runbooks/dns-drift.md,
+                summary: Ingest/portal records at dns-b differed from the health controller's set,
+              }
+      - { eval_time: 2m, alertname: EngineProxyDown, exp_alerts: [] }
+      - eval_time: 8m
+        alertname: EngineProxyDown
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-DOS-04.M.7,
+                job: engine-proxy,
+                instance: "core-a:9464",
+              }
+            exp_annotations:
+              {
+                description: Visits routed to that core split once (C-74).,
+                runbook_url: ops/runbooks/engine-proxy.md,
+                summary: "Engine proxy core-a:9464 not ready, or forwarders fail over from it",
+              }
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-04.M.7, core: core-b }
+            exp_annotations:
+              {
+                description: Visits routed to that core split once (C-74).,
+                runbook_url: ops/runbooks/engine-proxy.md,
+                summary: "Engine proxy core-b not ready, or forwarders fail over from it",
+              }
+      - eval_time: 14m
+        alertname: EngineProxyDown
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-DOS-04.M.7,
+                job: engine-proxy,
+                instance: "core-a:9464",
+              }
+            exp_annotations:
+              {
+                description: Visits routed to that core split once (C-74).,
+                runbook_url: ops/runbooks/engine-proxy.md,
+                summary: "Engine proxy core-a:9464 not ready, or forwarders fail over from it",
+              }
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-DOS-04.M.7,
+                job: engine-proxy,
+                instance: "core-b:9464",
+              }
+            exp_annotations:
+              {
+                description: Visits routed to that core split once (C-74).,
+                runbook_url: ops/runbooks/engine-proxy.md,
+                summary: "Engine proxy core-b:9464 not ready, or forwarders fail over from it",
+              }
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-04.M.7, core: core-b }
+            exp_annotations:
+              {
+                description: Visits routed to that core split once (C-74).,
+                runbook_url: ops/runbooks/engine-proxy.md,
+                summary: "Engine proxy core-b not ready, or forwarders fail over from it",
+              }
+          - exp_labels: { severity: critical, monitor_id: TM-DOS-04.M.7 }
+            exp_annotations:
+              {
+                description: Forwarders cannot deliver; events stay in the spools.,
+                runbook_url: ops/runbooks/engine-proxy.md,
+                summary: Engine proxy down on every core,
+              }
+
+  # 7. Visit-token hit rate falls from ~90 % to ~50 %.
+  - interval: 5m
+    input_series:
+      - {
+          series: 'scf_engine_proxy_visit_lookup_hits_total{instance="core-a"}',
+          values: "0+90x300 27000+50x40",
+        }
+      - {
+          series: 'scf_engine_proxy_visit_lookup_misses_total{instance="core-a"}',
+          values: "0+10x300 3000+50x40",
+        }
+    alert_rule_test:
+      - { eval_time: 25h, alertname: CacheTokenHitLow, exp_alerts: [] }
+      - eval_time: 28h
+        alertname: CacheTokenHitLow
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-04.M.8 }
+            exp_annotations:
+              {
+                description: Restarts or a routing change split visits (C-74).,
+                runbook_url: ops/runbooks/engine-proxy.md,
+                summary: Engine-proxy visit-token hit rate more than 20 points below its 7-day median,
+              }
+
+  # 8. Lean profile (C-123): one probe source (`app-1`, the only `probes` target), no health controller. The single
+  #    source decides (required 1), the budget is the lean 99.5 % (DV-41); ingest fails from 30m. HealthControllerNoLease
+  #    and SingleVantageFailing stay silent.
+  - interval: 30s
+    input_series:
+      - { series: 'up{job="probes",instance="probe-mon-c:9480"}', values: "1x120" }
+      - {
+          series: 'scf_probe_last_bad{source="app-1",kind="round",target="ingest"}',
+          values: "0x60 1x60",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="app-1",kind="round",target="ingest"}',
+          values: "0+30x120",
+        }
+    promql_expr_test:
+      - expr: scf:probe_quorum:required
+        eval_time: 10m
+        exp_samples: [{ labels: "scf:probe_quorum:required", value: 1 }]
+      - expr: slo:error_budget:ratio
+        eval_time: 10m
+        exp_samples:
+          - labels: 'slo:error_budget:ratio{sloth_service="ingest",sloth_slo="availability",sloth_id="ingest-availability"}'
+            value: 0.005
+          - labels: 'slo:error_budget:ratio{sloth_service="dashboard",sloth_slo="availability",sloth_id="dashboard-availability"}'
+            value: 0.005
+      - expr: scf:probe_quorum:bad{kind="round"}
+        eval_time: 35m
+        exp_samples: [{ labels: 'scf:probe_quorum:bad{kind="round",target="ingest"}', value: 1 }]
+    alert_rule_test:
+      - { eval_time: 29m, alertname: IngestBurnRateFast, exp_alerts: [] }
+      - eval_time: 40m
+        alertname: IngestBurnRateFast
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                monitor_id: TM-DOS-01.M.1,
+                sloth_service: ingest,
+                sloth_slo: availability,
+                sloth_id: ingest-availability,
+                kind: round,
+                target: ingest,
+              }
+            exp_annotations:
+              {
+                description: "At this rate the month's ingest budget (99.99 %: 4.38 min; lean profile 99.5 %: 3.65 h) is gone in about 2 days.",
+                runbook_url: ops/runbooks/ingest-burn-rate.md,
+                summary: Ingest error budget burning ≥ 14.4× over 1 h and 5 m,
+              }
+      - eval_time: 40m
+        alertname: ProbeQuorumFailing
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, monitor_id: TM-DOS-01.M.4, kind: round, target: ingest }
+            exp_annotations:
+              {
+                description: "Two consecutive rounds were bad by the quorum (2 of 3 sources; lean profile the one local source, a self-view) and no ingest hostname accepted the canary within 2 s.",
+                runbook_url: ops/runbooks/ingest-probe-failure.md,
+                summary: The probe quorum sees ingest failing,
+              }
+      - { eval_time: 40m, alertname: SingleVantageFailing, exp_alerts: [] }
+      - { eval_time: 40m, alertname: HealthControllerNoLease, exp_alerts: [] }
+
+  # 9. Lean profile: a one-minute blip (two bad rounds) uses lean budget but does not burn 14.4× over 1 h — on the
+  #    scale-out budget (99.99 %) the same blip would page. Without a `probes` target (lean before a probe site is
+  #    configured) there is no verdict at all: required stays 2 and one source never forms a quorum.
+  - interval: 30s
+    input_series:
+      - { series: 'up{job="probes",instance="probe-mon-c:9480"}', values: "1x120" }
+      - {
+          series: 'scf_probe_last_bad{source="app-1",kind="round",target="ingest"}',
+          values: "0x60 1x1 0x58",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="app-1",kind="round",target="ingest"}',
+          values: "0+30x120",
+        }
+    alert_rule_test:
+      - { eval_time: 31m, alertname: IngestBurnRateFast, exp_alerts: [] }
+      - { eval_time: 45m, alertname: IngestBurnRateFast, exp_alerts: [] }
+  - interval: 30s
+    input_series:
+      - {
+          series: 'scf_probe_last_bad{source="app-1",kind="round",target="ingest"}',
+          values: "1x120",
+        }
+      - {
+          series: 'scf_probe_last_timestamp_seconds{source="app-1",kind="round",target="ingest"}',
+          values: "0+30x120",
+        }
+    promql_expr_test:
+      - expr: scf:probe_quorum:required
+        eval_time: 10m
+        exp_samples: [{ labels: "scf:probe_quorum:required", value: 2 }]
+      - expr: scf:probe_quorum:bad
+        eval_time: 10m
+        exp_samples: []
+    alert_rule_test:
+      - { eval_time: 50m, alertname: IngestBurnRateFast, exp_alerts: [] }
+      - { eval_time: 50m, alertname: ProbeQuorumFailing, exp_alerts: [] }
+
+  # 10. Health controller deployed (its scrape job exists) but no instance exports the lease gauge (all down) → fires;
+  #     lean (no job, no gauge) is case 8.
+  - interval: 30s
+    input_series:
+      - { series: 'up{job="health-controller",instance="hc-mon-c:9471"}', values: "0x30" }
+      - { series: 'up{job="health-controller",instance="hc-core-b:9471"}', values: "0x30" }
+    alert_rule_test:
+      - { eval_time: 1m, alertname: HealthControllerNoLease, exp_alerts: [] }
+      - eval_time: 5m
+        alertname: HealthControllerNoLease
+        exp_alerts:
+          - exp_labels: { severity: critical, monitor_id: TM-DOS-05.M.1 }
+            exp_annotations:
+              {
+                description: Nothing removes dead edge nodes from DNS while this lasts.,
+                runbook_url: ops/runbooks/dns-health-controller.md,
+                summary: No health-controller instance holds the etcd lease,
+              }

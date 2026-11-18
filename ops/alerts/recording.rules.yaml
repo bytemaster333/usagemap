@@ -1,0 +1,139 @@
+# SPDX-License-Identifier: Apache-2.0
+# SLI recording rules (ADR-0031, C-78, monitoring plan §4.1). Evaluated every 30 s, the probe round cadence.
+#
+# Inputs (exported by every probe source, `scf-ops probe`, and by the health controller):
+#   scf_probe_last_bad{source,kind,target}               1 bad / 0 good, the source's last voting result
+#   scf_probe_last_timestamp_seconds{source,kind,target} round start of that result
+# A source's vote counts while it is fresh (rounds: < 75 s old, journeys: < 135 s). Edge probers (`edge-*`) vote as
+# one source, "edges" (C-30), which records bad when more than half of its fresh edge probers do.
+#
+# The error-ratio rules below follow Sloth v0.16's output structure (`slo:sli_error:ratio_rate<window>` with
+# `sloth_service`/`sloth_slo`), generated from the specs in ops/slo/*.sloth.yaml; they are hand-maintained (ops/README.md
+# "Sloth").
+groups:
+  - name: scf-sli-probes
+    interval: 30s
+    rules:
+      - record: scf:probe_fresh_vote
+        expr: |
+          (scf_probe_last_bad{kind!="journey"}
+            and on (source, kind, target) (time() - scf_probe_last_timestamp_seconds{kind!="journey"} < 75))
+          or
+          (scf_probe_last_bad{kind="journey"}
+            and on (source, kind, target) (time() - scf_probe_last_timestamp_seconds{kind="journey"} < 135))
+      - record: scf:probe_source_vote:bad
+        expr: |
+          avg by (group, kind, target) (
+            label_replace(
+              label_replace(scf:probe_fresh_vote, "group", "$1", "source", "(.*)"),
+              "group", "edges", "source", "edge-.*")
+          ) > bool 0.5
+      - record: scf:probe_quorum:voters
+        expr: count by (kind, target) (scf:probe_source_vote:bad)
+      # Votes a bad verdict needs: 2 of the configured sources (C-78) — except where Prometheus scrapes exactly one probe
+      # source (the lean profile, C-123: `probe-mon-c` on the VM it measures, the only `probes` target of the lean
+      # prometheus.yml), where that one source decides alone. That verdict is a self-view, not an outside view: it sees
+      # the stack fail, never the VM, its public IP or DNS fail from outside (monitoring plan, open point P7). Counted
+      # from the scrape targets (up or down), so losing sources in the scale-out profile never lowers the bar. No
+      # `probes` job (lean before a probe site is configured) → 2 → no verdict at all.
+      - record: scf:probe_quorum:required
+        expr: clamp_max(count(up{job="probes"}), 2) or vector(2)
+      # 1 = bad (≥ required sources record bad), 0 = good; absent = unknown (fewer voters than required, C-78).
+      - record: scf:probe_quorum:bad
+        expr: |
+          (sum by (kind, target) (scf:probe_source_vote:bad) >= bool on () group_left () scf:probe_quorum:required)
+            and on (kind, target) (scf:probe_quorum:voters >= on () group_left () scf:probe_quorum:required)
+
+      - record: slo:sli_error:ratio_rate5m
+        expr: avg_over_time(scf:probe_quorum:bad{kind="round",target="ingest"}[5m])
+        labels:
+          &ingest { sloth_service: ingest, sloth_slo: availability, sloth_id: ingest-availability }
+      - record: slo:sli_error:ratio_rate30m
+        expr: avg_over_time(scf:probe_quorum:bad{kind="round",target="ingest"}[30m])
+        labels: *ingest
+      - record: slo:sli_error:ratio_rate1h
+        expr: avg_over_time(scf:probe_quorum:bad{kind="round",target="ingest"}[1h])
+        labels: *ingest
+      - record: slo:sli_error:ratio_rate6h
+        expr: avg_over_time(scf:probe_quorum:bad{kind="round",target="ingest"}[6h])
+        labels: *ingest
+      - record: slo:sli_error:ratio_rate3d
+        expr: avg_over_time(scf:probe_quorum:bad{kind="round",target="ingest"}[3d])
+        labels: *ingest
+      # Objective of the profile (ADR-0031; lean profile 99.5 %, docs/sla.md §1, DV-41 — recognised by its single probe
+      # source, scf:probe_quorum:required == 1). The burn-rate alerts read the budget from here.
+      - record: slo:objective:ratio
+        expr: (vector(0.995) and on () (scf:probe_quorum:required == 1)) or vector(0.9999)
+        labels: *ingest
+      - record: slo:error_budget:ratio
+        expr: (vector(0.005) and on () (scf:probe_quorum:required == 1)) or vector(0.0001)
+        labels: *ingest
+
+      - record: slo:sli_error:ratio_rate5m
+        expr: avg_over_time(scf:probe_quorum:bad{kind="journey",target="dashboard"}[5m])
+        labels:
+          &dash {
+            sloth_service: dashboard,
+            sloth_slo: availability,
+            sloth_id: dashboard-availability,
+          }
+      - record: slo:sli_error:ratio_rate30m
+        expr: avg_over_time(scf:probe_quorum:bad{kind="journey",target="dashboard"}[30m])
+        labels: *dash
+      - record: slo:sli_error:ratio_rate1h
+        expr: avg_over_time(scf:probe_quorum:bad{kind="journey",target="dashboard"}[1h])
+        labels: *dash
+      - record: slo:sli_error:ratio_rate6h
+        expr: avg_over_time(scf:probe_quorum:bad{kind="journey",target="dashboard"}[6h])
+        labels: *dash
+      - record: slo:sli_error:ratio_rate3d
+        expr: avg_over_time(scf:probe_quorum:bad{kind="journey",target="dashboard"}[3d])
+        labels: *dash
+      - record: slo:objective:ratio
+        expr: (vector(0.995) and on () (scf:probe_quorum:required == 1)) or vector(0.999)
+        labels: *dash
+      - record: slo:error_budget:ratio
+        expr: (vector(0.005) and on () (scf:probe_quorum:required == 1)) or vector(0.001)
+        labels: *dash
+
+  - name: scf-sli-server-side
+    interval: 1m
+    rules:
+      # Server-side view (C-43): accepted ÷ valid at the edge. Valid excludes the client-caused answers of the published
+      # exclusion list (400, 404, 410, 413, and 429 — every gateway 429 is a site's own limit or quota, C-80/C-90).
+      - record: scf:ingest_server_valid:rate5m
+        expr: |
+          sum(rate(scf_gateway_requests_total{route=~"events|challenge"}[5m]))
+          - sum(rate(scf_gateway_requests_total{route=~"events|challenge",status=~"400|404|410|413|429"}[5m]))
+      - record: scf:ingest_server_accepted:rate5m
+        expr: sum(rate(scf_gateway_requests_total{route=~"events|challenge",status=~"2.."}[5m]))
+      - record: scf:ingest_server_availability:ratio_rate5m
+        expr: scf:ingest_server_accepted:rate5m / scf:ingest_server_valid:rate5m
+
+  - name: scf-derived
+    # 4m, not 5m: Prometheus 3's 5-minute lookback is left-open, so a 1-minute alert evaluated exactly 5m after the
+    # last recorded sample saw nothing and reset its `for`. 7-day baselines stay at ≈ 2,520 samples.
+    interval: 4m
+    rules:
+      - record: scf:gateway_verified_share:ratio_rate1h
+        expr: |
+          sum(rate(scf_gateway_events_total{verdict="verified"}[1h]))
+          / sum(rate(scf_gateway_events_total[1h]))
+      - record: scf:gateway_verified_share_by_node:ratio_rate1h
+        expr: |
+          sum by (instance) (rate(scf_gateway_events_total{verdict="verified"}[1h]))
+          / sum by (instance) (rate(scf_gateway_events_total[1h]))
+      # Share of identified forwarded events for which the engine proxy held a visit token (C-74); replays refused by the
+      # 30-minute rule (C-99) are outside the denominator and graphed separately.
+      - record: scf:engine_proxy_visit_hit:ratio_rate1h
+        expr: |
+          sum(rate(scf_engine_proxy_visit_lookup_hits_total[1h]))
+          / (sum(rate(scf_engine_proxy_visit_lookup_hits_total[1h])) + sum(rate(scf_engine_proxy_visit_lookup_misses_total[1h])))
+      - record: scf:writer_duplicate:ratio_rate1h
+        expr: |
+          sum(rate(scf_writer_tenant_transactions_total{outcome="duplicate"}[1h]))
+          / sum(rate(scf_writer_tenant_transactions_total[1h]))
+      - record: scf:collector_queue_fill:ratio
+        expr: |
+          max by (instance) ({__name__=~"otelcol_exporter_queue_size"})
+          / max by (instance) ({__name__=~"otelcol_exporter_queue_capacity"})

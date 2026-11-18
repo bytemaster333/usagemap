@@ -1,0 +1,350 @@
+# SPDX-License-Identifier: Apache-2.0
+# promtool test rules ops/alerts/tests/data-quality.test.yaml — every alert of data-quality.rules.yaml fires and
+# stays silent. Inputs use the services' metric names as built.
+rule_files: [../recording.rules.yaml, ../data-quality.rules.yaml]
+evaluation_interval: 1m
+tests:
+  # 1. Spool age crosses 1 h, 6 h and 24 h on edge-a1; edge-a2 drains normally.
+  - interval: 10m
+    input_series:
+      - { series: 'scf_gateway_spool_oldest_age_seconds{instance="edge-a1"}', values: "0+600x200" }
+      - { series: 'scf_gateway_spool_oldest_age_seconds{instance="edge-a2"}', values: "2x200" }
+    alert_rule_test:
+      - { eval_time: 50m, alertname: SpoolAge, exp_alerts: [] }
+      - eval_time: 2h
+        alertname: SpoolAge
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-03.M.1, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: Oldest unacknowledged record is 2h 0m 0s old (C-49 marks 1 h / 6 h / 24 h; cap 72 h).,
+                runbook_url: ops/runbooks/spool-backlog.md,
+                summary: "Spool on edge-a1 not draining: oldest record older than 1 h",
+              }
+      - eval_time: 25h
+        alertname: SpoolAge
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-03.M.1, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: Oldest unacknowledged record is 1d 1h 0m 0s old (C-49 marks 1 h / 6 h / 24 h; cap 72 h).,
+                runbook_url: ops/runbooks/spool-backlog.md,
+                summary: "Spool on edge-a1 not draining: oldest record older than 1 h",
+              }
+          - exp_labels: { severity: critical, monitor_id: TM-DOS-03.M.1, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: Oldest unacknowledged record is 1d 1h 0m 0s old.,
+                runbook_url: ops/runbooks/spool-backlog.md,
+                summary: "Spool on edge-a1: oldest record older than 6 h",
+              }
+          - exp_labels:
+              {
+                severity: critical,
+                monitor_id: TM-DOS-03.M.1,
+                instance: edge-a1,
+                escalate: daily_watch,
+              }
+            exp_annotations:
+              {
+                description: Re-sent to both responders and the person on daily watch (C-49).,
+                runbook_url: ops/runbooks/spool-backlog.md,
+                summary: "Spool on edge-a1: oldest record older than 24 h — two days left before the 72-hour cap",
+              }
+
+  # 2. 72-hour discards (web spool and writer), forward errors.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_gateway_forward_total{instance="edge-a1",kind="event",outcome="expired_72h"}',
+          values: "0x30 3x30",
+        }
+      - {
+          series: 'scf_ingest_dropped{instance="core-a",reason="undeliverable_72h"}',
+          values: "0x60",
+        }
+      - {
+          series: 'scf_gateway_forward_total{instance="edge-a1",kind="event",outcome="acked_stored",core="core-a"}',
+          values: "0+100x60",
+        }
+      - {
+          series: 'scf_gateway_forward_total{instance="edge-a1",kind="event",outcome="core_failed",core="core-a",error_kind="5xx"}',
+          values: "0x20 0+5x40",
+        }
+      - {
+          series: 'scf_gateway_forward_total{instance="edge-a2",kind="event",outcome="acked_stored",core="core-b"}',
+          values: "0+100x60",
+        }
+    alert_rule_test:
+      - { eval_time: 20m, alertname: SpoolDiscarded, exp_alerts: [] }
+      - eval_time: 35m
+        alertname: SpoolDiscarded
+        exp_alerts:
+          - exp_labels: { severity: critical, monitor_id: TM-DOS-03.M.3, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: "3 records/points discarded (C-18, C-112); a durability exception reported monthly.",
+                runbook_url: ops/runbooks/spool-backlog.md,
+                summary: Records discarded at the 72-hour cap on edge-a1,
+              }
+      - { eval_time: 20m, alertname: ForwardErrors, exp_alerts: [] }
+      - eval_time: 40m
+        alertname: ForwardErrors
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-UMA-01.M.1, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: 4.762% of event forwards were not answered 2xx by an engine proxy.,
+                runbook_url: ops/runbooks/forwarder-errors.md,
+                summary: More than 1 % of forwards from edge-a1 fail,
+              }
+
+  # 3. Durability reconciliation stale; writer de-duplication and drops; writer listener closed.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_ingest_dropped{instance="core-a",reason="tenant_write_error"}',
+          values: "0x10 1x20",
+        }
+      - { series: 'scf_ingest_dropped{instance="core-a",reason="too_old"}', values: "0+5x30" }
+      - { series: 'scf_writer_listener_open{instance="core-a"}', values: "1x5 0x25" }
+      - { series: 'scf_writer_listener_open{instance="core-b"}', values: "1x15 0x15" }
+    alert_rule_test:
+      - { eval_time: 5m, alertname: WriterRejectedData, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: WriterRejectedData
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-DOS-06.M.4,
+                instance: core-a,
+                reason: tenant_write_error,
+              }
+            exp_annotations:
+              {
+                description: 1 points dropped in 15 m (C-112).,
+                runbook_url: ops/runbooks/otlp-writer.md,
+                summary: "Writer dropped data: tenant_write_error",
+              }
+      - { eval_time: 6m, alertname: WriterListenerClosed, exp_alerts: [] }
+      - eval_time: 10m
+        alertname: WriterListenerClosed
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-06.M.3, instance: core-a }
+            exp_annotations:
+              {
+                description: Collectors fail over to the other writer (C-107).,
+                runbook_url: ops/runbooks/otlp-writer.md,
+                summary: Writer core-a closed its OTLP listener (no PostgreSQL),
+              }
+      - eval_time: 20m
+        alertname: WriterListenerClosed
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-06.M.3, instance: core-a }
+            exp_annotations:
+              {
+                description: Collectors fail over to the other writer (C-107).,
+                runbook_url: ops/runbooks/otlp-writer.md,
+                summary: Writer core-a closed its OTLP listener (no PostgreSQL),
+              }
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-06.M.3, instance: core-b }
+            exp_annotations:
+              {
+                description: Collectors fail over to the other writer (C-107).,
+                runbook_url: ops/runbooks/otlp-writer.md,
+                summary: Writer core-b closed its OTLP listener (no PostgreSQL),
+              }
+          - exp_labels: { severity: critical, monitor_id: TM-DOS-06.M.3 }
+            exp_annotations:
+              {
+                description: API metrics queue up in the edge Collectors.,
+                runbook_url: ops/runbooks/otlp-writer.md,
+                summary: Every writer has closed its OTLP listener,
+              }
+
+  # 4. Reason-code spike against last week; verified-share drop.
+  - interval: 5m
+    input_series:
+      - {
+          series: 'scf_gateway_reasons_total{instance="edge-a1",reason="challenge_invalid"}',
+          values: "0+30x2100 63000+300x40",
+        }
+      - {
+          series: 'scf_gateway_events_total{instance="edge-a1",verdict="verified"}',
+          values: "0+300x2100 630000+33x40",
+        }
+      - {
+          series: 'scf_gateway_events_total{instance="edge-a1",verdict="suspect"}',
+          values: "0+33x2100 69300+300x40",
+        }
+    alert_rule_test:
+      - { eval_time: 174h, alertname: RejectedWebSpikePlatform, exp_alerts: [] }
+      - { eval_time: 174h, alertname: VerifiedShareDropPlatform, exp_alerts: [] }
+      - eval_time: 176h
+        alertname: RejectedWebSpikePlatform
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-INF-01.M.1, reason: challenge_invalid }
+            exp_annotations:
+              {
+                description: Malformed or signature reasons after a release suggest our regression.,
+                runbook_url: ops/runbooks/verdict-shift.md,
+                summary: "Reason code challenge_invalid more than 5× the same hour last week, across all tenants",
+              }
+      - eval_time: 176h
+        alertname: VerifiedShareDropPlatform
+        exp_alerts:
+          - exp_labels: { severity: critical, monitor_id: TM-INF-02.M.1 }
+            exp_annotations:
+              {
+                description: "Key rotation or gateway bug, not tenants.",
+                runbook_url: ops/runbooks/verdict-shift.md,
+                summary: Verified share across all tenants dropped more than 20 points in 1 h,
+              }
+
+  # 5. Collector: memory-limiter refusals, queue fill, export failures, sanitiser signals.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'otelcol_receiver_refused_metric_points{instance="edge-a1"}',
+          values: "0x10 0+10x20",
+        }
+      - { series: 'otelcol_exporter_queue_size{instance="edge-a1"}', values: "100x5 600x10 900x15" }
+      - { series: 'otelcol_exporter_queue_capacity{instance="edge-a1"}', values: "1000x30" }
+      - {
+          series: 'otelcol_exporter_send_failed_metric_points{instance="edge-a1"}',
+          values: "0x10 0+3x20",
+        }
+      - {
+          series: 'otelcol_processor_scfsanitize_received_at_fallback{instance="edge-a1"}',
+          values: "0x10 1x20",
+        }
+      - {
+          series: 'otelcol_processor_filter_spans_filtered{instance="edge-a1"}',
+          values: "0x10 2x20",
+        }
+    alert_rule_test:
+      - { eval_time: 9m, alertname: CardinalityOverflowPlatform, exp_alerts: [] }
+      - eval_time: 20m
+        alertname: CardinalityOverflowPlatform
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-OTL-06.M.2 }
+            exp_annotations:
+              {
+                description: The tenant-count part of this alert needs a writer metric (ops/alerts/README.md).,
+                runbook_url: ops/runbooks/cardinality-overflow.md,
+                summary: Collector refuses data (memory limiter),
+              }
+      - { eval_time: 5m, alertname: CollectorQueueHigh, exp_alerts: [] }
+      - eval_time: 13m
+        alertname: CollectorQueueHigh
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-06.M.1, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: "Persistent queue 60% full (bytes, C-115).",
+                runbook_url: ops/runbooks/otlp-writer.md,
+                summary: Collector queue on edge-a1 above 50 %,
+              }
+      - eval_time: 25m
+        alertname: CollectorQueueHigh
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-06.M.1, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: "Persistent queue 90% full (bytes, C-115).",
+                runbook_url: ops/runbooks/otlp-writer.md,
+                summary: Collector queue on edge-a1 above 50 %,
+              }
+          - exp_labels: { severity: critical, monitor_id: TM-DOS-06.M.1, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: "Persistent queue 90% full (bytes, C-115).",
+                runbook_url: ops/runbooks/otlp-writer.md,
+                summary: Collector queue on edge-a1 above 80 %,
+              }
+      - { eval_time: 9m, alertname: CollectorExportFailing, exp_alerts: [] }
+      - eval_time: 20m
+        alertname: CollectorExportFailing
+        exp_alerts:
+          - exp_labels: { severity: critical, monitor_id: TM-DOS-06.M.2, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: Data dropped or refused by the queue (C-107).,
+                runbook_url: ops/runbooks/otlp-writer.md,
+                summary: Collector on edge-a1 drops or cannot queue metric points,
+              }
+      - { eval_time: 9m, alertname: CollectorReceivedAtFallback, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: CollectorReceivedAtFallback
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-OTL-05.M.4, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: The Collector used its own clock (wire-formats §f.4) — a gateway bug.,
+                runbook_url: ops/runbooks/otlp-rejections.md,
+                summary: Gateway forwarded OTLP without a valid x-scf-received-at (edge-a1),
+              }
+      - { eval_time: 9m, alertname: CollectorSpanFilterHit, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: CollectorSpanFilterHit
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-OTL-05.M.5, instance: edge-a1 }
+            exp_annotations:
+              {
+                description: scfsanitize let through a span it should have dropped (C-113) — a bug.,
+                runbook_url: ops/runbooks/otlp-rejections.md,
+                summary: The span-filter backstop dropped a span after scfsanitize,
+              }
+  - interval: 5m
+    input_series:
+      - {
+          series: 'otelcol_processor_scfsanitize_dropped{instance="edge-a1",signal="metrics",reason="metric_not_allowed"}',
+          values: "0+30x2100 63000+300x40",
+        }
+      - {
+          series: 'otelcol_processor_scfsanitize_redactions{instance="edge-a1",kind="email",location="route"}',
+          values: "0+10x2100 21000+500x40",
+        }
+    alert_rule_test:
+      - { eval_time: 174h, alertname: CollectorSanitiseDrops, exp_alerts: [] }
+      - { eval_time: 174h, alertname: RedactedBurst, exp_alerts: [] }
+      - eval_time: 176h
+        alertname: CollectorSanitiseDrops
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-OTL-05.M.3, reason: metric_not_allowed }
+            exp_annotations:
+              {
+                description: C-113 closed reasons; never a tenant or a value.,
+                runbook_url: ops/runbooks/otlp-rejections.md,
+                summary: scfsanitize drops for reason metric_not_allowed more than 5× last week,
+              }
+      - eval_time: 177h
+        alertname: RedactedBurst
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-OTL-11.M.2 }
+            exp_annotations:
+              {
+                description: Secret or PII shapes in API routes increased platform-wide.,
+                runbook_url: ops/runbooks/redacted-paths.md,
+                summary: "{redacted} replacements across tenants more than 10× last week",
+              }
+
+  # 6. Snapshot age.
+  - interval: 1m
+    input_series:
+      - { series: 'scf_gateway_snapshot_age_seconds{instance="edge-b1"}', values: "10+60x30" }
+      - { series: 'scf_gateway_snapshot_age_seconds{instance="edge-b2"}', values: "20x30" }
+    alert_rule_test:
+      - { eval_time: 10m, alertname: SnapshotStale, exp_alerts: [] }
+      - eval_time: 16m
+        alertname: SnapshotStale
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, monitor_id: TM-EDG-10.M.1, team: security, instance: edge-b1 }
+            exp_annotations:
+              {
+                description: The node keeps serving its last good snapshot; revocations do not reach it (C-62).,
+                runbook_url: ops/runbooks/snapshot-stale.md,
+                summary: No fresh snapshot on edge-b1 for 15 minutes,
+              }

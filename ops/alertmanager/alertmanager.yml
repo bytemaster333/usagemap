@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: Apache-2.0
+# Alertmanager routing (ADR-0022, monitoring plan §4.4/§5). No on-call: critical → push + e-mail, repeated every 4 h;
+# warning → hourly e-mail digest + an issue in the private ops repository; info → dashboards only; notice → portal
+# notices; security alerts (team=security) → the two named security responders (C-67). The Watchdog goes every
+# 5 minutes to the status host, where the dead-man's-switch workflow reads it (C-30).
+#
+# Local stack: the maintainer, security and portal receivers have no integrations (alerts are visible in the
+# Alertmanager UI only). Production renders ops/alertmanager/alertmanager.prod.yml.tmpl with the channels the
+# operating team chooses; alert content never carries visitor data (C-26).
+route:
+  receiver: maintainers-warning
+  group_by: [alertname, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: [alertname="Watchdog"]
+      receiver: heartbeat
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 5m
+    - matchers: [team="security", severity="critical"]
+      receiver: security-responders
+      repeat_interval: 4h
+    - matchers: [severity="critical"]
+      receiver: maintainers-critical
+      repeat_interval: 4h
+    - matchers: [severity="warning"]
+      receiver: maintainers-warning
+      group_interval: 1h
+      repeat_interval: 24h
+    - matchers: [severity="notice"]
+      receiver: portal-notices
+    - matchers: [severity=~"info|none"]
+      receiver: blackhole
+
+inhibit_rules:
+  # A critical spool-age alert makes the warning for the same node redundant.
+  - source_matchers: [severity="critical"]
+    target_matchers: [severity="warning"]
+    equal: [alertname, instance]
+
+receivers:
+  - name: heartbeat
+    webhook_configs:
+      - url: http://status:8080/v1/heartbeat
+        send_resolved: false
+        http_config:
+          authorization: { type: Bearer, credentials_file: /run/secrets/heartbeat_token }
+  - name: maintainers-critical
+  - name: maintainers-warning
+  - name: security-responders
+  - name: portal-notices
+  - name: blackhole

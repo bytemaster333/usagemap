@@ -1,0 +1,181 @@
+# SPDX-License-Identifier: Apache-2.0
+# Monitoring plan §4.4 "Data quality". Metric names are the services' as built (gateway cmd/gateway/gauges.go and
+# internal/forwarder, metrics-writer internal/obs, Collector self-metrics per collector/README.md).
+groups:
+  - name: scf-data-quality
+    interval: 1m
+    rules:
+      - alert: SpoolAge
+        expr: max by (instance) (scf_gateway_spool_oldest_age_seconds) > 3600
+        labels: { severity: warning, monitor_id: TM-DOS-03.M.1 }
+        annotations:
+          summary: "Spool on {{ $labels.instance }} not draining: oldest record older than 1 h"
+          description: "Oldest unacknowledged record is {{ $value | humanizeDuration }} old (C-49 marks 1 h / 6 h / 24 h; cap 72 h)."
+          runbook_url: ops/runbooks/spool-backlog.md
+      - alert: SpoolAge
+        expr: max by (instance) (scf_gateway_spool_oldest_age_seconds) > 6 * 3600
+        labels: { severity: critical, monitor_id: TM-DOS-03.M.1 }
+        annotations:
+          summary: "Spool on {{ $labels.instance }}: oldest record older than 6 h"
+          description: "Oldest unacknowledged record is {{ $value | humanizeDuration }} old."
+          runbook_url: ops/runbooks/spool-backlog.md
+      - alert: SpoolAge
+        expr: max by (instance) (scf_gateway_spool_oldest_age_seconds) > 24 * 3600
+        labels: { severity: critical, monitor_id: TM-DOS-03.M.1, escalate: daily_watch }
+        annotations:
+          summary: "Spool on {{ $labels.instance }}: oldest record older than 24 h — two days left before the 72-hour cap"
+          description: Re-sent to both responders and the person on daily watch (C-49).
+          runbook_url: ops/runbooks/spool-backlog.md
+      - alert: SpoolDiscarded
+        expr: |
+          sum by (instance) (increase(scf_gateway_forward_total{outcome="expired_72h"}[15m])) > 0
+          or sum by (instance) (increase(scf_ingest_dropped{reason="undeliverable_72h"}[15m])) > 0
+        labels: { severity: critical, monitor_id: TM-DOS-03.M.3 }
+        annotations:
+          summary: "Records discarded at the 72-hour cap on {{ $labels.instance }}"
+          description: "{{ $value }} records/points discarded (C-18, C-112); a durability exception reported monthly."
+          runbook_url: ops/runbooks/spool-backlog.md
+      - alert: ForwardErrors
+        expr: |
+          sum by (instance) (rate(scf_gateway_forward_total{kind="event",outcome=~"core_failed|refused"}[10m]))
+          / sum by (instance) (rate(scf_gateway_forward_total{kind="event"}[10m])) > 0.01
+        for: 5m
+        labels: { severity: warning, monitor_id: TM-UMA-01.M.1 }
+        annotations:
+          summary: "More than 1 % of forwards from {{ $labels.instance }} fail"
+          description: "{{ $value | humanizePercentage }} of event forwards were not answered 2xx by an engine proxy."
+          runbook_url: ops/runbooks/forwarder-errors.md
+      - alert: ReconciliationStale
+        expr: time() - scf_job_last_success_timestamp_seconds{job_name="durability_reconcile"} > 26 * 3600
+        labels: { severity: warning, monitor_id: TM-EDG-09.M.4 }
+        annotations:
+          summary: The durability reconciliation job has not succeeded for 26 h
+          description: Spool accounting (C-76) is unchecked while this lasts.
+          runbook_url: ops/runbooks/durability-reconciliation.md
+      - alert: WriterDedupeAnomaly
+        expr: |
+          scf:writer_duplicate:ratio_rate1h > 3 * quantile_over_time(0.5, scf:writer_duplicate:ratio_rate1h[7d])
+          and scf:writer_duplicate:ratio_rate1h > 0.001
+        for: 15m
+        labels: { severity: warning, monitor_id: TM-OTL-02.M.1 }
+        annotations:
+          summary: Writer de-duplication rate more than 3× its 7-day median
+          description: "{{ $value | humanizePercentage }} of tenant transactions were duplicates."
+          runbook_url: ops/runbooks/otlp-writer.md
+      - alert: WriterRejectedData
+        expr: sum by (instance, reason) (increase(scf_ingest_dropped{reason=~"tenant_write_error|count_overflow"}[15m])) > 0
+        labels: { severity: warning, monitor_id: TM-DOS-06.M.4 }
+        annotations:
+          summary: "Writer dropped data: {{ $labels.reason }}"
+          description: "{{ $value }} points dropped in 15 m (C-112)."
+          runbook_url: ops/runbooks/otlp-writer.md
+      - alert: RejectedWebSpikePlatform
+        expr: |
+          sum by (reason) (rate(scf_gateway_reasons_total[15m]))
+          > 5 * sum by (reason) (rate(scf_gateway_reasons_total[15m] offset 1w))
+          and sum by (reason) (rate(scf_gateway_reasons_total[15m])) > 0.1
+        for: 15m
+        labels: { severity: warning, monitor_id: TM-INF-01.M.1 }
+        annotations:
+          summary: "Reason code {{ $labels.reason }} more than 5× the same hour last week, across all tenants"
+          description: Malformed or signature reasons after a release suggest our regression.
+          runbook_url: ops/runbooks/verdict-shift.md
+      - alert: VerifiedShareDropPlatform
+        expr: scf:gateway_verified_share:ratio_rate1h - (scf:gateway_verified_share:ratio_rate1h offset 1h) < -0.20
+        labels: { severity: critical, monitor_id: TM-INF-02.M.1 }
+        annotations:
+          summary: Verified share across all tenants dropped more than 20 points in 1 h
+          description: Key rotation or gateway bug, not tenants.
+          runbook_url: ops/runbooks/verdict-shift.md
+      - alert: CardinalityOverflowPlatform
+        expr: |
+          sum(increase({__name__=~"otelcol_receiver_refused_(metric_points|spans)(_total)?"}[5m])) > 0
+        for: 5m
+        labels: { severity: warning, monitor_id: TM-OTL-06.M.2 }
+        annotations:
+          summary: Collector refuses data (memory limiter)
+          description: The tenant-count part of this alert needs a writer metric (ops/alerts/README.md).
+          runbook_url: ops/runbooks/cardinality-overflow.md
+      - alert: RedactedBurst
+        expr: |
+          sum(rate({__name__=~"otelcol_processor_scfsanitize_redactions(_total)?"}[1h]))
+          > 10 * sum(rate({__name__=~"otelcol_processor_scfsanitize_redactions(_total)?"}[1h] offset 1w))
+          and sum(rate({__name__=~"otelcol_processor_scfsanitize_redactions(_total)?"}[1h])) > 0.01
+        for: 15m
+        labels: { severity: warning, monitor_id: TM-OTL-11.M.2 }
+        annotations:
+          summary: "{redacted} replacements across tenants more than 10× last week"
+          description: Secret or PII shapes in API routes increased platform-wide.
+          runbook_url: ops/runbooks/redacted-paths.md
+      - alert: CollectorQueueHigh
+        expr: scf:collector_queue_fill:ratio > 0.5
+        for: 5m
+        labels: { severity: warning, monitor_id: TM-DOS-06.M.1 }
+        annotations:
+          summary: "Collector queue on {{ $labels.instance }} above 50 %"
+          description: "Persistent queue {{ $value | humanizePercentage }} full (bytes, C-115)."
+          runbook_url: ops/runbooks/otlp-writer.md
+      - alert: CollectorQueueHigh
+        expr: scf:collector_queue_fill:ratio > 0.8
+        for: 5m
+        labels: { severity: critical, monitor_id: TM-DOS-06.M.1 }
+        annotations:
+          summary: "Collector queue on {{ $labels.instance }} above 80 %"
+          description: "Persistent queue {{ $value | humanizePercentage }} full (bytes, C-115)."
+          runbook_url: ops/runbooks/otlp-writer.md
+      - alert: CollectorExportFailing
+        expr: |
+          sum by (instance) (increase({__name__=~"otelcol_exporter_(send|enqueue)_failed_metric_points(_total)?"}[5m])) > 0
+        for: 5m
+        labels: { severity: critical, monitor_id: TM-DOS-06.M.2 }
+        annotations:
+          summary: "Collector on {{ $labels.instance }} drops or cannot queue metric points"
+          description: Data dropped or refused by the queue (C-107).
+          runbook_url: ops/runbooks/otlp-writer.md
+      - alert: CollectorSanitiseDrops
+        expr: |
+          sum by (reason) (rate({__name__=~"otelcol_processor_scfsanitize_dropped(_total)?"}[15m]))
+          > 5 * sum by (reason) (rate({__name__=~"otelcol_processor_scfsanitize_dropped(_total)?"}[15m] offset 1w))
+          and sum by (reason) (rate({__name__=~"otelcol_processor_scfsanitize_dropped(_total)?"}[15m])) > 0.1
+        for: 15m
+        labels: { severity: warning, monitor_id: TM-OTL-05.M.3 }
+        annotations:
+          summary: "scfsanitize drops for reason {{ $labels.reason }} more than 5× last week"
+          description: C-113 closed reasons; never a tenant or a value.
+          runbook_url: ops/runbooks/otlp-rejections.md
+      - alert: CollectorReceivedAtFallback
+        expr: sum by (instance) (increase({__name__=~"otelcol_processor_scfsanitize_received_at_fallback(_total)?"}[15m])) > 0
+        labels: { severity: warning, monitor_id: TM-OTL-05.M.4 }
+        annotations:
+          summary: "Gateway forwarded OTLP without a valid x-scf-received-at ({{ $labels.instance }})"
+          description: The Collector used its own clock (wire-formats §f.4) — a gateway bug.
+          runbook_url: ops/runbooks/otlp-rejections.md
+      - alert: CollectorSpanFilterHit
+        expr: sum by (instance) (increase({__name__=~"otelcol_processor_filter_spans_filtered(_total)?"}[15m])) > 0
+        labels: { severity: warning, monitor_id: TM-OTL-05.M.5 }
+        annotations:
+          summary: The span-filter backstop dropped a span after scfsanitize
+          description: scfsanitize let through a span it should have dropped (C-113) — a bug.
+          runbook_url: ops/runbooks/otlp-rejections.md
+      - alert: WriterListenerClosed
+        expr: scf_writer_listener_open == 0
+        for: 2m
+        labels: { severity: warning, monitor_id: TM-DOS-06.M.3 }
+        annotations:
+          summary: "Writer {{ $labels.instance }} closed its OTLP listener (no PostgreSQL)"
+          description: Collectors fail over to the other writer (C-107).
+          runbook_url: ops/runbooks/otlp-writer.md
+      - alert: WriterListenerClosed
+        expr: count(scf_writer_listener_open == 0) == count(scf_writer_listener_open)
+        labels: { severity: critical, monitor_id: TM-DOS-06.M.3 }
+        annotations:
+          summary: Every writer has closed its OTLP listener
+          description: API metrics queue up in the edge Collectors.
+          runbook_url: ops/runbooks/otlp-writer.md
+      - alert: SnapshotStale
+        expr: max by (instance) (scf_gateway_snapshot_age_seconds) > 900
+        labels: { severity: critical, monitor_id: TM-EDG-10.M.1, team: security }
+        annotations:
+          summary: "No fresh snapshot on {{ $labels.instance }} for 15 minutes"
+          description: The node keeps serving its last good snapshot; revocations do not reach it (C-62).
+          runbook_url: ops/runbooks/snapshot-stale.md

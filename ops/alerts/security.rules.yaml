@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: Apache-2.0
+# Monitoring plan §4.4 "Security" — the alerts whose signals exist. Alerts routed to the security responders carry
+# team=security. The rest of the section is listed with its missing metric in ops/alerts/README.md.
+groups:
+  - name: scf-security
+    interval: 1m
+    rules:
+      - alert: AdapterForbidden
+        expr: |
+          sum by (role, route, code) (increase(scf_engine_proxy_requests_total{role=~"provisioner|reader",code=~"401|403|404"}[1h])) > 0
+        labels: { severity: warning, monitor_id: TM-ISO-05.M.1, team: security }
+        annotations:
+          summary: "Umami answered {{ $labels.code }} to a tenant-scoped {{ $labels.role }} call ({{ $labels.route }})"
+          description: The adapter's view of Umami's tenancy may have diverged.
+          runbook_url: ops/runbooks/adapter-errors.md
+      - alert: SnapshotSignatureInvalid
+        expr: |
+          sum by (instance) (increase(scf_gateway_snapshot_verify_failures[10m])) > 0
+          or sum by (instance) (increase(scf_gateway_snapshot_rollback_refused_total[10m])) > 0
+        labels: { severity: critical, monitor_id: TM-EDG-10.M.2, team: security }
+        annotations:
+          summary: "{{ $labels.instance }} refused a snapshot (bad signature or older sequence)"
+          description: Someone may be offering a forged or replayed snapshot (C-62).
+          runbook_url: ops/runbooks/snapshot-stale.md
+      - alert: NodeVerdictDivergence
+        expr: |
+          abs(scf:gateway_verified_share_by_node:ratio_rate1h - scalar(quantile(0.5, scf:gateway_verified_share_by_node:ratio_rate1h)))
+          / scalar(clamp_min(1.4826 * quantile(0.5, abs(scf:gateway_verified_share_by_node:ratio_rate1h
+              - scalar(quantile(0.5, scf:gateway_verified_share_by_node:ratio_rate1h)))), 0.01))
+          > 4
+        for: 1h
+        labels: { severity: warning, monitor_id: TM-EDG-03.M.1, team: security }
+        annotations:
+          summary: "{{ $labels.instance }}'s verified share deviates from its peers by more than 4 robust z"
+          description: Possible edge compromise or a node-specific defect.
+          runbook_url: ops/runbooks/edge-divergence.md
+      - alert: ProxyDenied
+        expr: sum by (instance, node, role, reason) (increase(scf_engine_proxy_denials_total{reason!="gate_closed"}[10m])) > 0
+        labels: { severity: critical, monitor_id: TM-EDG-08.M.3, team: security }
+        annotations:
+          summary: "Engine proxy refused {{ $labels.node }} ({{ $labels.role }}): {{ $labels.reason }}"
+          description: An unknown certificate, or a path or parameter outside the caller's allow-list (C-60, C-74).
+          runbook_url: ops/runbooks/engine-proxy.md
+      - alert: LogPIIDetected
+        expr: sum by (class) (increase(scf_log_pii_findings_total[15m])) > 0
+        labels: { severity: critical, monitor_id: TM-PRV-06.M.1, team: security }
+        annotations:
+          summary: "Operational logs contain a {{ $labels.class }} shape"
+          description: The log scanner found personal data or a secret shape in VictoriaLogs; the text itself is never exported.
+          runbook_url: ops/runbooks/log-pii.md
+      # Plan C1 #10 (TM-D1-06): the daily seal's walk of its own transaction history on the ledger found a rewritten,
+      # missing, out-of-order or unknown seal transaction (jobs `scf_seal_history_problems{network}`, set by every run of
+      # daily_seal; audit_anchor runs daily at 00:15 with an hourly retry — this rule does not depend on that schedule).
+      - alert: SealHistoryMismatch
+        expr: max by (network) (scf_seal_history_problems) > 0
+        labels: { severity: critical, monitor_id: TM-D1-06.M.1, team: security }
+        annotations:
+          summary: "Seal history on {{ $labels.network }}: {{ $value }} problem(s) between the ledger and the published days"
+          description: A published seal day no longer matches its ledger transaction, or a seal transaction appeared that the platform did not publish. Possible rewrite of a past seal or a compromised seal key.
+          runbook_url: ops/runbooks/audit-chain.md
+  # On-chain day-anchor check (C-144); tested by tests/onchain-anchor.test.yaml.
+  - name: scf-onchain-anchor
+    interval: 1m
+    rules:
+      - alert: OnchainLedgerAnchorMismatch
+        expr: max by (network) (scf_onchain_anchor_mismatch_days) > 0
+        labels: { severity: critical, monitor_id: TM-DEL-02.M.1, team: security }
+        annotations:
+          summary: "The ledger-file store disagrees with Horizon on {{ $value }} day anchor(s) ({{ $labels.network }})"
+          description: A day's anchor ledger hash in the mirrored ledger files differs from Horizon's, so the store served a forged or wrong chain (C-144). Those days were refused; nothing was stored for them. Compare a second Horizon, then empty the mirror and switch the ledger source.
+          runbook_url: ops/runbooks/audit-chain.md
+      - alert: OnchainLedgerAnchorUnverified
+        expr: max by (network) (scf_onchain_anchor_unverified_days) > 0
+        for: 26h
+        labels: { severity: warning, monitor_id: TM-DEL-02.M.2 }
+        annotations:
+          summary: "Horizon has not confirmed on-chain day anchors for 26 hours ({{ $labels.network }})"
+          description: Complete days wait unused until Horizon answers for their anchor ledger (SCF_ONCHAIN_HORIZON_URL / SCF_HORIZON_URL).
+          runbook_url: ops/runbooks/audit-chain.md

@@ -1,0 +1,208 @@
+# SPDX-License-Identifier: Apache-2.0
+# Monitoring plan §4.4 "Capacity, database, backup, monitoring". Host, PostgreSQL, Patroni and etcd signals use the
+# upstream exporters' standard metric names (node_exporter, postgres_exporter, Patroni's /metrics, etcd's /metrics);
+# those exporters are deployed with the hosts (IaC), not in the local Compose stack.
+groups:
+  - name: scf-platform
+    interval: 1m
+    rules:
+      - alert: DiskPredictedFull
+        expr: |
+          predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"}[6h], 24 * 3600) < 0
+          and node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes < 0.5
+        for: 30m
+        labels: { severity: warning, monitor_id: TM-DOS-03.M.4 }
+        annotations:
+          summary: "{{ $labels.instance }} {{ $labels.mountpoint }} predicted full within 24 h"
+          description: Linear prediction from the last 6 h.
+          runbook_url: ops/runbooks/disk-space.md
+      - alert: DiskHigh
+        expr: 1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes > 0.8
+        for: 15m
+        labels: { severity: warning, monitor_id: none }
+        annotations:
+          summary: "{{ $labels.instance }} {{ $labels.mountpoint }} more than 80 % used"
+          description: "{{ $value | humanizePercentage }} used."
+          runbook_url: ops/runbooks/disk-space.md
+      - alert: IngestAboveTested
+        expr: |
+          sum(increase(scf_gateway_events_total[1d])) > 5 * 1000000
+          or sum(increase(scf_writer_points_total{outcome="received"}[1d])) > 5 * 1000000
+        labels: { severity: warning, monitor_id: TM-DOS-02.M.1 }
+        annotations:
+          summary: Daily volume above 5× the design target
+          description: 10× is the tested level (ADR-0026, C-48); plan capacity now.
+          runbook_url: ops/runbooks/capacity-review.md
+      - alert: EdgeCPUHigh
+        expr: |
+          quantile_over_time(0.95, (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle",role="edge"}[5m])))[1h:1m]) > 0.7
+        labels: { severity: warning, monitor_id: TM-DOS-02.M.2 }
+        annotations:
+          summary: "p95 CPU on edge node {{ $labels.instance }} above 70 % over 1 h"
+          description: "{{ $value | humanizePercentage }}."
+          runbook_url: ops/runbooks/capacity-review.md
+      - alert: ConnectionsNearMax
+        expr: sum by (instance) (pg_stat_activity_count) / max by (instance) (pg_settings_max_connections) > 0.8
+        for: 5m
+        labels: { severity: warning, monitor_id: none }
+        annotations:
+          summary: "PostgreSQL {{ $labels.instance }} above 80 % of max_connections"
+          description: "{{ $value | humanizePercentage }}."
+          runbook_url: ops/runbooks/postgres-connections.md
+      - alert: PatroniNoLeader
+        # Absence alarms only where Patroni is expected (a `patroni` scrape job exists, its targets up or down): the lean
+        # profile (C-123, single PostgreSQL without Patroni) has no such job and must stay silent.
+        expr: max(patroni_primary) < 1 or (count(up{job="patroni"}) > 0 and on() absent(patroni_primary))
+        for: 30s
+        labels: { severity: critical, monitor_id: TM-DOS-04.M.4 }
+        annotations:
+          summary: The Patroni cluster has no leader
+          description: Writes fail; the portal serves read-only from the replica (ADR-0020).
+          runbook_url: ops/runbooks/postgres-failover.md
+      - alert: ReplicationLagHigh
+        expr: max by (instance) (pg_replication_lag_seconds) > 30
+        for: 5m
+        labels: { severity: warning, monitor_id: TM-DOS-04.M.5 }
+        annotations:
+          summary: "Replica {{ $labels.instance }} more than 30 s behind"
+          description: "Lag {{ $value | humanizeDuration }}."
+          runbook_url: ops/runbooks/postgres-replication.md
+      - alert: EtcdMembersLow
+        expr: count(etcd_server_has_leader == 1) < 3
+        for: 5m
+        labels: { severity: warning, monitor_id: TM-DOS-04.M.6 }
+        annotations:
+          summary: Fewer than 3 healthy etcd members
+          description: "{{ $value }} member(s) see a leader."
+          runbook_url: ops/runbooks/postgres-failover.md
+      - alert: WALArchiveFailing
+        expr: |
+          increase(pg_stat_archiver_failed_count[15m]) > 0
+          or pg_stat_archiver_last_archive_age > 300
+        labels: { severity: critical, monitor_id: TM-OPS-01.M.1 }
+        annotations:
+          summary: "WAL archiving on {{ $labels.instance }} failing or more than 5 min behind"
+          description: Point-in-time recovery is at risk.
+          runbook_url: ops/runbooks/backup-failure.md
+      # Backups and restore drill (monitoring plan §4.8; metrics: node-exporter textfiles scf_backup.prom and
+      # scf_restore_drill.prom written by infra/compose/ha/bin/scf-backup and scf-restore-drill). A repository that
+      # cannot be read reports 0 as its newest backup, so it shows as stale at once.
+      - alert: BackupFullStale
+        expr: time() - scf_backup_last_success_timestamp_seconds{type="full"} > 8 * 86400
+        for: 30m
+        labels: { severity: warning, monitor_id: TM-OPS-01.M.2 }
+        annotations:
+          summary: "No full backup in repository {{ $labels.repo }} for more than 8 days"
+          description: "Newest full backup {{ $value | humanizeDuration }} ago (weekly schedule)."
+          runbook_url: ops/runbooks/backup-failure.md
+      - alert: BackupDiffStale
+        # The newest backup of either type: the scheduler takes no differential on the day it takes a full one.
+        expr: time() - max without (type) (scf_backup_last_success_timestamp_seconds{type=~"full|diff"}) > 26 * 3600
+        for: 30m
+        labels: { severity: warning, monitor_id: TM-OPS-01.M.3 }
+        annotations:
+          summary: "No backup in repository {{ $labels.repo }} for more than 26 hours"
+          description: "Newest full or differential backup {{ $value | humanizeDuration }} ago (daily schedule)."
+          runbook_url: ops/runbooks/backup-failure.md
+      - alert: BackupCheckFailing
+        # Part built: `pgbackrest check` (hourly). The verify-output, versioning, lifecycle and credential parts of the
+        # plan row have no metric yet (coverage.json `partial`).
+        expr: scf_backup_check_success == 0
+        for: 2h
+        labels: { severity: critical, monitor_id: TM-OPS-01.M.4 }
+        annotations:
+          summary: "pgbackrest check failing on {{ $labels.instance }}"
+          description: WAL is not reaching every repository; point-in-time recovery is at risk.
+          runbook_url: ops/runbooks/backup-failure.md
+      - alert: LogicalDumpStale
+        expr: time() - scf_backup_logical_dump_last_success_timestamp_seconds > 8 * 86400
+        for: 30m
+        labels: { severity: warning, monitor_id: TM-OPS-01.M.5 }
+        annotations:
+          summary: Weekly logical dump older than 8 days
+          description: "Newest uploaded dump {{ $value | humanizeDuration }} ago."
+          runbook_url: ops/runbooks/backup-failure.md
+      - alert: RestoreDrillStale
+        expr: time() - scf_restore_drill_last_success_timestamp_seconds > 8 * 86400
+        for: 30m
+        labels: { severity: critical, monitor_id: TM-OPS-01.M.6 }
+        annotations:
+          summary: "No passing restore drill from repository {{ $labels.repo }} for more than 8 days"
+          description: "Last passing drill {{ $value | humanizeDuration }} ago (weekly schedule, C-56)."
+          runbook_url: ops/runbooks/restore-drill.md
+      - alert: RestoreDrillStale
+        # Never passed (no success timestamp, or the last drill failed and its file carries none) while backups exist.
+        expr: |
+          (count(scf_backup_last_success_timestamp_seconds{type="full"} > 0) > 0)
+          unless on () count(scf_restore_drill_last_success_timestamp_seconds)
+        for: 8d
+        labels: { severity: critical, monitor_id: TM-OPS-01.M.6, reason: never_passed }
+        annotations:
+          summary: No passing restore drill for 8 days while backups exist
+          description: The weekly drill has not passed since monitoring saw the first full backup (C-56).
+          runbook_url: ops/runbooks/restore-drill.md
+      - alert: RestoreDrillIntegrityMismatch
+        expr: scf_restore_drill_integrity_mismatch == 1
+        labels: { severity: critical, monitor_id: TM-OPR-02.M.1, team: security }
+        annotations:
+          summary: "Restore drill from repository {{ $labels.repo }}: integrity checks failed"
+          description: amcheck, the database gates or the row-count expectations failed on the restored copy; treat the backup as possibly tampered with until explained.
+          runbook_url: ops/runbooks/restore-drill.md
+
+      # Certificates (C-60; metrics: textfile scf_tls.prom from the ACME timer and the deploy, one series per
+      # certificate file: kind acme | mesh | ca, name = file name). ⅔ of the lifetime is where renewal should have
+      # happened: ACME (lego) renews with ⅓ of 90 days left; mesh leaves and the CA are re-issued only when an operator
+      # re-runs the playbook (role pki, `scf_pki_renew_before_days`), so for them the warning means "run it now".
+      - alert: CertExpiring
+        expr: |
+          (scf_tls_cert_not_after_timestamp_seconds - time())
+            < (scf_tls_cert_not_after_timestamp_seconds - scf_tls_cert_not_before_timestamp_seconds) / 3
+          and (scf_tls_cert_not_after_timestamp_seconds - time()) >= 7 * 86400
+        for: 1d
+        labels: { severity: warning, monitor_id: TM-DOS-07.M.1 }
+        annotations:
+          summary: "{{ $labels.kind }} certificate {{ $labels.name }} past ⅔ of its lifetime without renewal"
+          description: "Expires in {{ $value | humanizeDuration }}."
+          runbook_url: ops/runbooks/certificate-renewal.md
+      - alert: CertExpiring
+        expr: scf_tls_cert_not_after_timestamp_seconds - time() < 7 * 86400
+        labels: { severity: critical, monitor_id: TM-DOS-07.M.1 }
+        annotations:
+          summary: "{{ $labels.kind }} certificate {{ $labels.name }} expires within 7 days"
+          description: "Expires in {{ $value | humanizeDuration }}; clients refuse it after that."
+          runbook_url: ops/runbooks/certificate-renewal.md
+      - alert: CertExpiring
+        # The renewal itself (the plan row's "without renewal"): the ACME timer runs twice a day; a day of failed runs,
+        # or no run for two days, is caught long before the ⅔ mark.
+        expr: |
+          scf_acme_last_run_success == 0
+          or time() - scf_acme_last_run_timestamp_seconds > 2 * 86400
+        for: 1d
+        labels: { severity: warning, monitor_id: TM-DOS-07.M.1, reason: renewal_failing }
+        annotations:
+          summary: ACME certificate renewal failing or not running
+          description: The ingest and portal certificates are not being renewed; they expire about 30 days after renewal falls due.
+          runbook_url: ops/runbooks/certificate-renewal.md
+      - alert: Watchdog
+        expr: vector(1)
+        labels: { severity: none, monitor_id: none }
+        annotations:
+          summary: Always-firing heartbeat for the dead-man's switch
+          description: Alertmanager sends it every 5 minutes to the status host; a scheduled GitHub workflow alarms when it stops (C-30).
+          runbook_url: ops/runbooks/dead-mans-switch.md
+      - alert: NotificationsFailing
+        expr: sum by (integration) (increase(alertmanager_notifications_failed_total[15m])) > 0
+        for: 15m
+        labels: { severity: warning, monitor_id: none }
+        annotations:
+          summary: "Alertmanager cannot deliver through {{ $labels.integration }}"
+          description: Routed via the other channel.
+          runbook_url: ops/runbooks/alert-delivery.md
+      - alert: NTPOffset
+        expr: abs(node_timex_offset_seconds) > 0.1
+        for: 10m
+        labels: { severity: warning, monitor_id: none }
+        annotations:
+          summary: "Clock on {{ $labels.instance }} off by more than 100 ms"
+          description: "Offset {{ $value }} s; probe rounds and the 72-hour cap depend on time."
+          runbook_url: ops/runbooks/time-sync.md

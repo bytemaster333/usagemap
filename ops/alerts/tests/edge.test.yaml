@@ -1,0 +1,231 @@
+# SPDX-License-Identifier: Apache-2.0
+# promtool test rules ops/alerts/tests/edge.test.yaml — every alert of edge.rules.yaml fires and stays silent.
+# Inputs use the gateway's metric names as built (C-124).
+rule_files: [../edge.rules.yaml]
+evaluation_interval: 1m
+tests:
+  # 1. Spool depth: edge-a1 fills to 60 % then 90 % of a 1000-byte cap; edge-a2 stays at 10 %.
+  - interval: 1m
+    input_series:
+      - { series: 'scf_gateway_spool_bytes{instance="edge-a1"}', values: "100x10 600x10 900x20" }
+      - { series: 'scf_gateway_spool_max_bytes{instance="edge-a1"}', values: "1000x40" }
+      - { series: 'scf_gateway_spool_bytes{instance="edge-a2"}', values: "100x40" }
+      - { series: 'scf_gateway_spool_max_bytes{instance="edge-a2"}', values: "1000x40" }
+    alert_rule_test:
+      - { eval_time: 9m, alertname: SpoolDepthHigh, exp_alerts: [] }
+      - eval_time: 18m
+        alertname: SpoolDepthHigh
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-03.M.2, instance: edge-a1 }
+            exp_annotations:
+              {
+                summary: Spool on edge-a1 above 50 % of its cap,
+                description: "Spool uses 60% of GW_SPOOL_MAX_BYTES; at the cap the node answers 503 to ingest.",
+                runbook_url: ops/runbooks/spool-backlog.md,
+              }
+      - eval_time: 30m
+        alertname: SpoolDepthHigh
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-03.M.2, instance: edge-a1 }
+            exp_annotations:
+              {
+                summary: Spool on edge-a1 above 50 % of its cap,
+                description: "Spool uses 90% of GW_SPOOL_MAX_BYTES; at the cap the node answers 503 to ingest.",
+                runbook_url: ops/runbooks/spool-backlog.md,
+              }
+          - exp_labels: { severity: critical, monitor_id: TM-DOS-03.M.2, instance: edge-a1 }
+            exp_annotations:
+              {
+                summary: Spool on edge-a1 above 80 % of its cap,
+                description: "Spool uses 90% of GW_SPOOL_MAX_BYTES; ingest will be refused (503) at the cap.",
+                runbook_url: ops/runbooks/spool-backlog.md,
+              }
+
+  # 2. Ambiguous retries: edge-a1 1 per 100 delivered (1 %), edge-a2 none.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_gateway_forward_total{instance="edge-a1",kind="event",outcome="acked_stored",core="core-a"}',
+          values: "0+100x120",
+        }
+      - {
+          series: 'scf_gateway_forward_ambiguous_retries_total{instance="edge-a1",core="core-a"}',
+          values: "0x60 0+1x60",
+        }
+      - {
+          series: 'scf_gateway_forward_total{instance="edge-a2",kind="event",outcome="acked_stored",core="core-a"}',
+          values: "0+100x120",
+        }
+      - {
+          series: 'scf_gateway_forward_ambiguous_retries_total{instance="edge-a2",core="core-a"}',
+          values: "0x120",
+        }
+    alert_rule_test:
+      - { eval_time: 50m, alertname: DuplicateForwardsHigh, exp_alerts: [] }
+      - eval_time: 120m
+        alertname: DuplicateForwardsHigh
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-INF-08.M.1, instance: edge-a1 }
+            exp_annotations:
+              {
+                summary: More than 0.1 % of forwards from edge-a1 were ambiguous retries,
+                description: "0.9833% of delivered events followed an attempt that may already have reached Umami (possible duplicates, ADR-0020).",
+                runbook_url: ops/runbooks/forwarder-errors.md,
+              }
+
+  # 3. OTLP rejections: auth rejections jump from 0.2/s last week to 2/s; rate_limit stays at its usual level.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_gateway_otlp_requests_total{instance="edge-a1",signal="metrics",protocol="http",status="401",outcome="rejected",reason="auth"}',
+          values: "0+12x10080 0+120x60",
+        }
+      - {
+          series: 'scf_gateway_otlp_requests_total{instance="edge-a1",signal="metrics",protocol="http",status="429",outcome="rejected",reason="rate_limit"}',
+          values: "0+30x10140",
+        }
+      - {
+          series: 'scf_gateway_otlp_requests_total{instance="edge-a1",signal="metrics",protocol="http",status="200",outcome="accepted",reason="none"}',
+          values: "0+600x10140",
+        }
+    alert_rule_test:
+      - { eval_time: 10075m, alertname: OTLPRejectedSpike, exp_alerts: [] }
+      - eval_time: 10135m
+        alertname: OTLPRejectedSpike
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-OTL-05.M.1, reason: auth }
+            exp_annotations:
+              {
+                summary: OTLP rejections for reason auth more than 5× the same hour last week,
+                description: "2 rejected OTLP requests/s with reason auth (auth, tenant, logs, schema, size, rate_limit; time bounds are the writer's).",
+                runbook_url: ops/runbooks/otlp-rejections.md,
+              }
+
+  # 4. K_day regenerated: edge-a1 regenerates in mid-run at minute 30; edge-a2 restarts (series starts at 1,
+  #    process start time = restart) at minute 70; edge-b1 has carried 1 since a start long ago (silent).
+  - interval: 1m
+    input_series:
+      - { series: 'scf_gateway_kday_regenerated_total{instance="edge-a1"}', values: "0x30 1x150" }
+      - { series: 'scf_gateway_start_time_seconds{instance="edge-a1"}', values: "-100000x180" }
+      - { series: 'scf_gateway_kday_regenerated_total{instance="edge-a2"}', values: "_x70 1x110" }
+      - { series: 'scf_gateway_start_time_seconds{instance="edge-a2"}', values: "_x70 4200x110" }
+      - { series: 'scf_gateway_kday_regenerated_total{instance="edge-b1"}', values: "1x180" }
+      - { series: 'scf_gateway_start_time_seconds{instance="edge-b1"}', values: "-100000x180" }
+    alert_rule_test:
+      - { eval_time: 20m, alertname: KDayRegenerated, exp_alerts: [] }
+      - eval_time: 40m
+        alertname: KDayRegenerated
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-08.M.1, instance: edge-a1 }
+            exp_annotations:
+              {
+                summary: edge-a1 generated today's K_day itself,
+                description: "No peer had today's visitor key (cold start, or a restart without a live peer — every restart on the single-VM profile): visitors already counted today are counted again. Annotate the day (C-04, C-124).",
+                runbook_url: ops/runbooks/visitor-key-regenerated.md,
+              }
+      - eval_time: 100m
+        alertname: KDayRegenerated
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-08.M.1, instance: edge-a2 }
+            exp_annotations:
+              {
+                summary: edge-a2 generated today's K_day itself,
+                description: "No peer had today's visitor key (cold start, or a restart without a live peer — every restart on the single-VM profile): visitors already counted today are counted again. Annotate the day (C-04, C-124).",
+                runbook_url: ops/runbooks/visitor-key-regenerated.md,
+              }
+      - { eval_time: 175m, alertname: KDayRegenerated, exp_alerts: [] }
+
+  # 5. K_day divergence: two nodes agree, then edge-a2 holds a different key for 15 minutes.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_gateway_kday_fingerprint_info{instance="edge-a1",fingerprint="0123456789abcdef"}',
+          values: "1x60",
+        }
+      - {
+          series: 'scf_gateway_kday_fingerprint_info{instance="edge-a2",fingerprint="0123456789abcdef"}',
+          values: "1x20 _x40",
+        }
+      - {
+          series: 'scf_gateway_kday_fingerprint_info{instance="edge-a2",fingerprint="fedcba9876543210"}',
+          values: "_x20 1x15 _x25",
+        }
+    alert_rule_test:
+      - { eval_time: 15m, alertname: KDayDivergence, exp_alerts: [] }
+      - eval_time: 33m
+        alertname: KDayDivergence
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-EDG-03.M.2 }
+            exp_annotations:
+              {
+                summary: 2 different K_day fingerprints among edge nodes,
+                description: "Edge nodes hold different visitor keys for today (partition or a regeneration that did not converge); that day's uniques are over-counted (C-04).",
+                runbook_url: ops/runbooks/visitor-key-regenerated.md,
+              }
+      - { eval_time: 50m, alertname: KDayDivergence, exp_alerts: [] }
+
+  # 6. Sites limited: 12 sites over quota on edge-a1; rate-limited stays at 3.
+  - interval: 1m
+    input_series:
+      - {
+          series: 'scf_gateway_sites_limited{instance="edge-a1",kind="quota_exceeded"}',
+          values: "2x10 12x10",
+        }
+      - {
+          series: 'scf_gateway_sites_limited{instance="edge-a1",kind="rate_limited"}',
+          values: "3x20",
+        }
+    alert_rule_test:
+      - { eval_time: 5m, alertname: SiteRateLimited, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: SiteRateLimited
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-DOS-02.M.3, kind: quota_exceeded }
+            exp_annotations:
+              {
+                summary: More than 10 sites answered quota_exceeded within an hour,
+                description: "12 sites hit quota_exceeded on one edge node in the last hour (per-site detail is in the counter records and the tenants' installation checks; the tenant notice is a portal function, C-80/C-90).",
+                runbook_url: ops/runbooks/site-quota.md,
+              }
+
+  # 7. Spool corruption: any skipped frame fires at once; a clean node stays silent.
+  - interval: 1m
+    input_series:
+      - { series: 'scf_gateway_spool_corrupt_frames{instance="edge-a1"}', values: "0x5 3x10" }
+      - { series: 'scf_gateway_spool_corrupt_frames{instance="edge-a2"}', values: "0x15" }
+    alert_rule_test:
+      - { eval_time: 3m, alertname: SpoolCorruptFrames, exp_alerts: [] }
+      - eval_time: 8m
+        alertname: SpoolCorruptFrames
+        exp_alerts:
+          - exp_labels: { severity: critical, monitor_id: TM-INF-08.M.2, instance: edge-a1 }
+            exp_annotations:
+              {
+                summary: Spool on edge-a1 skipped 3 damaged frame(s),
+                description: "Recovery found frames it could not read in the middle of a segment and skipped them (scf_gateway_spool_corrupt_bytes holds their size); those events are lost. Check the data disk and the node's kernel log.",
+                runbook_url: ops/runbooks/spool-backlog.md,
+              }
+
+  # 8. Event-key evictions: steady for 6 h fires; a single burst does not.
+  - interval: 5m
+    input_series:
+      - {
+          series: 'scf_engine_proxy_event_key_evictions_total{instance="core-a"}',
+          values: "0+10x100",
+        }
+      - {
+          series: 'scf_engine_proxy_event_key_evictions_total{instance="core-b"}',
+          values: "0x10 50x90",
+        }
+    alert_rule_test:
+      - { eval_time: 3h, alertname: EventKeyEvictions, exp_alerts: [] }
+      - eval_time: 8h
+        alertname: EventKeyEvictions
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-INF-08.M.3, instance: core-a }
+            exp_annotations:
+              {
+                summary: Engine proxy core-a evicts event keys before their window ends,
+                description: "120 event keys were evicted in the last hour, for 6 hours: duplicate web deliveries further apart than the shortened window reach Umami. Raise the de-duplication memory or shorten the window.",
+                runbook_url: ops/runbooks/forwarder-errors.md,
+              }

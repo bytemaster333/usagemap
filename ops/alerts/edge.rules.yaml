@@ -1,0 +1,108 @@
+# SPDX-License-Identifier: Apache-2.0
+# Monitoring plan §4.4 — the gateway alerts whose signals the gateway exports since C-124 (services/gateway
+# cmd/gateway/gauges.go, internal/forwarder, internal/otlp, internal/keys). Metric names as built.
+groups:
+  - name: scf-edge
+    interval: 1m
+    rules:
+      - alert: SpoolDepthHigh
+        expr: max by (instance) (scf_gateway_spool_bytes / scf_gateway_spool_max_bytes) > 0.5
+        for: 5m
+        labels: { severity: warning, monitor_id: TM-DOS-03.M.2 }
+        annotations:
+          summary: "Spool on {{ $labels.instance }} above 50 % of its cap"
+          description: "Spool uses {{ $value | humanizePercentage }} of GW_SPOOL_MAX_BYTES; at the cap the node answers 503 to ingest."
+          runbook_url: ops/runbooks/spool-backlog.md
+      - alert: SpoolDepthHigh
+        expr: max by (instance) (scf_gateway_spool_bytes / scf_gateway_spool_max_bytes) > 0.8
+        for: 5m
+        labels: { severity: critical, monitor_id: TM-DOS-03.M.2 }
+        annotations:
+          summary: "Spool on {{ $labels.instance }} above 80 % of its cap"
+          description: "Spool uses {{ $value | humanizePercentage }} of GW_SPOOL_MAX_BYTES; ingest will be refused (503) at the cap."
+          runbook_url: ops/runbooks/spool-backlog.md
+      - alert: DuplicateForwardsHigh
+        expr: |
+          sum by (instance) (increase(scf_gateway_forward_ambiguous_retries_total[1h]))
+          / sum by (instance) (increase(scf_gateway_forward_total{kind="event",outcome=~"acked_stored|acked_engine_bot"}[1h])) > 0.001
+        labels: { severity: warning, monitor_id: TM-INF-08.M.1 }
+        annotations:
+          summary: "More than 0.1 % of forwards from {{ $labels.instance }} were ambiguous retries"
+          description: "{{ $value | humanizePercentage }} of delivered events followed an attempt that may already have reached Umami (possible duplicates, ADR-0020)."
+          runbook_url: ops/runbooks/forwarder-errors.md
+      - alert: OTLPRejectedSpike
+        expr: |
+          sum by (reason) (rate(scf_gateway_otlp_requests_total{outcome="rejected"}[15m]))
+          > 5 * sum by (reason) (rate(scf_gateway_otlp_requests_total{outcome="rejected"}[15m] offset 1w))
+          and sum by (reason) (rate(scf_gateway_otlp_requests_total{outcome="rejected"}[15m])) > 0.1
+        for: 15m
+        labels: { severity: warning, monitor_id: TM-OTL-05.M.1 }
+        annotations:
+          summary: "OTLP rejections for reason {{ $labels.reason }} more than 5× the same hour last week"
+          description: "{{ $value | humanize }} rejected OTLP requests/s with reason {{ $labels.reason }} (auth, tenant, logs, schema, size, rate_limit; time bounds are the writer's)."
+          runbook_url: ops/runbooks/otlp-rejections.md
+      - alert: KDayRegenerated
+        expr: |
+          sum by (instance) (increase(scf_gateway_kday_regenerated_total[1h])) > 0
+          or (max by (instance) (scf_gateway_kday_regenerated_total) > 0
+              and on (instance) max by (instance) (time() - scf_gateway_start_time_seconds) < 3600)
+        labels: { severity: warning, monitor_id: TM-DOS-08.M.1 }
+        annotations:
+          summary: "{{ $labels.instance }} generated today's K_day itself"
+          description: "No peer had today's visitor key (cold start, or a restart without a live peer — every restart on the single-VM profile): visitors already counted today are counted again. Annotate the day (C-04, C-124)."
+          runbook_url: ops/runbooks/visitor-key-regenerated.md
+      - alert: KDayDivergence
+        expr: count(count by (fingerprint) (scf_gateway_kday_fingerprint_info == 1)) > 1
+        for: 10m
+        labels: { severity: warning, monitor_id: TM-EDG-03.M.2 }
+        annotations:
+          summary: "{{ $value }} different K_day fingerprints among edge nodes"
+          description: Edge nodes hold different visitor keys for today (partition or a regeneration that did not converge); that day's uniques are over-counted (C-04).
+          runbook_url: ops/runbooks/visitor-key-regenerated.md
+      - alert: SiteRateLimited
+        expr: max by (kind) (scf_gateway_sites_limited) > 10
+        labels: { severity: warning, monitor_id: TM-DOS-02.M.3 }
+        annotations:
+          summary: "More than 10 sites answered {{ $labels.kind }} within an hour"
+          description: "{{ $value }} sites hit {{ $labels.kind }} on one edge node in the last hour (per-site detail is in the counter records and the tenants' installation checks; the tenant notice is a portal function, C-80/C-90)."
+          runbook_url: ops/runbooks/site-quota.md
+      # Range lists (C-38, bot.ip-multiplicity): the weekly updater's textfile scf_rangelists.prom (lean timer), and the lists the
+      # gateways hold. Without them every address is `unknown` and the datacenter/Tor/VPN thresholds never apply. Silent
+      # where no gateway is scraped.
+      - alert: RangeListsStale
+        expr: time() - scf_rangelist_last_success_timestamp_seconds > 15 * 86400
+        for: 1h
+        labels: { severity: warning, monitor_id: TM-INF-03.M.1 }
+        annotations:
+          summary: Network-class range lists not refreshed for more than 15 days
+          description: "Last successful update {{ $value | humanizeDuration }} ago (weekly schedule); the gateways keep the previous lists."
+          runbook_url: ops/runbooks/range-lists.md
+      - alert: RangeListsStale
+        expr: |
+          max by (instance) (up{job="gateway"} == 1)
+          unless on (instance) (max by (instance) (scf_gateway_rangelist_entries{class="datacenter"}) > 0)
+        for: 2h
+        labels: { severity: warning, monitor_id: TM-INF-03.M.1, reason: no_list }
+        annotations:
+          summary: "Gateway {{ $labels.instance }} holds no datacenter range list"
+          description: Every address is classed `unknown`; the stricter datacenter, Tor and VPN multiplicity thresholds do not apply.
+          runbook_url: ops/runbooks/range-lists.md
+      # Spool recovery skipped a damaged frame in the middle of a segment (services/gateway README "Spool"): those
+      # events are lost. Any non-zero value is an incident (disk, filesystem or a defect), never normal operation.
+      - alert: SpoolCorruptFrames
+        expr: max by (instance) (scf_gateway_spool_corrupt_frames) > 0
+        labels: { severity: critical, monitor_id: TM-INF-08.M.2 }
+        annotations:
+          summary: "Spool on {{ $labels.instance }} skipped {{ $value }} damaged frame(s)"
+          description: Recovery found frames it could not read in the middle of a segment and skipped them (scf_gateway_spool_corrupt_bytes holds their size); those events are lost. Check the data disk and the node's kernel log.
+          runbook_url: ops/runbooks/spool-backlog.md
+      # The engine proxy forgets event keys before their 1-hour window ends (memory full): copies further apart than
+      # the remaining window are no longer recognised as duplicates (plan C1 #11). Steady evictions = window too small.
+      - alert: EventKeyEvictions
+        expr: sum by (instance) (increase(scf_engine_proxy_event_key_evictions_total[1h])) > 0
+        for: 6h
+        labels: { severity: warning, monitor_id: TM-INF-08.M.3 }
+        annotations:
+          summary: "Engine proxy {{ $labels.instance }} evicts event keys before their window ends"
+          description: '{{ $value | printf "%.0f" }} event keys were evicted in the last hour, for 6 hours: duplicate web deliveries further apart than the shortened window reach Umami. Raise the de-duplication memory or shorten the window.'
+          runbook_url: ops/runbooks/forwarder-errors.md

@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: Apache-2.0
+# Alerts that compare against a 7-day baseline, evaluated at the 4-minute cadence of their recording group (promtool
+# limits a query to 10,000 samples, which a 7-day window at 1-minute steps exceeds; at 5 minutes the left-open lookback
+# of Prometheus 3 made the result depend on the order promtool evaluates groups in).
+rule_files: [../recording.rules.yaml, ../data-quality.rules.yaml]
+evaluation_interval: 4m
+tests:
+  # Durability reconciliation stale; writer de-duplication rate jumps from 0.2 % to ≈ 5 %.
+  - interval: 15m
+    input_series:
+      - {
+          series: 'scf_job_last_success_timestamp_seconds{instance="jobs",job_name="durability_reconcile"}',
+          values: "0x800",
+        }
+      - {
+          series: 'scf_writer_tenant_transactions_total{instance="core-a",outcome="committed"}',
+          values: "0+250x800",
+        }
+      - {
+          series: 'scf_writer_tenant_transactions_total{instance="core-a",outcome="duplicate"}',
+          values: "0+0.5x720 360+12.5x80",
+        }
+    alert_rule_test:
+      - { eval_time: 25h, alertname: ReconciliationStale, exp_alerts: [] }
+      - eval_time: 27h
+        alertname: ReconciliationStale
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-EDG-09.M.4,
+                instance: jobs,
+                job_name: durability_reconcile,
+              }
+            exp_annotations:
+              {
+                description: Spool accounting (C-76) is unchecked while this lasts.,
+                runbook_url: ops/runbooks/durability-reconciliation.md,
+                summary: The durability reconciliation job has not succeeded for 26 h,
+              }
+      - { eval_time: 170h, alertname: WriterDedupeAnomaly, exp_alerts: [] }
+      - eval_time: 185h
+        alertname: WriterDedupeAnomaly
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-OTL-02.M.1 }
+            exp_annotations:
+              {
+                description: 4.762% of tenant transactions were duplicates.,
+                runbook_url: ops/runbooks/otlp-writer.md,
+                summary: Writer de-duplication rate more than 3× its 7-day median,
+              }

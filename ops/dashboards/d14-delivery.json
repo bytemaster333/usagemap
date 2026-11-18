@@ -1,0 +1,42 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "",
+  "editable": false,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "content": "Patch latency, advisory and dependency-update PR age, the daily-watch check log (C-49) and the support first-response and resolution clocks live in GitHub (issue labels set by `tools/support/run sla`), not in Prometheus. They are reported monthly in `docs/evidence/slo/YYYY-MM.md` and on the support board.",
+        "mode": "markdown"
+      },
+      "title": "Where these figures come from",
+      "type": "text"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 41,
+  "tags": [
+    "scf",
+    "wsj"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "utc",
+  "title": "D14 Delivery and support",
+  "uid": "scf-d14-delivery",
+  "version": 1
+}

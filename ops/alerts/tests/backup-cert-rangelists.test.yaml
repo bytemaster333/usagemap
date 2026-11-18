@@ -1,0 +1,350 @@
+# SPDX-License-Identifier: Apache-2.0
+# promtool test rules ops/alerts/tests/backup-cert-rangelists.test.yaml — the backup and restore-drill alerts and
+# CertExpiring (platform.rules.yaml) and RangeListsStale (edge.rules.yaml). Inputs are the node-exporter textfile
+# metrics as written by infra/compose/ha/bin/scf-backup, scf-restore-drill, the ACME timer (scf_tls.prom) and the
+# range-list timer (scf_rangelists.prom); timestamps are seconds since the test's time 0. Samples every 4 m (inside the 5-minute lookback,
+# so `for` is never reset between samples).
+rule_files: [../platform.rules.yaml, ../edge.rules.yaml]
+evaluation_interval: 1m
+tests:
+  # 1. Repository 1 stops taking backups at time 0, repository 2 keeps going; pgbackrest check fails from 5 h; the
+  #    weekly dump stops; the restore drill from repository 2 passed at time 0 and never again, then a drill finds an
+  #    integrity mismatch at 6 h.
+  - interval: 4m
+    input_series:
+      - {
+          series: 'scf_backup_last_success_timestamp_seconds{job="node",instance="app-1",repo="1",type="full"}',
+          values: "0x3150",
+        }
+      - {
+          series: 'scf_backup_last_success_timestamp_seconds{job="node",instance="app-1",repo="1",type="diff"}',
+          values: "0x3150",
+        }
+      - {
+          series: 'scf_backup_last_success_timestamp_seconds{job="node",instance="app-1",repo="2",type="full"}',
+          values: "0x3150",
+        }
+      - {
+          series: 'scf_backup_last_success_timestamp_seconds{job="node",instance="app-1",repo="2",type="diff"}',
+          values: "0+240x3150",
+        }
+      - { series: 'scf_backup_check_success{job="node",instance="app-1"}', values: "1x75 0x3075" }
+      - {
+          series: 'scf_backup_logical_dump_last_success_timestamp_seconds{job="node",instance="app-1"}',
+          values: "0x3150",
+        }
+      - {
+          series: 'scf_restore_drill_last_success_timestamp_seconds{job="node",instance="app-1",repo="2"}',
+          values: "0x3150",
+        }
+      - {
+          series: 'scf_restore_drill_integrity_mismatch{job="node",instance="app-1",repo="2"}',
+          values: "0x75 1x3075",
+        }
+    alert_rule_test:
+      - { eval_time: 25h, alertname: BackupDiffStale, exp_alerts: [] }
+      - eval_time: 28h
+        alertname: BackupDiffStale
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-OPS-01.M.3,
+                job: node,
+                instance: app-1,
+                repo: "1",
+              }
+            exp_annotations:
+              {
+                summary: No backup in repository 1 for more than 26 hours,
+                description: "Newest full or differential backup 1d 4h 0m 0s ago (daily schedule).",
+                runbook_url: ops/runbooks/backup-failure.md,
+              }
+      - { eval_time: 190h, alertname: BackupFullStale, exp_alerts: [] }
+      - eval_time: 194h
+        alertname: BackupFullStale
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-OPS-01.M.2,
+                job: node,
+                instance: app-1,
+                repo: "1",
+                type: full,
+              }
+            exp_annotations:
+              {
+                summary: No full backup in repository 1 for more than 8 days,
+                description: "Newest full backup 8d 2h 0m 0s ago (weekly schedule).",
+                runbook_url: ops/runbooks/backup-failure.md,
+              }
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-OPS-01.M.2,
+                job: node,
+                instance: app-1,
+                repo: "2",
+                type: full,
+              }
+            exp_annotations:
+              {
+                summary: No full backup in repository 2 for more than 8 days,
+                description: "Newest full backup 8d 2h 0m 0s ago (weekly schedule).",
+                runbook_url: ops/runbooks/backup-failure.md,
+              }
+      - { eval_time: 6h, alertname: BackupCheckFailing, exp_alerts: [] }
+      - eval_time: 8h
+        alertname: BackupCheckFailing
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, monitor_id: TM-OPS-01.M.4, job: node, instance: app-1 }
+            exp_annotations:
+              {
+                summary: pgbackrest check failing on app-1,
+                description: WAL is not reaching every repository; point-in-time recovery is at risk.,
+                runbook_url: ops/runbooks/backup-failure.md,
+              }
+      - { eval_time: 190h, alertname: LogicalDumpStale, exp_alerts: [] }
+      - eval_time: 194h
+        alertname: LogicalDumpStale
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-OPS-01.M.5, job: node, instance: app-1 }
+            exp_annotations:
+              {
+                summary: Weekly logical dump older than 8 days,
+                description: "Newest uploaded dump 8d 2h 0m 0s ago.",
+                runbook_url: ops/runbooks/backup-failure.md,
+              }
+      - { eval_time: 190h, alertname: RestoreDrillStale, exp_alerts: [] }
+      - eval_time: 194h
+        alertname: RestoreDrillStale
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                monitor_id: TM-OPS-01.M.6,
+                job: node,
+                instance: app-1,
+                repo: "2",
+              }
+            exp_annotations:
+              {
+                summary: No passing restore drill from repository 2 for more than 8 days,
+                description: "Last passing drill 8d 2h 0m 0s ago (weekly schedule, C-56).",
+                runbook_url: ops/runbooks/restore-drill.md,
+              }
+      - { eval_time: 4h, alertname: RestoreDrillIntegrityMismatch, exp_alerts: [] }
+      - eval_time: 6h
+        alertname: RestoreDrillIntegrityMismatch
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                monitor_id: TM-OPR-02.M.1,
+                team: security,
+                job: node,
+                instance: app-1,
+                repo: "2",
+              }
+            exp_annotations:
+              {
+                summary: "Restore drill from repository 2: integrity checks failed",
+                description: "amcheck, the database gates or the row-count expectations failed on the restored copy; treat the backup as possibly tampered with until explained.",
+                runbook_url: ops/runbooks/restore-drill.md,
+              }
+
+  # 2. Backups run, but no restore drill has ever passed (no success timestamp) → after 8 days.
+  - interval: 4m
+    input_series:
+      - {
+          series: 'scf_backup_last_success_timestamp_seconds{job="node",instance="app-1",repo="1",type="full"}',
+          values: "3600+240x3000",
+        }
+    alert_rule_test:
+      - { eval_time: 100h, alertname: RestoreDrillStale, exp_alerts: [] }
+      - eval_time: 194h
+        alertname: RestoreDrillStale
+        exp_alerts:
+          - exp_labels: { severity: critical, monitor_id: TM-OPS-01.M.6, reason: never_passed }
+            exp_annotations:
+              {
+                summary: No passing restore drill for 8 days while backups exist,
+                description: The weekly drill has not passed since monitoring saw the first full backup (C-56).,
+                runbook_url: ops/runbooks/restore-drill.md,
+              }
+      - { eval_time: 194h, alertname: BackupFullStale, exp_alerts: [] }
+
+  # 3. A 30-day ACME certificate (issued at 0) is never renewed: warning past ⅔ (480 h, + 1 d), critical inside the last
+  #    7 days (from 552 h). A long-lived mesh certificate stays silent; the ACME timer reports success throughout.
+  - interval: 4m
+    input_series:
+      - {
+          series: 'scf_tls_cert_not_before_timestamp_seconds{job="node",instance="app-1",kind="acme",name="ingest"}',
+          values: "0x9000",
+        }
+      - {
+          series: 'scf_tls_cert_not_after_timestamp_seconds{job="node",instance="app-1",kind="acme",name="ingest"}',
+          values: "2592000x9000",
+        }
+      - {
+          series: 'scf_tls_cert_not_before_timestamp_seconds{job="node",instance="app-1",kind="mesh",name="edge-a1"}',
+          values: "0x9000",
+        }
+      - {
+          series: 'scf_tls_cert_not_after_timestamp_seconds{job="node",instance="app-1",kind="mesh",name="edge-a1"}',
+          values: "34300800x9000",
+        }
+      - { series: 'scf_acme_last_run_success{job="node",instance="app-1"}', values: "1x9000" }
+      - {
+          series: 'scf_acme_last_run_timestamp_seconds{job="node",instance="app-1"}',
+          values: "0+240x9000",
+        }
+    alert_rule_test:
+      - { eval_time: 490h, alertname: CertExpiring, exp_alerts: [] }
+      - eval_time: 506h
+        alertname: CertExpiring
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-DOS-07.M.1,
+                job: node,
+                instance: app-1,
+                kind: acme,
+                name: ingest,
+              }
+            exp_annotations:
+              {
+                summary: acme certificate ingest past ⅔ of its lifetime without renewal,
+                description: "Expires in 8d 22h 0m 0s.",
+                runbook_url: ops/runbooks/certificate-renewal.md,
+              }
+      - eval_time: 556h
+        alertname: CertExpiring
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                monitor_id: TM-DOS-07.M.1,
+                job: node,
+                instance: app-1,
+                kind: acme,
+                name: ingest,
+              }
+            exp_annotations:
+              {
+                summary: acme certificate ingest expires within 7 days,
+                description: "Expires in 6d 20h 0m 0s; clients refuse it after that.",
+                runbook_url: ops/runbooks/certificate-renewal.md,
+              }
+
+  # 4. The ACME timer's runs fail from 10 h (a day of failures fires); certificates still far from expiry.
+  - interval: 4m
+    input_series:
+      - { series: 'scf_acme_last_run_success{job="node",instance="app-1"}', values: "1x150 0x600" }
+      - {
+          series: 'scf_acme_last_run_timestamp_seconds{job="node",instance="app-1"}',
+          values: "0+240x750",
+        }
+    alert_rule_test:
+      - { eval_time: 20h, alertname: CertExpiring, exp_alerts: [] }
+      - eval_time: 36h
+        alertname: CertExpiring
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-DOS-07.M.1,
+                reason: renewal_failing,
+                job: node,
+                instance: app-1,
+              }
+            exp_annotations:
+              {
+                summary: ACME certificate renewal failing or not running,
+                description: The ingest and portal certificates are not being renewed; they expire about 30 days after renewal falls due.,
+                runbook_url: ops/runbooks/certificate-renewal.md,
+              }
+
+  # 5. Range lists last updated at 0, never again → stale after 15 days (+ 1 h). Gateway scraped and holding lists.
+  - interval: 4m
+    input_series:
+      - {
+          series: 'scf_rangelist_last_success_timestamp_seconds{job="node",instance="app-1"}',
+          values: "0x6000",
+        }
+      - { series: 'up{job="gateway",instance="gateway:9464"}', values: "1x6000" }
+      - {
+          series: 'scf_gateway_rangelist_entries{job="gateway",instance="gateway:9464",class="datacenter"}',
+          values: "9000x6000",
+        }
+    alert_rule_test:
+      - { eval_time: 358h, alertname: RangeListsStale, exp_alerts: [] }
+      - eval_time: 364h
+        alertname: RangeListsStale
+        exp_alerts:
+          - exp_labels: { severity: warning, monitor_id: TM-INF-03.M.1, job: node, instance: app-1 }
+            exp_annotations:
+              {
+                summary: Network-class range lists not refreshed for more than 15 days,
+                description: "Last successful update 15d 4h 0m 0s ago (weekly schedule); the gateways keep the previous lists.",
+                runbook_url: ops/runbooks/range-lists.md,
+              }
+
+  # 6. Gateway A holds no datacenter list (gauge 0), gateway B has one; gateway C has never loaded any list (no gauge).
+  - interval: 4m
+    input_series:
+      - { series: 'up{job="gateway",instance="gw-a:9464"}', values: "1x75" }
+      - { series: 'up{job="gateway",instance="gw-b:9464"}', values: "1x75" }
+      - { series: 'up{job="gateway",instance="gw-c:9464"}', values: "1x75" }
+      - {
+          series: 'scf_gateway_rangelist_entries{job="gateway",instance="gw-a:9464",class="datacenter"}',
+          values: "0x75",
+        }
+      - {
+          series: 'scf_gateway_rangelist_entries{job="gateway",instance="gw-b:9464",class="datacenter"}',
+          values: "5000x75",
+        }
+    alert_rule_test:
+      - { eval_time: 1h, alertname: RangeListsStale, exp_alerts: [] }
+      - eval_time: 2h10m
+        alertname: RangeListsStale
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-INF-03.M.1,
+                reason: no_list,
+                instance: "gw-a:9464",
+              }
+            exp_annotations:
+              {
+                summary: "Gateway gw-a:9464 holds no datacenter range list",
+                description: "Every address is classed `unknown`; the stricter datacenter, Tor and VPN multiplicity thresholds do not apply.",
+                runbook_url: ops/runbooks/range-lists.md,
+              }
+          - exp_labels:
+              {
+                severity: warning,
+                monitor_id: TM-INF-03.M.1,
+                reason: no_list,
+                instance: "gw-c:9464",
+              }
+            exp_annotations:
+              {
+                summary: "Gateway gw-c:9464 holds no datacenter range list",
+                description: "Every address is classed `unknown`; the stricter datacenter, Tor and VPN multiplicity thresholds do not apply.",
+                runbook_url: ops/runbooks/range-lists.md,
+              }
+
+  # 7. No gateway scraped (a monitoring-only or database-only node): silent, with or without the textfile.
+  - interval: 4m
+    input_series:
+      - {
+          series: 'scf_rangelist_last_success_timestamp_seconds{job="node",instance="app-1"}',
+          values: "0+240x75",
+        }
+    alert_rule_test:
+      - { eval_time: 4h, alertname: RangeListsStale, exp_alerts: [] }
