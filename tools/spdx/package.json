@@ -1,0 +1,9 @@
+{
+  "name": "@usagemap/spdx-check",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "SPDX header gate (licence.osi-only, security.supply-chain). Node standard library only; not a workspace package and never published.",
+  "dependencies": {},
+  "devDependencies": {}
+}

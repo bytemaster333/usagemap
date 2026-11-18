@@ -1,0 +1,21 @@
+{
+  "$comment": "Files in scope of tools/spdx/check-headers.ts that carry no SPDX header, each with the reason. They are still Apache-2.0 under the repository's LICENSE unless the reason says otherwise.",
+  "exemptions": [
+    {
+      "pattern": "db/migrations/",
+      "reason": "Applied migrations are checksum-locked by db/migrate.sh (ledger scf_migrations.applied, sha256) and copied verbatim from docs/data-model.md; adding a line would make every existing database refuse them. Apache-2.0 through LICENSE."
+    },
+    {
+      "pattern": "**/testdata/**",
+      "reason": "Test inputs (Go convention): their exact bytes are what the tests read."
+    },
+    {
+      "pattern": "**/*.fixture",
+      "reason": "Test fixtures that must look like the third-party files they imitate (tests/fixtures)."
+    },
+    {
+      "pattern": "tracker/releases/",
+      "reason": "Released tracker versions (tracker.intentional-upgrade, ADR-0004): their exact bytes are pinned by SHA-384 in each release manifest and in tenants' SRI attributes, so no header may be added (never run --fix on them). Apache-2.0 through LICENSE."
+    }
+  ]
+}

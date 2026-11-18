@@ -1,0 +1,9 @@
+{
+  "name": "@usagemap/coverage",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Coverage report (test.automated-suite): Go cover profiles + vitest v8 coverage merged into coverage/summary.{md,json}. Node standard library only; not a workspace package and never published.",
+  "dependencies": {},
+  "devDependencies": {}
+}
