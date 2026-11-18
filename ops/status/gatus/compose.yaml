@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0
+# One Gatus vantage point (ADR-0022; ops/status/README.md). Run on a host OUTSIDE the monitored failure domain (a small
+# VPS at a provider that hosts nothing else of ours), with the public base URLs in an env file:
+#
+#   SCF_STATUS_INGEST_URL_A=https://<ingest host A>  SCF_STATUS_INGEST_URL_B=https://<ingest host B>
+#   SCF_STATUS_PORTAL_URL=https://<portal host>
+#   docker compose -p scf-status -f ops/status/gatus/compose.yaml --env-file /etc/scf/status.env up -d
+#
+# The UI/API listens on 127.0.0.1:8080 only (reach it over SSH; publish it through a TLS front if wanted). History is
+# kept in the sqlite file on the `gatus-data` volume. Image: Gatus v5.38.0 (Apache-2.0), multi-arch index digest.
+name: scf-status
+services:
+  gatus:
+    image: twinproduction/gatus:v5.38.0@sha256:085ed63da963728965d00a3c78aa6167e3bf135218485b893201758e079e8415
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      GATUS_CONFIG_PATH: /config/config.yaml
+      SCF_STATUS_INGEST_URL_A: ${SCF_STATUS_INGEST_URL_A:?set the base URL of ingest host A}
+      SCF_STATUS_INGEST_URL_B: ${SCF_STATUS_INGEST_URL_B:?set the base URL of ingest host B}
+      SCF_STATUS_PORTAL_URL: ${SCF_STATUS_PORTAL_URL:?set the base URL of the portal}
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+      - gatus-data:/data
+    ports: ["127.0.0.1:${SCF_STATUS_PORT:-8080}:8080"]
+    logging: { driver: json-file, options: { max-size: 10m, max-file: "3" } }
+volumes:
+  gatus-data:

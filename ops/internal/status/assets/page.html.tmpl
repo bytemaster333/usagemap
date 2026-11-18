@@ -1,0 +1,197 @@
+{{/* SPDX-License-Identifier: Apache-2.0 */ -}}
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="60">
+<title>UsageMap status</title>
+<meta name="description" content="Live checks of UsageMap's tracking, API telemetry and dashboard, from our own probe.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+/* Ink & Yellow, light only. System fonts on purpose: the page loads nothing from anyone else. */
+:root {
+  color-scheme: light;
+  --stone: #efefeb; --paper: #ffffff; --sunken: #f6f6f3; --hover: #e9e9e3;
+  --ink: #111111; --ink-2: #34342f; --muted: #5e5e58; --subtle: #8c8c84;
+  --line: #dcdcd5; --line-strong: #c6c6be;
+  --yellow: #ffd43b; --yellow-deep: #d9ae00;
+  --good: #1b6e45; --good-soft: #dcf0e4; --warn: #8a5600; --warn-soft: #fbedc6; --bad: #b42318; --bad-soft: #fbe3df;
+  --font-display: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
+  --shadow-pop: 0 1px 2px rgba(17,17,17,0.06), 0 8px 24px rgba(17,17,17,0.10);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--stone); color: var(--ink); font-family: var(--font-sans); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 64px; }
+a { color: var(--ink); text-decoration-color: var(--yellow-deep); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink); }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+.wrap { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1, h2 { font-family: var(--font-display); margin: 0; letter-spacing: -0.025em; line-height: 1.15; text-wrap: balance; }
+p { margin: 0; }
+.label { font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+
+header { display: flex; align-items: center; gap: 14px; padding-block: 22px 4px; flex-wrap: wrap; }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand svg { height: 24px; width: auto; display: block; }
+.brand .sep { width: 1px; height: 20px; background: var(--line-strong); }
+.brand .pg { font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -0.02em; color: var(--ink-2); }
+nav { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.btn { font: 600 14px/1 var(--font-sans); border-radius: var(--radius-md); padding: 10px 14px; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; text-decoration: none; transition: background-color .12s; }
+.btn svg { width: 14px; height: 14px; }
+.btn-primary { background: var(--ink); color: var(--paper); }
+.btn-primary:hover { background: var(--ink-2); }
+.btn-secondary { background: var(--paper); color: var(--ink); border-color: var(--line-strong); }
+.btn-secondary:hover { background: var(--sunken); border-color: var(--ink); }
+@media (max-width: 600px) { nav { margin-left: 0; width: 100%; } nav .btn { padding: 9px 10px; font-size: 13.5px; } }
+
+.overall { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
+.ov-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.beacon { position: relative; width: 18px; height: 18px; flex: none; --c: var(--good); }
+.beacon.warn { --c: var(--warn); } .beacon.bad { --c: var(--bad); } .beacon.none { --c: var(--subtle); }
+.beacon i { position: absolute; inset: 0; border-radius: 50%; background: var(--c); }
+.beacon i.ring { background: transparent; border: 2px solid var(--c); animation: ping 2.4s cubic-bezier(.2,.6,.3,1) infinite; }
+.beacon.none i.ring { display: none; }
+@keyframes ping { 0% { transform: scale(1); opacity: .7; } 80%, 100% { transform: scale(2.3); opacity: 0; } }
+.ov-top h1 { font-size: clamp(24px, 4vw, 32px); font-weight: 800; }
+.ov-top .when { margin-left: auto; text-align: right; display: flex; flex-direction: column; gap: 2px; }
+.ov-top .when b { font: 600 13px var(--font-mono); }
+.ov-top .when span { font-size: 12.5px; color: var(--muted); }
+@media (max-width: 600px) { .ov-top .when { margin-left: 34px; text-align: left; } }
+.ov-band { margin: 0 -24px; padding: 14px 24px; background: var(--sunken); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 15px; color: var(--ink-2); }
+.ov-band.warn { background: var(--warn-soft); } .ov-band.bad { background: var(--bad-soft); }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 700px) { .facts { grid-template-columns: 1fr; gap: 12px; } }
+.fact { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fact b { font-family: var(--font-display); font-size: 22px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.fact b.nm { font-size: 17px; color: var(--muted); padding-top: 3px; }
+.fact span.d { font-size: 13px; color: var(--muted); }
+
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.sec-head h2 { font-size: 20px; font-weight: 800; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 14px; border-radius: 2px; display: inline-block; }
+
+.checks { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.check { padding: 26px 26px 22px; display: flex; flex-direction: column; gap: 14px; }
+.check + .check { border-top: 1px solid var(--line); }
+@media (max-width: 600px) { .check { padding: 22px 18px 18px; } }
+.c-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 20px; align-items: start; }
+.c-name { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.c-name b { font-family: var(--font-display); font-size: 17px; font-weight: 700; letter-spacing: -0.015em; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.c-name span.d { font-size: 14px; color: var(--muted); }
+.c-up { text-align: right; display: flex; flex-direction: column; gap: 1px; }
+.c-up b { font-family: var(--font-display); font-size: 20px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.c-up small { font-size: 12px; color: var(--muted); }
+@media (max-width: 600px) { .c-top { grid-template-columns: 1fr; } .c-up { text-align: left; flex-direction: row; align-items: baseline; gap: 8px; } }
+.chip { display: inline-flex; align-items: center; gap: 5px; font: 600 12px/1 var(--font-sans); border-radius: 999px; padding: 4px 8px 4px 6px; white-space: nowrap; border: 1px solid transparent; letter-spacing: 0; }
+.chip svg { width: 12px; height: 12px; }
+.chip-ok { background: var(--good-soft); color: var(--good); }
+.chip-warn { background: var(--warn-soft); color: var(--warn); }
+.chip-bad { background: var(--bad-soft); color: var(--bad); }
+.chip-none { color: var(--muted); border: 1px dashed var(--line-strong); }
+.days { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 3px; height: 32px; }
+.days i { border-radius: 2px; background: var(--good); transition: transform .12s, opacity .12s; outline-offset: 1px; }
+.days i.warn { background: var(--warn); }
+.days i.bad { background: var(--bad); }
+.days i.none { background: transparent; border: 1px dashed var(--line-strong); }
+.days i:hover, .days i:focus-visible { transform: scaleY(1.12); }
+.days:hover i:not(:hover) { opacity: .75; }
+.axis { display: flex; justify-content: space-between; font: 500 11px var(--font-mono); color: var(--muted); gap: 8px; }
+.axis .mid { color: var(--subtle); }
+
+#tip { position: fixed; z-index: 20; pointer-events: none; background: var(--ink); color: var(--paper); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 12.5px; box-shadow: var(--shadow-pop); min-width: 150px; opacity: 0; transform: translateY(4px); transition: opacity .12s, transform .12s; display: flex; flex-direction: column; }
+#tip.on { opacity: 1; transform: none; }
+#tip b { font: 600 12px var(--font-mono); color: var(--yellow); margin-top: 2px; }
+#tip span { color: var(--subtle); }
+
+.incidents { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+.incidents .ic { width: 36px; height: 36px; border-radius: 50%; background: var(--sunken); border: 1px solid var(--line); display: grid; place-items: center; }
+.incidents .ic svg { width: 18px; height: 18px; }
+.incidents b { font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: -0.015em; display: block; }
+.incidents p { font-size: 14px; color: var(--muted); margin-top: 3px; max-width: 62ch; }
+.inc-list { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-lg); margin: 0; padding: 0; list-style: none; overflow: hidden; }
+.inc-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 14px 20px; align-items: baseline; }
+.inc-list li + li { border-top: 1px solid var(--line); }
+.inc-list b { font-size: 14.5px; font-weight: 600; }
+.inc-list .w { font: 500 12.5px var(--font-mono); color: var(--ink-2); }
+.inc-list .n { font-size: 13px; color: var(--muted); text-align: right; }
+@media (max-width: 600px) { .inc-list li { grid-template-columns: 1fr; } .inc-list .n { text-align: left; } }
+.inc-note { font-size: 13.5px; color: var(--muted); }
+
+footer { border-top: 1px solid var(--line); padding-top: 18px; display: flex; gap: 10px 18px; flex-wrap: wrap; align-items: center; font-size: 13.5px; color: var(--muted); }
+footer a { color: var(--ink-2); }
+footer .r { margin-left: auto; }
+@media (prefers-reduced-motion: reduce) { .beacon i.ring { animation: none; display: none; } * { transition: none !important; } }
+</style></head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="https://usagemap.dev" aria-label="UsageMap home">{{.Logo}}<span class="sep"></span><span class="pg">Status</span></a>
+    <nav aria-label="Main">
+      <a class="btn btn-secondary" href="https://github.com/bytemaster333/usagemap/issues/new?template=service-problem.yml" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>Report a problem</a>
+      <a class="btn btn-primary" href="https://app.usagemap.dev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Open the app</a>
+    </nav>
+  </header>
+
+  <section class="overall" aria-labelledby="ov">
+    <div class="ov-top">
+      <span class="beacon {{.Banner}}" aria-hidden="true"><i class="ring"></i><i></i></span>
+      <h1 id="ov">{{.BannerTitle}}</h1>
+      <div class="when"><b id="ago" data-last="{{.LastUnix}}">{{.LastText}}</b><span>Checks run every minute</span></div>
+    </div>
+    <div class="ov-band {{.Banner}}"><p>{{.Band}}</p></div>
+    <div class="facts">
+      <div class="fact"><span class="label">Objective</span><b>{{.Objective}}</b><span class="d">{{.ObjectiveOf}}{{with .ServiceWindow}} {{.}}{{end}}</span></div>
+      <div class="fact"><span class="label">Measured since</span>{{if eq .SinceDate "Not yet"}}<b class="nm">Not yet</b>{{else}}<b>{{.SinceDate}}</b>{{end}}<span class="d">{{.SinceNote}}</span></div>
+      <div class="fact"><span class="label">This month so far</span>{{if .MonthFigure}}<b>{{.MonthFigure}}</b>{{else}}<b class="nm">Not measured yet</b>{{end}}<span class="d">{{.MonthNote}}</span></div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="ch">
+    <div class="sec-head"><h2 id="ch">What we check</h2>
+      <div class="legend"><span><i style="background:var(--good)"></i>Working</span><span><i style="background:var(--warn)"></i>Some checks failed</span><span><i style="background:var(--bad)"></i>Down</span><span><i style="border:1px dashed var(--line-strong)"></i>Not measured</span></div>
+    </div>
+    <div class="checks">
+{{- range .Checks}}
+      <div class="check" id="check-{{.ID}}">
+        <div class="c-top">
+          <div class="c-name"><b>{{.Name}} <span class="chip chip-{{.ChipClass}}">{{if eq .ChipClass "ok"}}<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.2l2.2 2.2 4.8-4.8"/></svg>{{end}}{{.ChipText}}</span></b><span class="d">{{.Desc}}</span></div>
+          <div class="c-up"><b>{{.Uptime}}</b><small>{{.UptimeNote}}</small></div>
+        </div>
+        <div class="days" role="img" aria-label="{{.Aria}}">{{range .Days}}<i{{if .Class}} class="{{.Class}}"{{end}} tabindex="0" data-d="{{.Date}}" data-s="{{.State}}" data-v="{{.Value}}" aria-label="{{.Date}}: {{.State}}, {{.Value}}"></i>{{end}}</div>
+        <div class="axis"><span>{{$.AxisStart}}</span>{{if .AxisMid}}<span class="mid">{{.AxisMid}}</span>{{end}}<span>Today</span></div>
+      </div>
+{{- end}}
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="inc">
+    <div class="sec-head"><h2 id="inc">Incidents</h2></div>
+{{- if .Incidents}}
+    <ul class="inc-list">
+{{- range .Incidents}}
+      <li><div><b>{{.Check}}</b><div class="w">{{.When}}</div></div><span class="n">{{.Length}} · {{.Failed}}</span></li>
+{{- end}}
+    </ul>
+    {{if .MoreIncidents}}<p class="inc-note">And {{.MoreIncidents}} earlier failed periods in the last 30 days.</p>{{end}}
+    <p class="inc-note">These periods come straight from the probe results. We publish a write-up within 5 business days of fixing an incident.</p>
+{{- else}}
+    <div class="incidents">
+      <span class="ic"><svg viewBox="0 0 20 20" fill="none" stroke="#111111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l3.5 3.5L16 5.5"/></svg></span>
+      <div><b>{{.EmptyTitle}}</b><p>{{.EmptyNote}}</p></div>
+    </div>
+{{- end}}
+  </section>
+
+  <footer>
+    <span>Updated every minute · no cookies, no third-party services</span>
+    <a class="r" href="https://usagemap.dev">usagemap.dev</a>
+    <a href="https://app.usagemap.dev">App</a>
+    <a href="https://docs.usagemap.dev/">Docs</a>
+  </footer>
+</div>
+<div id="tip" role="tooltip"></div>
+<script src="status.js" defer></script>
+</body></html>

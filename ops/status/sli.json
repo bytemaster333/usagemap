@@ -1,0 +1,60 @@
+{
+  "$comment": "Source of the external status checks (slo.ingest-availability, slo.dashboard-availability). `node ops/status/generate.ts` writes gatus/config.yaml and upptime/.upptimerc.yml from it; ops/status/test/status.test.ts checks both against this file and against docs/sla.md. Hostnames are deployment values, passed as environment variables.",
+  "coverageFloor": 0.95,
+  "objectives": {
+    "lean": { "ingest": 0.995, "dashboard": 0.995 },
+    "scale-out": { "ingest": 0.9999, "dashboard": 0.999 }
+  },
+  "ingest": {
+    "sli": "docs/sla.md §2.2: accepted within 2 seconds on one of the two ingest hostnames (one retry to the other). External checks cannot solve the proof-of-work, so they check the gateway's own health route, which answers 200 only while the node holds a snapshot, the current keys and a durable spool and is not draining (services/gateway/cmd/gateway/main.go).",
+    "hosts": [
+      { "id": "ingest-a", "env": "SCF_STATUS_INGEST_URL_A" },
+      { "id": "ingest-b", "env": "SCF_STATUS_INGEST_URL_B" }
+    ],
+    "path": "/healthz",
+    "status": [200],
+    "bodyField": "status",
+    "bodyValue": "ok",
+    "maxResponseMs": 2000,
+    "combine": "a vantage point records a slot good when at least one of the two hostnames passed (docs/sla.md §2.2)"
+  },
+  "dashboard": {
+    "sli": "docs/sla.md §2.2/§3.3: a journey step fails when it errors or takes longer than 3 s. External checks cover the two steps that need no sign-in: the portal's static origin, and the API behind it reaching the database (components.dashboards of the health endpoint, wire-formats §i.2).",
+    "portal": {
+      "id": "portal",
+      "env": "SCF_STATUS_PORTAL_URL",
+      "path": "/portal-healthz",
+      "status": [200]
+    },
+    "api": {
+      "id": "dashboard-api",
+      "env": "SCF_STATUS_PORTAL_URL",
+      "path": "/public/v1/health",
+      "status": [200, 503],
+      "bodyField": "components.dashboards",
+      "bodyValue": "ok"
+    },
+    "maxStepMs": 3000,
+    "combine": "a vantage point records a slot good when both checks passed"
+  },
+  "vantagePoints": [
+    {
+      "id": "github",
+      "tool": "upptime",
+      "intervalSeconds": 300,
+      "where": "GitHub-hosted runners: infrastructure we do not operate (C-30); feeds the public status page ORG/status (DV-06)"
+    },
+    {
+      "id": "probe-d",
+      "tool": "gatus",
+      "intervalSeconds": 30,
+      "where": "a small VPS at a provider that hosts nothing else of ours (ADR-0022 placement of Gatus; docs/sla.md §17 P7: the lean profile's second outside source)"
+    },
+    {
+      "id": "app-1",
+      "tool": "scf-ops probe",
+      "intervalSeconds": 30,
+      "where": "the local probe on the application host (ops/README.md lean profile): the full canary-event SLI with proof-of-work and signed-in journeys, inside the failure domain"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "@usagemap/status-checks",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Generator and tests of the external status checks (Gatus, Upptime). Node standard library only; not a workspace package.",
+  "dependencies": {},
+  "devDependencies": {}
+}
