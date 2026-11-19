@@ -1,0 +1,27 @@
+{
+  "name": "A warning already posted (marker) is not posted again",
+  "now": "2026-11-06T12:00:00Z",
+  "issue": {
+    "number": 1,
+    "author": "reporter",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-11-02T10:00:00Z",
+    "closedAt": null,
+    "labels": ["sla:awaiting-first-response"],
+    "comments": [
+      {
+        "author": "github-actions[bot]",
+        "association": "NONE",
+        "bot": true,
+        "createdAt": "2026-11-06T10:00:01Z",
+        "body": "<!-- scf-sla:response-warning -->\nSupport SLA: ..."
+      }
+    ],
+    "labelEvents": []
+  },
+  "expect": {
+    "add": [],
+    "remove": [],
+    "comments": []
+  }
+}

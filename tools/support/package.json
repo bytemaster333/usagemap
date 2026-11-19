@@ -1,0 +1,9 @@
+{
+  "name": "@usagemap/support-tools",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Monthly support report (K3/K4 response and resolution times) and monthly SLO coverage report (95 % coverage floor), plus the public tracker's label set. Node standard library only; not a workspace package and never published.",
+  "dependencies": {},
+  "devDependencies": {}
+}

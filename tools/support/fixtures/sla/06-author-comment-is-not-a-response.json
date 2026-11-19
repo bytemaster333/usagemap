@@ -1,0 +1,26 @@
+{
+  "name": "The reporter's own follow-up is not a first response",
+  "now": "2026-11-09T10:00:00Z",
+  "issue": {
+    "number": 1,
+    "author": "reporter",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-11-02T10:00:00Z",
+    "closedAt": null,
+    "labels": ["sla:awaiting-first-response"],
+    "comments": [
+      {
+        "author": "reporter",
+        "association": "NONE",
+        "bot": false,
+        "createdAt": "2026-11-03T10:00:00Z"
+      }
+    ],
+    "labelEvents": []
+  },
+  "expect": {
+    "add": ["sla:response-breach"],
+    "remove": [],
+    "comments": []
+  }
+}

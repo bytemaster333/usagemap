@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+# Support and SLO reporting tools (slo.ingest-availability, slo.dashboard-availability, support.first-response, support.resolution; docs/sla.md §7, §9). Node standard library only.
+#
+#   tools/support/run support-report --month=YYYY-MM (--issues=FILE | --github) [--at=ISO] [--repo=ORG/REPO] [--out=DIR]
+#   tools/support/run slo-report --month=YYYY-MM --verdicts=FILE [--profile=lean|scale-out] [--floor=0.95] [--out=DIR]
+#   tools/support/run labels --check | --plan | --apply      issue forms + label set (offline check; sync needs GITHUB_TOKEN)
+#   tools/support/run sla --fixtures=DIR | --plan | --apply  ticket SLA labels and warnings (plan/apply need GITHUB_TOKEN)
+#   tools/support/run selftest                               unit and fixture tests (the SLO end-to-end case needs Go)
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${here}/../.."
+if command -v mise >/dev/null 2>&1; then eval "$(mise env -s bash)"; fi
+cmd="${1:-}"; [ $# -gt 0 ] && shift
+case "${cmd}" in
+  support-report) node "${here}/support-report.ts" "$@" ;;
+  slo-report) node "${here}/slo-report.ts" "$@" ;;
+  labels) node "${here}/labels.ts" "$@" ;;
+  sla) node "${here}/sla.ts" "$@" ;;
+  selftest) node --test "$@" "${here}"/test/*.test.ts && node "${here}/labels.ts" --check ;;
+  *) sed -n '3,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac

@@ -1,0 +1,20 @@
+{
+  "name": "No response after 4 business days: warning comment",
+  "now": "2026-11-06T10:00:00Z",
+  "issue": {
+    "number": 1,
+    "author": "reporter",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-11-02T10:00:00Z",
+    "closedAt": null,
+    "labels": ["sla:awaiting-first-response"],
+    "comments": [],
+    "labelEvents": []
+  },
+  "expect": {
+    "add": [],
+    "remove": [],
+    "comments": ["<!-- scf-sla:response-warning -->"],
+    "responseAge": 4
+  }
+}

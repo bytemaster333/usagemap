@@ -1,0 +1,4 @@
+{"type":"transaction_created","id":"m1","sep":"24"}
+{"type":"customer_updated","id":"m2"}
+not json at all
+{"type":"something_new","id":"m3"}

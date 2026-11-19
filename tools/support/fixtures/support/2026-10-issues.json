@@ -1,0 +1,168 @@
+[
+  {
+    "number": 101,
+    "author": "reporter-a",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-10-05T10:00:00Z",
+    "closedAt": "2026-10-13T10:00:00Z",
+    "labels": ["type:bug"],
+    "labelEvents": [],
+    "comments": [
+      {
+        "author": "maint-1",
+        "association": "MEMBER",
+        "bot": false,
+        "createdAt": "2026-10-07T10:00:00Z"
+      }
+    ]
+  },
+  {
+    "number": 102,
+    "author": "reporter-b",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-10-01T09:00:00Z",
+    "closedAt": "2026-10-09T12:00:00Z",
+    "labels": ["tenant", "sla:response-breach"],
+    "labelEvents": [],
+    "comments": [
+      {
+        "author": "maint-2",
+        "association": "COLLABORATOR",
+        "bot": false,
+        "createdAt": "2026-10-09T09:00:00Z"
+      }
+    ]
+  },
+  {
+    "number": 103,
+    "author": "reporter-c",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-10-30T12:00:00Z",
+    "closedAt": null,
+    "labels": ["tenant", "sla:awaiting-first-response"],
+    "labelEvents": [],
+    "comments": []
+  },
+  {
+    "number": 104,
+    "author": "reporter-d",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-10-05T00:00:00Z",
+    "closedAt": "2026-10-21T00:00:00Z",
+    "labels": ["tenant"],
+    "labelEvents": [
+      { "label": "status:needs-info", "action": "labeled", "createdAt": "2026-10-06T00:00:00Z" }
+    ],
+    "comments": [
+      {
+        "author": "maint-1",
+        "association": "MEMBER",
+        "bot": false,
+        "createdAt": "2026-10-05T06:00:00Z"
+      },
+      {
+        "author": "reporter-d",
+        "association": "NONE",
+        "bot": false,
+        "createdAt": "2026-10-19T00:00:00Z"
+      }
+    ]
+  },
+  {
+    "number": 105,
+    "author": "maint-1",
+    "authorAssociation": "MEMBER",
+    "createdAt": "2026-10-02T00:00:00Z",
+    "closedAt": null,
+    "labels": ["sla:exempt"],
+    "labelEvents": [],
+    "comments": []
+  },
+  {
+    "number": 106,
+    "author": "reporter-e",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-09-28T00:00:00Z",
+    "closedAt": null,
+    "labels": ["type:bug", "sla:resolution-breach"],
+    "labelEvents": [],
+    "comments": [
+      {
+        "author": "maint-2",
+        "association": "COLLABORATOR",
+        "bot": false,
+        "createdAt": "2026-09-28T12:00:00Z"
+      }
+    ]
+  },
+  {
+    "number": 107,
+    "author": "reporter-f",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-10-20T00:00:00Z",
+    "closedAt": "2026-10-21T00:00:00Z",
+    "labels": ["tenant", "sla:response-breach"],
+    "labelEvents": [],
+    "comments": [
+      {
+        "author": "maint-1",
+        "association": "MEMBER",
+        "bot": false,
+        "createdAt": "2026-10-20T06:00:00Z"
+      }
+    ]
+  },
+  {
+    "number": 108,
+    "author": "reporter-g",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-10-26T00:00:00Z",
+    "closedAt": null,
+    "labels": ["tenant"],
+    "labelEvents": [],
+    "comments": [
+      {
+        "author": "helper-bot",
+        "association": "MEMBER",
+        "bot": true,
+        "createdAt": "2026-10-26T00:05:00Z"
+      },
+      {
+        "author": "reporter-g",
+        "association": "NONE",
+        "bot": false,
+        "createdAt": "2026-10-27T00:00:00Z"
+      }
+    ]
+  },
+  {
+    "number": 109,
+    "author": "maint-2",
+    "authorAssociation": "OWNER",
+    "createdAt": "2026-10-22T00:00:00Z",
+    "closedAt": "2026-10-23T00:00:00Z",
+    "labels": ["type:bug"],
+    "labelEvents": [],
+    "comments": []
+  },
+  {
+    "number": 110,
+    "author": "reporter-h",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-09-01T00:00:00Z",
+    "closedAt": "2026-09-10T00:00:00Z",
+    "labels": [],
+    "labelEvents": [],
+    "comments": []
+  },
+  {
+    "number": 111,
+    "author": "reporter-i",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-11-01T00:00:00Z",
+    "closedAt": null,
+    "labels": [],
+    "labelEvents": [],
+    "comments": []
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "name": "@usagemap/demo-seed",
+  "version": "0.1.0",
+  "description": "Seeds synthetic DEMO projects into a local stack for the guided demo.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.19.0"
+  },
+  "scripts": {
+    "seed": "node seed.ts",
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  }
+}

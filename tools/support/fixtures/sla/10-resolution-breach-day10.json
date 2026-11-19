@@ -1,0 +1,27 @@
+{
+  "name": "Open 10 business days: resolution breach",
+  "now": "2026-11-16T10:00:00Z",
+  "issue": {
+    "number": 1,
+    "author": "reporter",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-11-02T10:00:00Z",
+    "closedAt": null,
+    "labels": [],
+    "comments": [
+      {
+        "author": "maint",
+        "association": "MEMBER",
+        "bot": false,
+        "createdAt": "2026-11-02T11:00:00Z"
+      }
+    ],
+    "labelEvents": []
+  },
+  "expect": {
+    "add": ["sla:resolution-breach"],
+    "remove": [],
+    "comments": [],
+    "resolutionAge": 10
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Business days follow the configured time zone (Fri 15:00 to Mon 15:00 Pacific = 1 business day)",
+  "now": "2026-11-09T23:00:00Z",
+  "config": {
+    "tz": "America/Los_Angeles"
+  },
+  "issue": {
+    "number": 1,
+    "author": "reporter",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-11-06T23:00:00Z",
+    "closedAt": null,
+    "labels": ["sla:awaiting-first-response"],
+    "comments": [],
+    "labelEvents": []
+  },
+  "expect": {
+    "add": [],
+    "remove": [],
+    "comments": [],
+    "responseAge": 1
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "Clock pauses from needs-info until the reporter replies",
+  "now": "2026-11-16T10:00:00Z",
+  "issue": {
+    "number": 1,
+    "author": "reporter",
+    "authorAssociation": "NONE",
+    "createdAt": "2026-11-02T10:00:00Z",
+    "closedAt": null,
+    "labels": [],
+    "comments": [
+      {
+        "author": "maint",
+        "association": "MEMBER",
+        "bot": false,
+        "createdAt": "2026-11-03T09:00:00Z"
+      },
+      {
+        "author": "reporter",
+        "association": "NONE",
+        "bot": false,
+        "createdAt": "2026-11-10T10:00:00Z"
+      }
+    ],
+    "labelEvents": [
+      {
+        "label": "status:needs-info",
+        "action": "labeled",
+        "createdAt": "2026-11-03T10:00:00Z"
+      }
+    ]
+  },
+  "expect": {
+    "add": [],
+    "remove": [],
+    "comments": [],
+    "responseAge": 0.9583333333333334,
+    "resolutionAge": 5
+  }
+}

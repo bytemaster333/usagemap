@@ -1,0 +1,80 @@
+{
+  "$comment": "Label set of the public issue tracker (docs/sla.md §9.2; support automation tools/support/sla.ts; issue forms .github/ISSUE_TEMPLATE). Synced by `tools/support/run labels --apply`; labels are created or updated, never deleted.",
+  "labels": [
+    {
+      "name": "type:bug",
+      "color": "d73a4a",
+      "description": "Something does not work as documented"
+    },
+    {
+      "name": "type:service",
+      "color": "fbca04",
+      "description": "The hosted service is down, slow or not counting (reported from the status page)"
+    },
+    {
+      "name": "type:support",
+      "color": "0075ca",
+      "description": "Integration or usage help (support clock applies)"
+    },
+    {
+      "name": "type:enrolment",
+      "color": "0e8a16",
+      "description": "Sign-up, domain, registry or contract verification"
+    },
+    { "name": "type:removal", "color": "5319e7", "description": "Project removal request" },
+    {
+      "name": "type:question",
+      "color": "d876e3",
+      "description": "Question about documented behaviour"
+    },
+    {
+      "name": "type:feature",
+      "color": "a2eeef",
+      "description": "Feature request: resolved by a decision"
+    },
+    { "name": "priority:p1", "color": "b60205", "description": "Service down or data at risk" },
+    {
+      "name": "priority:p2",
+      "color": "d93f0b",
+      "description": "Major function impaired, no workaround"
+    },
+    { "name": "priority:p3", "color": "fbca04", "description": "Impaired with a workaround" },
+    { "name": "priority:p4", "color": "c2e0c6", "description": "Minor or cosmetic" },
+    { "name": "tenant", "color": "1d76db", "description": "Raised by or about a tenant project" },
+    {
+      "name": "security",
+      "color": "ee0701",
+      "description": "Security-related: details belong in a private advisory"
+    },
+    {
+      "name": "privacy",
+      "color": "5319e7",
+      "description": "Privacy process (no personal data in public)"
+    },
+    {
+      "name": "sla:awaiting-first-response",
+      "color": "fef2c0",
+      "description": "No maintainer response yet (target: 5 business days)"
+    },
+    {
+      "name": "sla:response-breach",
+      "color": "b60205",
+      "description": "First response took 5 business days or more (never removed)"
+    },
+    {
+      "name": "sla:resolution-breach",
+      "color": "b60205",
+      "description": "Open 10 business days or more (never removed)"
+    },
+    {
+      "name": "sla:exempt",
+      "color": "ededed",
+      "description": "Not a support ticket (maintainers' tracking issue); reviewable"
+    },
+    {
+      "name": "status:needs-info",
+      "color": "cfd3d7",
+      "description": "Waiting for the reporter: support clock paused"
+    }
+  ]
+}
