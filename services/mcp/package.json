@@ -1,0 +1,10 @@
+{
+  "name": "@usagemap/mcp-service",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Hosted MCP server (Streamable HTTP, MCP 2026-07-28 and 2025-11-25) at https://app.usagemap.dev/mcp: the read-only tools of tools/mcp, executed against the control-plane APIs with the caller's own key. Node standard library only; not a workspace package.",
+  "dependencies": {},
+  "devDependencies": {}
+}
