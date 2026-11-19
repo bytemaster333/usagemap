@@ -1,0 +1,8 @@
+name: usagemap_app_events
+description: >-
+  Zero-dependency UsageMap app events for Flutter and Dart apps (wire-formats §a.9): self-attested named events,
+  a random in-memory session that rotates within 30 minutes, no device ids and no persistent identifiers.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: ">=3.4.0 <4.0.0"

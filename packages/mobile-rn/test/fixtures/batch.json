@@ -1,0 +1,17 @@
+{
+  "v": 1,
+  "k": "AAAAAAAAAAAAAAAAAAAAAA",
+  "platform": "web",
+  "app_version": "1.4.2-beta.3",
+  "sdk_version": "mobile-rn/0.1.0",
+  "tma_platform": "desktop",
+  "events": [
+    {
+      "ts": 1795082400000,
+      "session": "SESSIONSESSIONSESSION0",
+      "name": "swap_started",
+      "props": { "tier": "pro" }
+    },
+    { "ts": 1795082400000, "session": "SESSIONSESSIONSESSION0", "name": "app_open" }
+  ]
+}

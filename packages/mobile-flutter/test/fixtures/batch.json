@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "k": "AAAAAAAAAAAAAAAAAAAAAA",
+  "platform": "android",
+  "app_version": "2.0.1+77",
+  "sdk_version": "mobile-flutter/0.1.0",
+  "events": [
+    {
+      "ts": 1795082400000,
+      "session": "SESSIONSESSIONSESSION0",
+      "name": "swap_started",
+      "props": { "tier": "pro" }
+    },
+    { "ts": 1795082400000, "session": "SESSIONSESSIONSESSION0", "name": "app_open" }
+  ]
+}
