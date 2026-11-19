@@ -1,0 +1,43 @@
+{
+  "name": "@usagemap/partner-otel",
+  "version": "0.1.0",
+  "description": "OpenTelemetry metric for outbound calls to SCF Integration List partner APIs (Soroswap, DeFindex, Trustless Work, ramps, bridges): latency per operation template and outcome class, never URLs, queries, keys or amounts.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "biome check .",
+    "test": "vitest run",
+    "collector-fixture": "node scripts/collector-fixture.ts"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": ">=1.9.0 <2.0.0"
+  },
+  "devDependencies": {
+    "@opentelemetry/api": "1.10.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.301.2",
+    "@opentelemetry/resources": "3.1.1",
+    "@opentelemetry/sdk-metrics": "3.1.1",
+    "@types/node": "24.19.2",
+    "axios": "1.20.0",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}
