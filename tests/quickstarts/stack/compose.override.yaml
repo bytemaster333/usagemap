@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: Apache-2.0
+# Quickstart-fixture stack (docs.quickstarts-run): the real infra/compose stack, project `scf-tgq`, host ports 56460–56469.
+# Host ports come from infra/compose's own variables, set by up.sh:
+#   SCF_INGEST_PORT=56460 (gateway TLS, also OTLP/HTTP)   SCF_CONTROL_PLANE_PORT=56462   SCF_PORTAL_PORT=56463
+# This file adds only what the quickstart suite needs:
+#   - 56461: the gateway's /metrics and /healthz on 127.0.0.1 (the suites' readiness probe);
+#   - a stand-in Horizon (SEP-53 sign-in of unfunded test accounts without internet);
+#   - SCF_CREATE_LIMIT_PER_HOUR high on the control plane (every fixture is created from one address, C-64).
+# Unlike tests/stack it adds no `botnet` network (fixed subnet; the bot simulation is not part of this suite), so it
+# can run beside the tests/stack stack on the same host.
+services:
+  gateway:
+    environment:
+      GW_COUNTER_PERIOD: 5s
+      GW_SNAPSHOT_INTERVAL: 5s
+    ports: !override ["127.0.0.1:${SCF_INGEST_PORT:-56460}:8443", "127.0.0.1:56461:9464"]
+
+  control-plane:
+    environment:
+      SCF_HORIZON_URL: http://fake-horizon:8000
+      SCF_CREATE_LIMIT_PER_HOUR: "100000"
+    depends_on:
+      fake-horizon: { condition: service_started }
+
+  # Answers 404 for every account (unfunded: master key weight 1, thresholds 0). Same as tests/stack.
+  fake-horizon:
+    image: node:24.19.0-alpine3.23@sha256:244cc2b53f46f9e876304391d17682b0ddae9ac33491f4857e25e35a36ba7995
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    user: "1000:1000"
+    networks: [public]
+    command:
+      - node
+      - -e
+      - 'require(''node:http'').createServer((q,s)=>{s.writeHead(404,{''content-type'':''application/json''});s.end(''{"status":404}'')}).listen(8000)'
