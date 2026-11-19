@@ -1,0 +1,86 @@
+---
+title: Edge runtimes
+description: Measure APIs that run on Cloudflare Workers, Vercel Edge, Deno or Bun with one wrapper, without an OpenTelemetry SDK.
+icon: Zap
+---
+
+`@usagemap/edge-otel` wraps a fetch-style handler and exports the same request metric as the OpenTelemetry SDKs
+(`http.server.request.duration`, with route templates) as OTLP/JSON. It works on Cloudflare Workers, Vercel Edge
+functions, Next.js route handlers, `Deno.serve` and `Bun.serve`.
+
+- The export never delays the response.
+- If the configuration is missing or invalid, the wrapper switches itself off and your handler runs unchanged.
+- Configure it with the standard `OTEL_*` variables, or the shorter `USAGEMAP_ENDPOINT`, `USAGEMAP_TOKEN` and
+  `USAGEMAP_SERVICE_NAME`.
+
+<Callout type="warn" title="Not on npm yet">
+  `@usagemap/edge-otel` is published to npm together with the public repository. Until then, install it from the
+  release: `npm install ./scf-analytics-edge-otel-<version>.tgz` (the package file of the release).
+</Callout>
+
+```ts title="worker.ts"
+import { optionsFromEnv, withUsageMap } from "@usagemap/edge-otel";
+import app from "./app";
+
+export default withUsageMap(app, (env) => ({
+  ...optionsFromEnv(env), // wrangler secret put OTEL_EXPORTER_OTLP_HEADERS
+  routes: ["/.well-known/stellar.toml", "/auth", "/sep24/transactions/:id"],
+}));
+```
+
+## Three steps per runtime
+
+Register the service first (**API services → Register an API service**) and create an ingest token (**Ingest
+tokens**). Then:
+
+<Tabs items={["Cloudflare Workers", "Vercel Edge", "Deno", "Bun"]} persist>
+<Tab value="Cloudflare Workers">
+
+1. **Install** `@usagemap/edge-otel` from the release.
+2. **Set your key:** service name and endpoint in `wrangler.toml`; the token as a secret:
+   `wrangler secret put OTEL_EXPORTER_OTLP_HEADERS` with the value `Authorization=Bearer%20scfa_ing_…`
+   (locally, in `.dev.vars`).
+3. **Run:** `wrangler dev`, then `curl localhost:8787/accounts/GABC`. Each 10-second window is exported by the next
+   request after it closes.
+
+Example: `examples/edge-cloudflare-workers`.
+
+</Tab>
+<Tab value="Vercel Edge">
+
+1. **Install** `@usagemap/edge-otel` from the release.
+2. **Set your key:** `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_ENDPOINT=https://e1.usagemap.dev` and
+   `OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer%20scfa_ing_…` as project environment variables (the token as a
+   sensitive one).
+3. **Run:** `vercel deploy`, then call your function, for example `/api/accounts/GABC`.
+
+Example: `examples/edge-vercel`.
+
+</Tab>
+<Tab value="Deno">
+
+1. **Install:** Deno 2.x; map `@usagemap/edge-otel` to the release's package in `deno.json`.
+2. **Set your key:** `export OTEL_SERVICE_NAME=my-deno-api OTEL_EXPORTER_OTLP_ENDPOINT=https://e1.usagemap.dev
+   OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer%20scfa_ing_…"`.
+3. **Run:** `deno task start`, then `curl localhost:8000/accounts/GABC`.
+
+Example: `examples/edge-deno`.
+
+</Tab>
+<Tab value="Bun">
+
+1. **Install:** Bun 1.4 and `@usagemap/edge-otel` from the release.
+2. **Set your key:** `export OTEL_SERVICE_NAME=my-bun-api OTEL_EXPORTER_OTLP_ENDPOINT=https://e1.usagemap.dev
+   OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer%20scfa_ing_…"`.
+3. **Run:** `bun run index.ts`, then `curl localhost:3000/accounts/GABC`.
+
+Example: `examples/edge-bun`.
+
+</Tab>
+</Tabs>
+
+## Test it
+
+The Integrations card **Edge middleware** gives you the [API test command](/integrations#the-three-test-commands)
+with your service name filled in. `HTTP 200` with `{"partialSuccess":{}}` means the token and service are right; the
+test point is never counted.

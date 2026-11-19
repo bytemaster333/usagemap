@@ -1,0 +1,73 @@
+---
+title: Already using an APM?
+description: Keep Datadog, Grafana, Honeycomb or any other APM exactly as it is, and send a filtered copy to UsageMap.
+icon: Split
+---
+
+OpenTelemetry's environment variables describe one destination. If you already export to an APM, add UsageMap as a
+**second** destination instead of replacing the first.
+
+## Recommended: fan out from your own Collector
+
+Point your services at an OpenTelemetry Collector you run. It sends everything to your APM as before, and a filtered
+copy (only the HTTP server metric, with a minimal set of attributes) to UsageMap. Your APM key never leaves your
+infrastructure.
+
+```yaml title="otel-collector.yaml"
+receivers:
+  otlp:
+    protocols:
+      grpc: { endpoint: 0.0.0.0:4317 }
+      http: { endpoint: 0.0.0.0:4318 }
+
+processors:
+  memory_limiter: { check_interval: 1s, limit_percentage: 80, spike_limit_percentage: 20 }
+  batch: {}
+  filter/usagemap_http_server_only:
+    error_mode: ignore
+    metric_conditions:
+      - not (metric.name == "http.server.request.duration" or metric.name == "http.server.duration")
+  transform/usagemap_minimal_attrs:
+    error_mode: ignore
+    metric_statements:
+      - keep_keys(datapoint.attributes, ["http.route", "http.request.method", "http.response.status_code", "error.type", "url.scheme", "network.protocol.version", "http.method", "http.status_code", "http.target"])
+      - keep_keys(resource.attributes, ["service.name", "service.namespace", "service.version", "service.instance.id", "deployment.environment.name"])
+
+exporters:
+  otlp_http/apm:
+    endpoint: https://apm.example
+    headers: { api-key: "${env:APM_API_KEY}" }
+  otlp_http/usagemap:
+    endpoint: https://e1.usagemap.dev
+    headers: { Authorization: "Bearer ${env:USAGEMAP_TOKEN}" }
+    compression: gzip
+    sending_queue: { enabled: true }
+    retry_on_failure: { enabled: true }
+
+service:
+  pipelines:
+    traces/apm:  { receivers: [otlp], processors: [memory_limiter, batch], exporters: [otlp_http/apm] }
+    metrics/apm: { receivers: [otlp], processors: [memory_limiter, batch], exporters: [otlp_http/apm] }
+    logs/apm:    { receivers: [otlp], processors: [memory_limiter, batch], exporters: [otlp_http/apm] }
+    metrics/usagemap:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/usagemap_http_server_only, transform/usagemap_minimal_attrs, batch]
+      exporters: [otlp_http/usagemap]
+```
+
+## Alternative: a second exporter in code
+
+You can also add a second metric exporter in your app's code, with UsageMap's endpoint and token, next to your APM's.
+
+<Callout type="error" title="Don't leak your APM key">
+  With Node.js, Python or Rust, leave `OTEL_EXPORTER_OTLP_HEADERS` and `OTEL_EXPORTER_OTLP_METRICS_HEADERS` **unset**
+  and put your APM key in code. Those SDKs merge the variables into every exporter: Node.js and Python would send your
+  APM key to UsageMap, and Rust would replace the UsageMap token (and every request would fail with `401`). Go, .NET
+  and a Collector are not affected.
+</Callout>
+
+## Send one signal, not two
+
+Send **either** the HTTP server metric **or** server spans for a service, not both, or its requests are counted
+twice. Metrics are the recommended choice. Spans are only needed for frameworks that produce no server metric, such as
+Next.js with `@vercel/otel`.

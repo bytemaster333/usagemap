@@ -1,0 +1,71 @@
+---
+title: For AI agents
+description: Let Claude Code, Codex or any coding agent integrate UsageMap for you, using our SKILL.md and llms.txt.
+icon: Bot
+---
+
+## Give your agent the skill
+
+[`SKILL.md`](/SKILL.md) is an instruction file for coding agents, in the open
+[Agent Skills](https://agentskills.io) format. It walks the agent through the whole integration: the tracker in your
+framework, wallet events, OpenTelemetry for your API, registering your contracts, and then a test that checks the data
+arrived. It stops and asks you for anything that needs your wallet.
+
+<Tabs items={["Claude Code", "Codex and others"]}>
+<Tab value="Claude Code">
+
+Install it as a project skill:
+
+```sh
+mkdir -p .claude/skills/usagemap-instrument
+curl -fsSL https://docs.usagemap.dev/SKILL.md -o .claude/skills/usagemap-instrument/SKILL.md
+```
+
+Then ask: *"Add UsageMap analytics to this app."*
+
+</Tab>
+<Tab value="Codex and others">
+
+Codex and other agents that support Agent Skills look in `.agents/skills/`:
+
+```sh
+mkdir -p .agents/skills/usagemap-instrument
+curl -fsSL https://docs.usagemap.dev/SKILL.md -o .agents/skills/usagemap-instrument/SKILL.md
+```
+
+Any other assistant: paste the file's link into the chat and ask it to follow it.
+
+</Tab>
+</Tabs>
+
+<Callout type="warn">
+  Your agent needs your **site key** (from the website's **Snippet** tab) and, for APIs, an **ingest token**. The site
+  key is public. Put the token in an environment variable or your secret store, never in the code or the chat.
+</Callout>
+
+## Docs for language models
+
+| File | What's in it |
+|---|---|
+| [`/llms.txt`](/llms.txt) | An index of every page in these docs, with a one-line summary |
+| [`/llms-full.txt`](/llms-full.txt) | All pages in one Markdown file, ready to paste into a context window |
+| Any page as Markdown | Every page has a Markdown version. Use the **Copy Markdown** button at the top of a page. |
+
+## Ask your numbers from your assistant
+
+UsageMap runs a read-only MCP server at `https://app.usagemap.dev/mcp`. With it, an assistant such as Claude can answer
+questions like "how many verified visitors did we have last month?" from your own project's numbers.
+
+Connect it with a **share key** (`scfa_pub_…`, project → **Sharing**), sent as `Authorization: Bearer …`. A share key
+can only read your metrics document and your signed snapshots; it can never change anything or see another project.
+
+```sh
+claude mcp add --transport http usagemap https://app.usagemap.dev/mcp \
+  --header "Authorization: Bearer $USAGEMAP_KEY"
+```
+
+<Callout title="Sign-in with OAuth">
+  Connecting from claude.ai or Claude Desktop by signing in, without a key, is built and will be switched on for
+  usagemap.dev in a later step. Until then, use a share key, or the local server that reads the key from a file
+  (example `examples/mcp-claude`). Details, tools and a test command: [Developer tools](/tools#mcp-server).
+</Callout>

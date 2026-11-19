@@ -1,0 +1,99 @@
+---
+title: Add the tracker
+description: One script tag, or the npm package. How the tracker works, which profile to choose, and what to allow in your Content Security Policy.
+icon: Code
+---
+
+The UsageMap tracker is a small script (about 3 KB gzipped) with no dependencies. It records a page view on load and on
+every route change, and sends nothing else unless you call [`track()`](/web/events-and-consent).
+
+## Install
+
+<Tabs items={["Script tag", "npm package"]}>
+<Tab value="Script tag">
+
+Copy the tag from your website's **Snippet** tab in the app and paste it into the `<head>` of every page:
+
+```html
+<script
+  src="https://e1.usagemap.dev/lib/1.2.0/standard.js"
+  integrity="sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId"
+  crossorigin="anonymous"
+  data-site="YOUR_SITE_KEY"
+  defer
+></script>
+```
+
+| Attribute | What it does |
+|---|---|
+| `src` | A fixed version of the tracker. Files never change once published, and there is no `latest` URL. |
+| `integrity` | The file's hash. The browser refuses a file that doesn't match, so nobody can swap the code under you. |
+| `data-site` | Your site key (22 characters), from the app. |
+| `data-consent="required"` | Optional. Send nothing until you call `grantConsent()`. See [consent mode](/web/events-and-consent#consent-mode). |
+
+Example: `examples/html`, a plain HTML site with the tag (`python3 -m http.server 5173`).
+
+</Tab>
+<Tab value="npm package">
+
+<Callout type="warn">
+  The npm package `@usagemap/tracker` is not yet published on the public npm registry. Until it is, use the
+  script tag, which works in every framework, or install the package file from the release:
+  `npm install ./scf-analytics-tracker-1.2.0.tgz`.
+</Callout>
+
+```ts
+import { init } from "@usagemap/tracker";
+
+const usagemap = init({ site: "YOUR_SITE_KEY" });
+usagemap?.track("signup", { plan: "free" }); // optional custom event
+```
+
+`init()` returns `undefined` during server-side rendering, and calling it again returns the running instance, so it is
+safe in React effects and hot reload.
+
+</Tab>
+</Tabs>
+
+## Profiles
+
+Each website uses one of two tracker profiles, chosen when you add the website.
+
+| | **standard** (default) | **strict** |
+|---|---|---|
+| File | `standard.js` | `strict.js` |
+| Page path | ✓ | ✓ |
+| Referrer host (not the full URL) | ✓ | — |
+| Screen size class (S, M, L, XL) | ✓ | — |
+| Language (for example `en`) | ✓ | — |
+| Wallets Kit detected | ✓ | — |
+
+Use **strict** when you want the smallest possible footprint: it sends the page path and nothing else.
+
+## Content Security Policy
+
+If your site sets a Content Security Policy, allow the tracker host for scripts and both ingest hosts for requests:
+
+```text
+script-src  https://e1.usagemap.dev;
+connect-src https://e1.usagemap.dev https://e2.usagemap.dev;
+```
+
+The tracker sends to two independent hosts and switches automatically if one is unreachable.
+
+<Callout type="error" title="Don't proxy the tracker">
+  Serving the tracker or its requests through your own server makes every visit look like it comes from one machine,
+  and all of them are then counted as *suspect*.
+</Callout>
+
+## What happens on each page view
+
+<Steps>
+<Step>The page loads (or the route changes) and the tracker sees a new path.</Step>
+<Step>It asks UsageMap for a small challenge and solves a light proof of work in the background, which makes fake traffic expensive.</Step>
+<Step>It sends the path only: never the query string, the `#fragment` or the page title.</Step>
+<Step>UsageMap checks the event and counts it as **verified**, **suspect** or **rejected**. You see all three in the dashboard.</Step>
+</Steps>
+
+Nothing at all is sent, not even the challenge, when the visitor has Global Privacy Control or Do Not Track turned on,
+has opted out, or hasn't given consent in consent mode.

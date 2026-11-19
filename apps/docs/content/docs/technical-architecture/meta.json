@@ -1,0 +1,14 @@
+{
+  "title": "Technical architecture",
+  "icon": "Network",
+  "pages": [
+    "index",
+    "stellar-integration",
+    "web-analytics",
+    "api-analytics",
+    "trust-and-verification",
+    "data-and-privacy",
+    "security",
+    "hosting-and-operations"
+  ]
+}

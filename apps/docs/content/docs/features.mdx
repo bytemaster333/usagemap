@@ -1,0 +1,128 @@
+---
+title: Features
+description: What UsageMap measures, how it keeps the numbers honest, and what it never collects.
+icon: Sparkles
+---
+
+## Website analytics
+
+<Features>
+  <Feature icon={<Eye />} title="Page views and visitors">
+    Page views, unique visitors, visits, bounce rate and average visit duration, with a verified vs raw toggle.
+  </Feature>
+  <Feature icon={<ChartColumn />} title="Breakdowns">
+    Referrers, top pages, countries, devices, browsers, operating systems and your own custom events.
+  </Feature>
+  <Feature icon={<Route />} title="Single-page apps">
+    Route changes are picked up automatically in Next.js, React, Vue, Svelte and any app using the History API.
+  </Feature>
+  <Feature icon={<ListFilter />} title="Funnels, goals and journeys">
+    Build a funnel from pages and events, set goals, and see the paths people take through your site.
+  </Feature>
+</Features>
+
+## Stellar-specific
+
+<Features>
+  <Feature icon={<Wallet />} title="Wallet funnel">
+    From "wallet dialog opened" to "transaction submitted", by wallet type (Freighter, xBull, LOBSTR, Privy, Ledger, …)
+    and network, with failed connects and their reason, and the WalletConnect funnel.
+  </Feature>
+  <Feature icon={<KeyRound />} title="Passkeys and smart wallets">
+    Count passkey sign-ins and smart wallets created with Passkey Kit or Smart Account Kit.
+  </Feature>
+  <Feature icon={<Blocks />} title="On-chain usage">
+    Daily invocations, successes and distinct callers of your verified Soroban contracts on mainnet, and how many of
+    those transactions also touch Blend, Soroswap, DeFindex, Aquarius or Reflector.
+  </Feature>
+  <Feature icon={<Network />} title="Horizon and RPC surfaces">
+    Latency and outcomes of the Stellar RPC and Horizon calls your backend (Node.js, Python) and your web pages make.
+  </Feature>
+  <Feature icon={<Landmark />} title="Payments and anchors">
+    x402 and MPP payment counts, calls to SCF Integration List partners, and SEP anchor funnels from the wallet or the
+    Anchor Platform side.
+  </Feature>
+  <Feature icon={<Smartphone />} title="Mobile apps">
+    Named app events from React Native, Expo, Flutter and Telegram Mini Apps, labelled self-attested.
+  </Feature>
+</Features>
+
+## API analytics
+
+<Features>
+  <Feature icon={<Activity />} title="Requests and errors">
+    Requests, 4xx and 5xx errors and status codes per route, from standard OpenTelemetry.
+  </Feature>
+  <Feature icon={<Timer />} title="Latency">
+    p50, p95 and p99 latency per route, plus an availability objective with an error budget.
+  </Feature>
+  <Feature icon={<Code />} title="No code changes">
+    For Node.js, Python and Java, environment variables are enough. Go and Rust need a few lines; edge runtimes one
+    wrapper.
+  </Feature>
+  <Feature icon={<ShieldCheck />} title="Safe by default">
+    Account IDs, contract IDs, secrets and e-mails in paths are replaced before storage. Query strings are always dropped.
+  </Feature>
+</Features>
+
+## Trust and sharing
+
+<Features>
+  <Feature icon={<BadgeCheck />} title="Verified numbers">
+    Every event is checked for bots, automation, data-centre traffic and replays. You always see how much was filtered and why.
+  </Feature>
+  <Feature icon={<TriangleExclamationPoint />} title="Anomaly flags">
+    Unusual spikes are flagged, and you can annotate a day ("launch on Product Hunt").
+  </Feature>
+  <Feature icon={<Globe />} title="Public stats page and badge">
+    Your dashboard is private. Public stats are optional and off by default: opt in to a public page for your project,
+    and embed a live badge in your README or site.
+  </Feature>
+  <Feature icon={<Signature />} title="Signed snapshots">
+    Freeze a period's numbers into a signed snapshot that anyone can verify, for example for a grant report.
+  </Feature>
+</Features>
+
+## Privacy
+
+<Features>
+  <Feature icon={<Cookie />} title="No cookies">
+    Nothing is stored in the visitor's browser except an opt-out flag, if they choose to opt out.
+  </Feature>
+  <Feature icon={<EyeOff />} title="Nothing personal">
+    No IP addresses, raw user agents, query strings, page titles or wallet addresses are ever stored.
+  </Feature>
+  <Feature icon={<Hand />} title="Respects the visitor">
+    Global Privacy Control and Do Not Track are honoured. An optional consent mode waits for your banner.
+  </Feature>
+  <Feature icon={<MapPin />} title="Hosted in the EU">
+    Data is processed and stored in the EU, with backups in the same region.
+  </Feature>
+</Features>
+
+## Integrations and tools
+
+<Features>
+  <Feature icon={<Puzzle />} title="Integrations catalogue">
+    A card for every integration in the app: pick it, copy the configuration generated for your project, run the test
+    command and watch it arrive. Each one has a runnable example app. [Integrations →](/integrations)
+  </Feature>
+  <Feature icon={<Wrench />} title="Developer tools">
+    Scaffold Stellar template, `stellar scf` CLI, GitHub pin Action, footprint registration keys. [Tools →](/tools)
+  </Feature>
+  <Feature icon={<Bot />} title="AI assistants">
+    An agent skill (`SKILL.md`) that does the integration, and a read-only MCP server for your numbers.
+    [For AI agents →](/ai-agents)
+  </Feature>
+</Features>
+
+## Service levels
+
+The service-level targets are **99.99 % ingest availability** and **99.90 % dashboard availability** per calendar
+month, measured and published every month, with a post-mortem for every miss. The current single-host deployment has
+its own objective of **99.5 %** until the high-availability profile runs. Live status:
+[status.usagemap.dev](https://status.usagemap.dev).
+
+<Callout title="Not available yet">
+  E-mail alerts, webhooks and a public directory of projects are not part of UsageMap today.
+</Callout>

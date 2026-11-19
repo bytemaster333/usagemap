@@ -1,0 +1,268 @@
+---
+title: Architecture overview
+description: How UsageMap turns website visits, API telemetry and Stellar ledger data into numbers that Stellar ecosystem projects and SCF operators can compare, stage by stage.
+icon: Network
+---
+
+UsageMap is a shared web and API analytics service for Stellar ecosystem projects. A project adds a pinned script to its website and
+an OpenTelemetry exporter to its API servers, and can declare the Soroban contracts it owns. The people who visit those
+websites never sign in and are never identified. SCF operators see per-project totals side by side, computed with the
+same definitions for every project, so they compare measured numbers instead of numbers each team reports in its own way.
+
+This page explains the whole system in about ten minutes. Each section links to the page that covers its part in depth.
+
+<Facts>
+  <Fact label="Runs on">A single VM in an EU region</Fact>
+  <Fact label="Languages">Go (ingest path), TypeScript (control plane, jobs, portal)</Fact>
+  <Fact label="Analytics engine">Umami v3.5.0, unmodified</Fact>
+  <Fact label="Database">PostgreSQL with row-level security</Fact>
+  <Fact label="Status"><Status kind="live" /></Fact>
+</Facts>
+
+## The whole system
+
+<Zones cols={4} caption="Four areas: what the project runs, what UsageMap runs, the public Stellar network, and the people who read the numbers.">
+  <Zone title="Your project" kind="outside" note="Runs on your side">
+    <Node icon={<Globe />} title="Website" sub="Pinned tracker script" tone="web" />
+    <Node icon={<Server />} title="API servers" sub="OpenTelemetry SDK" tone="api" />
+    <Node icon={<FileCode />} title="Soroban contracts" sub="Declared by the project" tone="chain" />
+  </Zone>
+  <Zone title="UsageMap" note="One VM today">
+    <Node icon={<Shield />} title="Gateway" sub="Only public ingest entry" tone="ink" />
+    <Node icon={<Funnel />} title="Collector" sub="Sanitises OTLP" />
+    <Node icon={<PenLine />} title="Metrics writer" sub="OTLP to PostgreSQL" />
+    <Node icon={<Lock />} title="Engine proxy + Umami" sub="Web metrics engine" />
+    <Node icon={<Settings />} title="Control plane" sub="Projects, keys, sign-in, API" />
+    <Node icon={<Clock />} title="Jobs" sub="Rollups, trust, on-chain, seal" />
+    <Node icon={<Database />} title="PostgreSQL" sub="Row-level security" tone="store" />
+    <Node icon={<LayoutDashboard />} title="Portal" sub="Dashboards" />
+  </Zone>
+  <Zone title="Stellar network" kind="stellar" note="Public data">
+    <Node icon={<Blocks />} title="Ledger files" sub="Public ledger data" tone="chain" />
+    <Node icon={<Network />} title="Horizon and RPC" sub="Accounts, contracts, anchors" tone="chain" />
+    <Node icon={<Stamp />} title="Testnet seal" sub="One transaction per day" tone="chain" />
+  </Zone>
+  <Zone title="People" kind="public" note="Who reads the numbers">
+    <Node icon={<Users />} title="Project team" sub="Own project only" />
+    <Node icon={<Scale />} title="SCF operators" sub="All projects, aggregates" />
+    <Node icon={<Eye />} title="Public" sub="Shared stats, seal check" />
+  </Zone>
+</Zones>
+
+Data enters UsageMap through one door: the **gateway**. Browsers send page views and wallet events to it, and API
+servers send OpenTelemetry data to it. Everything behind the gateway is private. The gateway passes web events to
+**Umami** (an existing open-source analytics engine) through our **engine proxy**, the only way to reach Umami. API
+telemetry goes from the gateway to the **collector**, which strips it down to request counts and latencies, and then
+to the **metrics writer**, which stores it in PostgreSQL. **Jobs** run on a schedule: they roll web data up into daily
+tables, compute trust scores, read the Stellar ledger, check contract ownership and publish a daily seal. The
+**control plane** is the API behind the **portal**: projects, sign-in, keys, audit log and the metrics API.
+
+## How a number is made
+
+Every number in UsageMap passes through the same seven stages. The three sources (web, API, on-chain) take different
+routes through them.
+
+<Flow caption="Web: a page view goes from the visitor's browser to a verified count on the dashboard.">
+  <Node icon={<Globe />} title="Browser" sub="Tracker, proof of work" tone="web" />
+  <Arrow label="HTTPS · event" />
+  <Node icon={<Shield />} title="Gateway" sub="Checks, strips, labels" tone="ink" />
+  <Arrow label="spool · forward" />
+  <Node icon={<Lock />} title="Engine proxy + Umami" sub="Visits, sessions" />
+  <Arrow label="hourly · daily" />
+  <Node icon={<Database />} title="Rollups" sub="PostgreSQL" tone="store" />
+</Flow>
+
+<Flow caption="API: a request on the project's server becomes per-route counts and latency histograms.">
+  <Node icon={<Server />} title="API server" sub="OTel SDK, dual export" tone="api" />
+  <Arrow label="OTLP · ingest token" />
+  <Node icon={<Shield />} title="Gateway" sub="Token, rate limit" tone="ink" />
+  <Arrow label="OTLP" />
+  <Node icon={<Funnel />} title="Collector" sub="Sanitise, traces to metrics" />
+  <Arrow label="mTLS" />
+  <Node icon={<PenLine />} title="Metrics writer" sub="Minute, hour, day tables" tone="store" />
+</Flow>
+
+<Flow caption="On-chain: public ledger data is counted per declared contract and day, after ownership is proven.">
+  <Node icon={<FileCode />} title="Declared contract" sub="Owner proven" tone="chain" />
+  <Arrow label="daily" />
+  <Node icon={<Blocks />} title="Ledger files" sub="Local mirror" tone="chain" />
+  <Arrow label="count" />
+  <Node icon={<Cpu />} title="onchain-reader" sub="Complete days only" tone="ink" />
+  <Arrow label="anchor check" />
+  <Node icon={<Database />} title="On-chain daily" sub="PostgreSQL" tone="store" />
+</Flow>
+
+<Steps>
+<Step>
+### Collect
+
+**Web:** the project's page loads a tracker that names an exact version and its integrity hash, so the browser refuses
+to run a changed file. The tracker sends the page path only (never a query string or fragment), no cookies, nothing in
+browser storage, and nothing at all when the browser sends Do Not Track or Global Privacy Control. Wallet adapters for
+Stellar Wallets Kit and direct wallet APIs record events such as `wallet_connect` without any address.
+**API:** the project's servers keep their own monitoring and send a second copy (dual export) of OpenTelemetry data with
+a write-only ingest token. **On-chain:** a job fills a local mirror of public Stellar ledger files.
+Details: [Web analytics](/technical-architecture/web-analytics), [API analytics](/technical-architecture/api-analytics).
+</Step>
+<Step>
+### Check
+
+**Web:** before its first event the tracker solves a small proof-of-work challenge issued by the gateway. The gateway
+then checks size and schema, that the site is registered, rate limits per site and per network block, the known-bot
+list Umami uses, and whether the browser's claims match the connection. **API:** the gateway checks the ingest token and
+the project's rate limit; the collector stamps the project identity from the token and ignores what the payload claims.
+**On-chain:** a contract is counted only after a job proves that one of the project's verified Stellar accounts deployed
+it or is its current admin. Details: [Trust and verification](/technical-architecture/trust-and-verification).
+</Step>
+<Step>
+### Strip
+
+**Web:** the gateway derives a one-day pseudonym from the IP address and browser string with a key that exists only in
+memory and is replaced at midnight UTC, looks up the country from the truncated address, reduces the browser string to
+family, major version, OS and device class, and then discards the IP address and the raw browser string. **Web and API:**
+the path normaliser replaces account IDs, contract IDs, hashes, UUIDs and long numbers in paths with placeholders such
+as `{account}`, and secrets or e-mail addresses with `{redacted}`. **API:** the collector keeps a short list of fields,
+turns traces into metrics and drops the traces. Details: [Data and privacy](/technical-architecture/data-and-privacy).
+</Step>
+<Step>
+### Store
+
+**Web:** the gateway writes each accepted event to its local spool with fsync before it answers `202`, then forwards it
+to Umami through the engine proxy. Events without a visitor identifier go to a separate "twin" Umami website, so they
+never count as visits. **API:** the metrics writer removes duplicates, turns running totals into increments and adds
+them into per-minute, per-hour and per-day tables, one transaction per project. **On-chain:** only days that the reader
+marks complete are stored, and only after the ledger hash at the day's boundary matches Horizon.
+</Step>
+<Step>
+### Aggregate
+
+**Web:** recent days are answered live by Umami; a job rolls every site's events into hourly and daily tables that keep
+older ranges fast. Event-level data is deleted after 90 days by default; daily totals stay. **API:** request volume,
+status classes and latency histograms are already aggregates per route. **On-chain:** contract invocations are counted
+per contract and UTC day. Small numbers in the cross-project view are suppressed and counts are rounded.
+</Step>
+<Step>
+### Label trust
+
+Every figure carries a label that says who produced the data: **Verified**, **Self-reported** or **Ledger-checked**
+(table below). Web events are tagged verified or suspect, and the dashboard shows verified and raw side by side. A daily
+job computes an advisory trust score per site with reason codes; it never hides or deletes data.
+</Step>
+<Step>
+### Show
+
+The project team reads its own numbers in the portal and through its API; row-level security in PostgreSQL ensures no
+query can see another project's rows. SCF operators read per-project aggregates through database functions that write an
+audit record for each read. A project can publish signed traction snapshots, and each day's published figures are
+sealed in one transaction on Stellar testnet, so anyone can check later that the numbers were not changed after
+publication.
+Details: [Stellar integration](/technical-architecture/stellar-integration), [Security](/technical-architecture/security).
+</Step>
+</Steps>
+
+## Three trust labels
+
+UsageMap does not claim more than it can prove. Every number shows where it comes from.
+
+| Label | Who produces the data | What we check | What we cannot prove |
+|---|---|---|---|
+| **Verified** (web) | The visitor's browser, through our pinned tracker | Proof of work, registered origin, rate limits, bot list, browser and connection consistency; suspect events shown separately as raw | That a human, not a well-built bot, made the visit. We make cheap inflation fail and expensive inflation visible. |
+| **Self-reported** (API) | The project's own servers | Ingest token, project identity from the token, field allow-list, path normalisation, per-project limits | That the telemetry is genuine. A server can send invented numbers; we label them and show plausibility signals. |
+| **Ledger-checked** (on-chain) | The public Stellar ledger | The contract belongs to the project (deployer or admin match); the day is complete; the day's anchor ledger matches Horizon | Who is behind an invocation, or that the calls are organic. A project can call its own contract. |
+
+The [Trust and verification](/technical-architecture/trust-and-verification) page explains each check and the trust score.
+
+## Where Stellar comes in
+
+UsageMap is built for Stellar projects, not adapted to them. Each item below exists in the code; the
+[Stellar integration](/technical-architecture/stellar-integration) page covers each in depth.
+
+- **Sign in with a Stellar wallet.** The portal signs a SEP-53 message ("Purpose: sign in to UsageMap"); the control
+  plane checks the signature against the account's signers and medium threshold from Horizon. SEP-10 challenge
+  transactions are built for hardware wallets and multisig accounts. <Status kind="live" /> SEP-53 · <Status kind="built" /> SEP-10
+- **Proof of account and contract ownership.** An account is tied to a project when its `home_domain` is a verified
+  domain of the project and that domain's `stellar.toml` lists it. A contract is verified when such an account deployed
+  it or is its admin (Horizon and Stellar RPC). <Status kind="built" />
+- **Counting from the ledger.** `services/onchain-reader` reads public ledger files and counts invocations per declared
+  contract and day. <Status kind="built" />
+- **Wallet events.** The tracker records wallet connect, disconnect, sign request, sign result and transaction
+  submission events from Stellar Wallets Kit and direct wallet APIs, with the wallet type and network, never an address
+  or transaction hash. <Status kind="live" />
+- **Stellar-aware path templates.** The path normaliser recognises account IDs, contract IDs, assets and hashes and
+  replaces them with `{account}`, `{contract}`, `{asset}` and `{hash}`, so `/accounts/G…/payments` becomes
+  `/accounts/{account}/payments`. <Status kind="live" />
+- **Registries for enrollment.** A daily job reads the public list of SCF-awarded projects from Stellarlight (PG Atlas
+  is supported as a second source) so a project can pick itself when it enrolls. <Status kind="live" />
+- **Daily seal on Stellar.** Each UTC day, one testnet transaction carries in its `MEMO_HASH` the root of a Merkle
+  tree over the previous day's root, the day's audit-log anchor and every traction snapshot signed that day by a
+  project that opted in. It shows that published numbers were not changed later, not that they are genuine. The
+  sealing account is listed in UsageMap's `stellar.toml`. <Status kind="live" />
+
+## What runs today and what is planned
+
+| Part | Status | Notes |
+|---|---|---|
+| All services on a single VM in an EU region (the single-VM profile) | <Status kind="live" /> | No failover: a host outage stops the service until it is back or rebuilt. Availability objective 99.5 % per month. |
+| Web analytics path (tracker, gateway, engine proxy, Umami, rollups, portal) | <Status kind="live" /> | Two ingest host names, one gateway. |
+| API analytics path (OTLP ingest, collector, metrics writer) | <Status kind="live" /> | |
+| SEP-53 wallet sign-in, registry sync, daily seal on testnet | <Status kind="live" /> | Seal on mainnet needs a separate approval. |
+| SEP-10 sign-in, contract ownership checks, on-chain counting | <Status kind="built" /> | Tested in their own suites; switched on by configuration. |
+| Production profile for the service window (one larger Azure VM, optional standby, backups in two regions) | <Status kind="planned" /> | Infrastructure code written and tested against a mock provider, not applied. |
+| Multi-node topology (four edge nodes, two core nodes, monitoring and probe nodes, DNS failover by a health controller) | <Status kind="planned" /> | Design for scale-out; tested on Docker Compose, not deployed. |
+
+The [Hosting and operations](/technical-architecture/hosting-and-operations) page covers backups, monitoring and the
+path from one VM to the multi-node design.
+
+## Design decisions and their reasons
+
+Each decision below is recorded in an architecture decision record (ADR) in the repository.
+
+- **We never store IP addresses** (ADR-0006, ADR-0007). The full address lives only in gateway memory for one request.
+  It is used once for a one-day pseudonym, whose key is random, held in memory and destroyed at midnight UTC, and once,
+  truncated, for the country. Nobody, including us, can link a visitor across days or back to an address.
+- **We run Umami unmodified and never expose it** (ADR-0002, ADR-0003). Umami's metric definitions are public and
+  maintained upstream, and an unmodified engine can be upgraded for security fixes without carrying a fork. The engine
+  proxy in front of it allows only the paths each caller needs.
+- **API numbers are labelled self-reported** (ADR-0028). The project's server produces them, and no check on our side can
+  prove they are real. We say so on every API figure and add plausibility and on-chain consistency signals instead.
+- **Bots are made expensive, not declared impossible** (ADR-0008). Eight layers, each with a stated limit, from payload
+  rebuilding to aggregate anomaly checks. Thresholds are published.
+- **One path rule set for web and API** (ADR-0012). The same versioned normaliser runs in the gateway and the collector,
+  so a Stellar address never reaches storage from either source, and every project's routes follow the same rules.
+- **Projects are isolated in the database** (ADR-0013). Row-level security is forced on every table; each transaction
+  sets the project context, and a foreign identifier behaves like a missing one.
+- **Go on the ingest path, TypeScript behind it** (ADR-0025). The ingest path is built as small static binaries with
+  few dependencies; the control plane, jobs and portal share types generated from the OpenAPI documents.
+- **SCF operators see aggregates, never events** (ADR-0027). Projects are the controllers of their own analytics; SCF
+  operators receive anonymous per-project statistics through audited database functions.
+
+## Technology
+
+| Component | Language | What it does | Source directory |
+|---|---|---|---|
+| Tracker | TypeScript (browser) | Pinned script: page views, custom and wallet events, proof of work | `tracker` |
+| Gateway | Go | Only public ingest entry: tracker files, challenges, checks, spool, forwarding, OTLP front door | `services/gateway` |
+| Path normaliser | Go | Stellar-aware path templates for web and API | `packages/pathnorm` |
+| Collector | Go (OpenTelemetry Collector build) | Sanitises OTLP, turns traces into metrics | `collector` |
+| Metrics writer | Go | Writes API metrics into PostgreSQL per project | `services/metrics-writer` |
+| Engine proxy | Go | Private front of Umami: mutual TLS, path allow-lists, visit continuity | `services/engine-proxy` |
+| Umami | TypeScript (upstream) | Web metrics engine, pinned at v3.5.0 | `vendor/umami` |
+| Control plane | TypeScript (Node.js, Fastify) | Projects, sign-in, keys, verification, audit, metrics API | `services/control-plane` |
+| Jobs | TypeScript (Node.js) | Rollups, retention, trust scores, registry sync, contract checks, on-chain counts, daily seal | `services/jobs` |
+| On-chain reader | Go | Reads public ledger files and counts contract invocations | `services/onchain-reader` |
+| Portal | TypeScript (React, Vite) | Dashboards for projects and SCF operators | `apps/portal` |
+| MCP server | TypeScript (Node.js) | Lets AI assistants read metrics with the caller's own key | `services/mcp` |
+| Health controller | Go | Probes nodes and updates DNS in the multi-node design | `services/health-controller` |
+| Database | SQL (PostgreSQL) | Migrations, roles, row-level security | `db` |
+
+## Read next
+
+<Cards>
+  <Card title="Stellar integration" href="/technical-architecture/stellar-integration" description="Wallet sign-in, ownership proofs, ledger counting and the daily seal." />
+  <Card title="Web analytics" href="/technical-architecture/web-analytics" description="Tracker, gateway checks, Umami and the web metrics." />
+  <Card title="API analytics" href="/technical-architecture/api-analytics" description="OpenTelemetry ingest, sanitising and API metrics." />
+  <Card title="Trust and verification" href="/technical-architecture/trust-and-verification" description="Verdicts, trust scores and what each label proves." />
+  <Card title="Data and privacy" href="/technical-architecture/data-and-privacy" description="What is stored, for how long, and what never is." />
+  <Card title="Security" href="/technical-architecture/security" description="Isolation, keys, audit log and supply chain." />
+  <Card title="Hosting and operations" href="/technical-architecture/hosting-and-operations" description="The VM today, backups, monitoring and scale-out." />
+</Cards>

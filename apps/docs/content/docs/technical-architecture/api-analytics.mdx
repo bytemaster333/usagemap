@@ -1,0 +1,277 @@
+---
+title: API analytics pipeline
+description: How a copy of your API server's OpenTelemetry data becomes request counts, status codes and latency percentiles, and what is thrown away on the way.
+icon: Activity
+---
+
+This page follows one API request from your server to the API dashboard. Your server already measures its own
+requests with OpenTelemetry. It sends a second copy of that data to UsageMap. We keep only what is needed for request
+counts, status codes and latency per endpoint. Everything else, including every trace, is dropped before it touches a
+disk. The numbers come from your own server, so we label them **Self-reported**. This page explains what we check
+and what we cannot prove.
+
+<Facts>
+  <Fact label="Where it lives">`services/gateway`, `collector`, `packages/pathnorm`, `services/metrics-writer`</Fact>
+  <Fact label="Language">Go (gateway, Collector, path rules, writer)</Fact>
+  <Fact label="Endpoint">`https://e1.usagemap.dev` (OTLP over HTTP or gRPC)</Fact>
+  <Fact label="Status"><Status kind="live" /> one VM today</Fact>
+</Facts>
+
+## The whole path
+
+<Flow caption="Your server keeps its own monitoring vendor. UsageMap receives a copy, keeps aggregates and drops the rest.">
+  <Node icon={<Server />} title="Your API server" sub="OpenTelemetry SDK" tone="api">
+    - dual export
+    - ingest token
+  </Node>
+  <Arrow label="OTLP · HTTPS" />
+  <Node icon={<Shield />} title="Gateway" sub="Token, rate limit" tone="plain">
+    - removes the token
+    - passes 6 headers
+  </Node>
+  <Arrow label="internal network" />
+  <Node icon={<Funnel />} title="Collector" sub="Sanitise, aggregate" tone="ink">
+    - allow-list only
+    - route templates
+    - drops all spans
+  </Node>
+  <Arrow label="mTLS" />
+  <Node icon={<Database />} title="Metrics writer" sub="PostgreSQL" tone="store">
+    - de-duplicates
+    - minute, hour, day
+  </Node>
+</Flow>
+
+Today the gateway, the Collector, the writer and PostgreSQL run on one virtual machine in an EU
+region. The design also allows a Collector next to each of several edge gateways, sending to two writers. That is an
+option for later, not what runs now.
+
+## Step by step
+
+<Steps>
+<Step>
+
+### Your server exports a copy
+
+You add a second OTLP exporter to the SDK or to your own OpenTelemetry Collector. Your monitoring vendor keeps
+receiving everything as before ("dual export"). The copy for us goes to `https://e1.usagemap.dev` with the header
+`Authorization: Bearer scfa_ing_…`. Traces and metrics are accepted. Logs are refused (`404` over HTTP,
+`UNIMPLEMENTED` over gRPC).
+
+The ingest token is **write-only**: it can send data and nothing else. It cannot read a dashboard or an API. Each token
+names the services it may send for. A project can have up to 5 active tokens and can revoke them in the portal.
+Language guides are in [API analytics](/api).
+
+</Step>
+<Step>
+
+### The gateway checks the token and the rate
+
+The gateway checks the token's format and checksum. Then it compares a peppered hash with the signed token list the
+control plane sends it. The token decides which project the data belongs to. Anything in the payload that claims a
+project is ignored. The gateway then applies per-project limits:
+
+| Limit | Default |
+|---|---|
+| Requests | 50 per second, burst 200 |
+| Compressed bytes | 1 MiB per second |
+| Body size | 4 MiB compressed, 16 MiB decompressed |
+| Concurrent requests | 4 per project |
+
+Over a limit, the answer is `429` (or `RESOURCE_EXHAUSTED`) with `Retry-After`. The SDK's own retry handles it.
+
+The gateway passes the body on to the Collector over a private Docker network. It forwards only the content headers
+and six headers it sets itself: project ID, token ID, allowed services, project level, receipt time and node. Your
+token and your other headers never reach the Collector. This matters because the Collector's queue writes headers to
+disk.
+
+</Step>
+<Step>
+
+### The Collector sanitises
+
+The Collector is our own build of the OpenTelemetry Collector (v0.165) with one processor we wrote, `scfsanitize`. It
+runs before anything is queued. It **builds new records from scratch** and copies only allow-listed fields into them, so
+anything we did not name cannot pass:
+
+1. Stamp the project ID from the gateway's header. Delete any `tenant.id` or `scf.*` field in the payload.
+2. Drop resources whose `service.name` the token does not allow.
+3. Keep only allow-listed attributes (table below). Free-text values that look like an address, an e-mail, a key or a
+   secret become `{redacted}`.
+4. Turn the path into a route template (next section).
+5. Drop points more than 5 minutes in the future or more than 48 hours old.
+6. Count every drop by reason, so you can see on your dashboard what was dropped and why.
+
+</Step>
+<Step>
+
+### Traces become numbers, then disappear
+
+From traces, the Collector keeps only spans of kind `SERVER` that start a request in your service (local roots). Inner
+spans and client spans are dropped. The `signal_to_metrics` component turns each kept span into one entry of a duration
+histogram, keyed by service, route, method and status code. Then the span is discarded. Spans never leave the
+Collector process and never touch the disk. If your SDK samples spans and records the sampling weight, each span counts
+with that weight. Without weights, the dashboard says the counts are a lower bound.
+
+If your SDK already sends the standard `http.server.request.duration` histogram (or the older `http.server.duration`),
+that metric is used directly.
+
+</Step>
+<Step>
+
+### Queued on disk, then sent to the writer
+
+The sanitised metrics go into the Collector's persistent queue (`fsync` on). Only then does your server get `200`. The
+queue sends to the metrics writer over mutual TLS. Each queued request is sent exactly as received, never re-batched.
+A retry is therefore byte-identical, and the writer can recognise it.
+
+</Step>
+<Step>
+
+### The writer stores aggregates
+
+The metrics writer splits each request by project and writes one transaction per project in PostgreSQL. Row-level
+security limits each transaction to that project.
+
+- **Duplicates:** the SHA-256 of the request body is recorded in a ledger for 7 days. A second copy changes nothing.
+- **Cumulative to delta:** most SDKs send running totals. The writer keeps the last value per stream and stores only
+  the increase. It detects process restarts and counter resets.
+- **Histograms:** stored in one of two fixed layouts: base-2 exponential at scale 3 (bucket ratio about 1.09) or the 15
+  standard OpenTelemetry duration buckets.
+- **Cardinality guard:** at most 1,000 routes per service and 5,000 per project per UTC day, and 200 literal children
+  under one path prefix. Beyond that, routes become `{overflow}`, and the overflow is counted.
+- **Points received more than 72 hours ago** are dropped and counted.
+
+</Step>
+</Steps>
+
+<Sequence actors={["API server", "Gateway", "Collector", "Writer"]} caption="One OTLP export. Your server gets its 200 once the sanitised metrics are on disk; the write to PostgreSQL follows.">
+  <Msg from="API server" to="Gateway" note="Bearer ingest token">POST /v1/traces</Msg>
+  <Msg from="Gateway" to="Gateway" note="tenant from the token">Token, limits, size</Msg>
+  <Msg from="Gateway" to="Collector" note="token removed, 6 x-scf headers">Body + metadata</Msg>
+  <Msg from="Collector" to="Collector" note="spans → histograms, spans dropped">Sanitise, normalise</Msg>
+  <Msg from="Collector" to="Collector" note="fsync">Queue on disk</Msg>
+  <Msg from="Collector" to="Gateway">200</Msg>
+  <Msg from="Gateway" to="API server">200</Msg>
+  <Msg from="Collector" to="Writer" note="mutual TLS, same bytes on retry">POST /v1/metrics</Msg>
+  <Msg from="Writer" to="Writer" note="ledger, deltas, 1m / 1h / 1d">PostgreSQL, one transaction per project</Msg>
+</Sequence>
+
+## Paths become route templates
+
+The same rule set (`scf-path-rules/1.1.0`, in `packages/pathnorm`) runs in the Collector for API routes and in the
+gateway for web page paths. It is hard-coded and versioned. Projects cannot add rules; for exact control you set
+`http.route` in your own middleware, and that template is used first. Otherwise the order is `http.route`, then
+`url.path`, then `http.target`, then the path of the full URL. Query strings and fragments are always removed.
+
+| In the path | Becomes |
+|---|---|
+| Account `G…` or muxed account `M…` | `{account}` |
+| Contract `C…` | `{contract}` |
+| Liquidity pool `L…`, claimable balance `B…` | `{pool}`, `{balance}` |
+| Signer keys `T…`, `X…`, `P…` | `{signer}` |
+| Asset `CODE:ISSUER` | `{asset}` |
+| 64-character hex (transaction hash) | `{hash}` |
+| Horizon paging token, cursor | `{event}`, `{cursor}` |
+| Numbers, UUIDs, dates | `{int}`, `{uuid}`, `{date}` |
+| Secret seed `S…`, JWT, API key, e-mail, phone, IP address | `{redacted}` (counted, never stored) |
+
+StrKeys are decoded and their checksum is checked; a key-shaped value with a wrong checksum becomes `{id}`. So
+`/accounts/GA7Q…/payments?cursor=now` is stored as `/accounts/{account}/payments`. The rule set has a test corpus of
+451 cases. A rule change is a new version, and each stored route keeps the version that produced it.
+
+## What is kept and what is dropped
+
+| Signal or part | Kept | Dropped |
+|---|---|---|
+| Traces | Duration of each `SERVER` local-root span as a histogram entry, with route, method, status code | The spans themselves, span names, inner and client spans, events, links, status messages |
+| Metrics | `http.server.request.duration` and `http.server.duration` histograms; Stellar client metrics from our own packages (closed value lists) | All other metrics, exemplars, descriptions; other client metrics |
+| Logs | Nothing | Refused at the gateway |
+| Resource attributes | `service.name`, `service.namespace`, `service.instance.id`, `deployment.environment.name` | Host, process, container, cloud and SDK attributes, and everything else |
+| Point attributes | Route template, `http.request.method`, `http.response.status_code`, `rpc.method`, `rpc.system` | Full URL, query, server and client address, User-Agent, every custom attribute |
+| Request headers | Content type and encoding, our own `x-scf-*` | Ingest token, every other header |
+
+The Stellar client metrics (RPC and Horizon calls your server makes) are described on
+[Stellar integration](/technical-architecture/stellar-integration).
+
+## Where each step runs
+
+<Zones cols={3} caption="Only the gateway accepts connections from the internet. The Collector and the writer have no public port.">
+  <Zone title="Internet" kind="outside" note="Not ours">
+    <Node icon={<Server />} title="Your API server" sub="OpenTelemetry SDK" tone="api" />
+    <Node icon={<Activity />} title="Your APM vendor" sub="Gets the full data" />
+  </Zone>
+  <Zone title="host · public port" note="HTTPS">
+    <Node icon={<Shield />} title="Gateway" sub="e1.usagemap.dev" />
+  </Zone>
+  <Zone title="host · no public port" note="Private Docker networks">
+    <Node icon={<Funnel />} title="Collector" sub="otlp network, disk queue" tone="ink" />
+    <Node icon={<PenLine />} title="Metrics writer" sub="mTLS from the Collector" />
+    <Node icon={<Database />} title="PostgreSQL" sub="scf database" tone="store" />
+  </Zone>
+</Zones>
+
+The Collector listens only on a Docker network that the gateway alone joins. The writer accepts only clients with an
+`edge` certificate from our private CA.
+
+## Retention
+
+| Table | Resolution | Kept |
+|---|---|---|
+| `api_metrics_1m` | Per minute | 35 days |
+| `api_metrics_1h` | Per hour | 25 months |
+| `api_metrics_1d` | Per UTC day | No time limit |
+| Spans, raw paths, payloads | — | Never stored |
+
+Aggregates are kept for at least 24 months. The daily table has no time limit.
+
+## What the dashboard shows
+
+For each service, and for each route when you choose one:
+
+- request volume over time, per minute, hour or day depending on the range;
+- status codes by class (2xx, 3xx, 4xx, 5xx) and by individual code;
+- error rates for 4xx and 5xx;
+- latency p50, p95 and p99, each with its **accuracy class**. A percentile is exact to its histogram bucket. With the
+  exponential layout the estimate is within about 4.3 %. With the 15 standard buckets it can be off by a whole bucket.
+  Very fast APIs whose requests all fall in the first bucket are shown as "≤ 5 ms", not as an invented value;
+- a comparison with the previous period;
+- data-quality counters: what was dropped, and why, in plain language.
+
+Ranges and isolation work as on the web dashboard: you see only your own project. SCF operators see the same metrics
+across projects in the operator view.
+
+## Why "Self-reported"
+
+The numbers are produced by your server, not observed by us. A project could send invented telemetry, or leave
+requests out. We cannot prove either way, so every API figure carries the **Self-reported** label, in the portal and in
+shared snapshots. We do not hide this. We check what we can, per service and per day:
+
+| Level | Check | Status |
+|---|---|---|
+| A0 | Data arrived with a valid ingest token; the project comes from the token, not the payload | <Status kind="live" /> |
+| A1 | Plausibility: well-formed data, status codes 100–599, no mean latency below 0.1 ms over 1,000+ requests, no day above 10× the median of the previous 7+ days, no route overflow | <Status kind="live" /> |
+| A2 | Liveness: our own probes reach the public base URL you declared | <Status kind="planned" /> |
+| On-chain badge | API traffic reported on a day when none of your verified contracts had a successful invocation is flagged as inconsistent | Described on [Trust and verification](/technical-architecture/trust-and-verification) |
+
+A failed check does not change the numbers. It adds a reason code next to them, for you and for anyone reading the dashboard.
+
+## Limits
+
+- **We cannot prove API telemetry is genuine.** The checks above catch careless or crude inflation, not careful
+  forgery.
+- **Only the requests your server reports.** Requests that fail before your instrumentation runs, for example at a load
+  balancer, are not counted.
+- **Liveness probes are not built yet.** No service reaches A2 today.
+- **One machine.** If the VM is down, exports fail. SDKs retry for a short time, then drop the data, so a long outage
+  leaves a gap.
+- **Percentiles depend on your histogram layout.** Coarse SDK buckets give coarse percentiles, and the dashboard says
+  so.
+
+## Related
+
+- [Website analytics pipeline](/technical-architecture/web-analytics)
+- [Stellar integration](/technical-architecture/stellar-integration)
+- [Trust and verification](/technical-architecture/trust-and-verification)
+- [Data and privacy](/technical-architecture/data-and-privacy)
+- [Send API metrics](/api)

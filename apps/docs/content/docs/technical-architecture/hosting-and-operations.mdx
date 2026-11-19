@@ -1,0 +1,274 @@
+---
+title: Hosting and operations
+description: What runs on a single VM, how a release reaches it, how backups and restores are tested, what it costs, and how the service is handed to a successor.
+icon: Server
+---
+
+The hosted instance of UsageMap runs on one virtual machine in an EU region, with the whole platform in Docker Compose. That is a
+deliberate choice for the period before funding: it is cheap, it is the same stack every developer runs, and anyone with
+the repository can rebuild it in about half an hour. It is not highly available. This page describes exactly what runs,
+how it is deployed and recovered, and the multi-node layout planned for the funded service window.
+
+<Facts>
+  <Fact label="Where it lives">`infra/compose`, `infra/ansible`, `infra/opentofu`, `ops/`</Fact>
+  <Fact label="Runs on">A single VM in an EU region (the single-VM profile)</Fact>
+  <Fact label="Status"><Status kind="live" /></Fact>
+</Facts>
+
+## What runs today
+
+| Part | Value |
+|---|---|
+| VM | A burstable VM with 2 vCPU and 8 GiB memory, Debian 13 (pinned image), Trusted Launch, SSH keys only |
+| Disk | One Standard SSD for the system and all data |
+| Region | One EU region for everything, including backups. The IaC rejects regions outside the EU/EEA. |
+| Addresses | Static public addresses, with ingest (`e1`, `e2`) kept apart from the portal, the landing page and the status page |
+| DNS | Cloudflare, DNS only, never proxied. TLS ends on the VM, so the gateway sees the client address it needs for rate limits and then drops it. A CAA record allows only Let's Encrypt. |
+| TLS | Let's Encrypt certificates through ACME DNS-01 (lego), renewed by a systemd timer twice a day |
+| Container runtime | Docker CE, pinned version; container logs rotated; unattended security upgrades for the OS |
+| Availability | Objective 99.5 % per month for ingest and dashboards. An objective, not a guarantee. |
+
+Why 99.5 %: the hosting provider's own SLA for a single VM whose disks are Standard SSD is 99.5 %. An objective above what the
+provider commits to for the one machine everything runs on would not be honest. The service-window figures (99.99 % ingestion,
+99.90 % dashboards) apply to the multi-node layout described at the end of this
+page, and are never claimed for this host.
+
+## The containers
+
+<Zones cols={4} caption="One VM, separate Docker networks per zone: only the front ends publish ports; monitoring listens on localhost only.">
+  <Zone title="Front ends" note="Port 443">
+    <Node icon={<Shield />} title="gateway" sub="Web events, OTLP door, tracker files" tone="ink" />
+    <Node icon={<LayoutDashboard />} title="portal" sub="Caddy: pages, API, status, landing" tone="ink" />
+  </Zone>
+  <Zone title="Application" note="Internal networks">
+    <Node icon={<Cpu />} title="control-plane" sub="Accounts, keys, metrics API" />
+    <Node icon={<Clock />} title="jobs" sub="Rollups, trust scores, seal, purge" />
+    <Node icon={<Workflow />} title="collector + metrics-writer" sub="OTLP to PostgreSQL" tone="api" />
+    <Node icon={<Lock />} title="engine-proxy + umami" sub="Web analytics engine" tone="web" />
+    <Node icon={<Bot />} title="mcp" sub="Read-only AI assistant access" />
+  </Zone>
+  <Zone title="Data" note="No egress">
+    <Node icon={<Database />} title="postgres" sub="PostgreSQL 18.6 + pgBackRest" tone="store" />
+    <Node icon={<Layers />} title="pgbouncer" sub="Connection pool" tone="store" />
+  </Zone>
+  <Zone title="Monitoring" note="127.0.0.1 only">
+    <Node icon={<Activity />} title="prometheus, alertmanager, grafana" />
+    <Node icon={<ScrollText />} title="victorialogs + logscan" sub="Logs, secret-shape scan" />
+    <Node icon={<HeartPulse />} title="probe, status, Gatus" sub="Checks and status page" />
+  </Zone>
+</Zones>
+
+Reading the diagram: traffic from the internet reaches only the left column. The gateway takes web events and
+OpenTelemetry data and serves the tracker files; the portal serves the dashboards and forwards API calls to the control
+plane. The application column talks to the data column through PgBouncer, on networks with no route out. Monitoring
+binds to `127.0.0.1` and is reached through an SSH tunnel; only the status page is public, served by the portal.
+
+| Container | What it does |
+|---|---|
+| `gateway` | Terminates TLS for ingest; serves pinned tracker files; checks, strips and labels web events; accepts OTLP with an ingest token; writes every accepted event to an fsync'd spool before answering `202` |
+| `collector` | Our OpenTelemetry Collector build; rebuilds every data point from an allow-list; shares a private network with the gateway only |
+| `metrics-writer` | Writes the cleaned OTLP data to PostgreSQL |
+| `engine-proxy`, `umami` | Umami, pinned and built by us, stores web events; the proxy is its only door (mutual TLS, path allow-lists) |
+| `control-plane` | Sign-in, projects, keys, audit, erasure, the metrics API |
+| `portal` | Caddy: the single-page app, the security headers, the API on the same origin, landing, docs and status host names |
+| `jobs` | Rollups, trust scoring, retention, on-chain correlation, audit anchor, daily seal, purges |
+| `mcp` | Hosted MCP server; holds no key of its own |
+| `postgres`, `pgbouncer` | The database with pgBackRest and its backup scheduler; the connection pool |
+| One-shot steps | `db-migrate`, the Umami migration and view steps, `umami-bootstrap`: run at deploy, then exit |
+| Monitoring | Prometheus, Alertmanager, Grafana, VictoriaLogs, the log scanner, the host probe, the status page, node exporter, Gatus |
+
+In the rebuild drill all 19 containers came up running and healthy on the first `up --wait`.
+
+## Backups
+
+<Zones cols={2} caption="PostgreSQL writes every backup and WAL segment to both repositories; only the database container can reach the storage account.">
+  <Zone title="On the VM's disk" note="Same failure domain">
+    <Node icon={<Database />} title="PostgreSQL + pgBackRest" sub="WAL to both repositories every ≤ 60 s" tone="ink">
+      - full weekly, differential daily
+      - `pgbackrest check` hourly
+    </Node>
+    <Node icon={<HardDrive />} title="Repository 1" sub="Encrypted, local" tone="store" />
+  </Zone>
+  <Zone title="Storage account" kind="outside" note="Same EU region">
+    <Node icon={<Cloud />} title="Repository 2" sub="Encrypted, off-host" tone="store">
+      - blob versioning
+      - 14-day soft delete
+    </Node>
+    <Node icon={<Archive />} title="Weekly logical dump" sub="age-encrypted" tone="store" />
+  </Zone>
+</Zones>
+
+<Steps>
+<Step>
+**Continuous.** WAL is archived to both repositories at least every 60 seconds (`archive_timeout`), so the target for
+lost committed data is 60 seconds or less.
+</Step>
+<Step>
+**Scheduled.** A full backup weekly, a differential daily, `pgbackrest check` hourly. Both repositories are encrypted
+with their own passphrases.
+</Step>
+<Step>
+**Logical copy.** Once a week a logical dump, encrypted with `age`, goes to repository 2. It does not depend on
+pgBackRest to be read back.
+</Step>
+<Step>
+**Write without delete.** The VM writes with a container SAS that cannot delete blob versions, and the storage account
+admits only the VM's subnet and the operator. A compromised VM can add backups but cannot erase earlier versions within
+the 14-day window.
+</Step>
+<Step>
+**Proved weekly.** Every Sunday at 04:00 UTC a timer restores the latest backup from repository 2 into a scratch
+container with a separate read-only credential, replays WAL, runs `pg_amcheck --heapallindexed` and the 12 row-level
+security gates. The result is a metric with an alert if it goes stale.
+</Step>
+</Steps>
+
+First run on the hosted instance: `RESTORE-DRILL PASS`, 13.9 seconds in total for the 47.5 MB database.
+
+## Monitoring
+
+| Piece | What it does on this host |
+|---|---|
+| Prometheus, Alertmanager | Metrics from every service and the node exporter; alert rules from `ops/alerts` |
+| Grafana | Dashboards from `ops/dashboards`, reached over an SSH tunnel |
+| VictoriaLogs, log scanner | Container logs; the scanner counts IP-address, User-Agent and secret shapes without exporting them, and alerts |
+| Host probe | A canary every 30 s and a signed-in dashboard journey every 60 s; it sends a real page-view event and an OTLP export, and checks that the served tracker bytes match the published hash |
+| Gatus | Checks the public host names from the same VM |
+| Status page | `status.usagemap.dev`, built from the probe results |
+| Outside view | A probe on the operator's workstation, from another network |
+
+The weak point is plain: all of this runs on the VM it watches. The status page cannot report a total outage of the VM,
+and alerts are recorded on the VM only. The e-mail route for alerts (a small Cloudflare Worker) is
+<Status kind="built" /> and waits for its account token.
+
+## How a release reaches the host
+
+<Flow caption="Releases are built from a commit on the operator's workstation, shipped by digest and applied by Ansible.">
+  <Node icon={<GitCommitHorizontal />} title="Commit on main" sub="Committed files only" />
+  <Arrow label="build" />
+  <Node icon={<Package />} title="Release directory" sub="12 images, digests, tracker" tone="ink" />
+  <Arrow label="ship" />
+  <Node icon={<Server />} title="VM" sub="Images loaded, IDs compared" />
+  <Arrow label="apply" />
+  <Node icon={<CircleCheck />} title="Running stack" sub="up --wait, checks" />
+</Flow>
+
+<Steps>
+<Step>
+**Infrastructure (once).** OpenTofu (environment `envs/v1-small`, module `single-vm`) creates the VM, the two
+addresses, the network security group and the storage account. State and plans are encrypted on the client side; the
+passphrase stays on the operator's workstation. The storage account is protected from `destroy`.
+</Step>
+<Step>
+**Secrets (once).** `v1-secrets.sh` creates every stack secret, the backup credentials and the `age` identity for the
+dumps. They live outside the repository, in the operator's deploy directory.
+</Step>
+<Step>
+**Build.** `build-release.sh <commit>` builds from `git archive` of that commit, so uncommitted files cannot slip in. It
+writes the image tags with their configuration digests, and the tracker built for the live ingest names.
+</Step>
+<Step>
+**Ship.** `ship-images.sh` streams the images over SSH (`docker save` into `docker load`) and compares every image ID
+with the build record.
+</Step>
+<Step>
+**Apply.** `play-v1.sh` runs the Ansible playbook `lean.yml`: baseline, host firewall, pinned Docker, node certificates
+from the private CA, secrets, ACME, then the Compose stack with `up --wait`, timers and Gatus. The role refuses an image
+whose digest differs from the build, and refuses a tracker release whose served bytes could differ from its manifest.
+Database migrations run as the `db-migrate` one-shot before the services start.
+</Step>
+<Step>
+**Order when needed.** If a release adds a new telemetry stream, the Collector rolls last, so the new writer is ready
+before data in the new shape arrives.
+</Step>
+<Step>
+**Check.** A remote smoke test, a browser journey and `check-live.ts` (31 checks: tracker bytes equal the page's
+integrity hash, assets, docs host, `stellar.toml`) run against the public names.
+</Step>
+</Steps>
+
+The commit-based build above is how releases are made, with images checked by digest rather than by signature.
+
+## Rebuild drill
+
+We tested the claim "anyone with the repository, the credentials and the guide can rebuild the service".
+A temporary VM of the same size was created from the same OpenTofu root, and the deploy guide was followed step by step
+from a fresh clone.
+
+| Measure | Result |
+|---|---|
+| Start | Fresh clone, empty deploy directory, new secrets of its own, a separate backup path |
+| Build | 12 images in 1 min 58 s |
+| Deploy | Playbook `failed=0`; `up --wait` passed on the first try |
+| Checks | 11 of 11 passed: TLS chain and name for all four host names, ingest health, tracker served, portal and API health, status page, OTLP without token refused with `401`, all 19 containers healthy |
+| Backup and restore | Full backup in 2 s; `RESTORE-DRILL PASS` |
+| Total | **30 min 45 s** from an empty directory to a verified, backed-up, restore-tested stack (about 25 minutes without one SSH hang that was then fixed) |
+| Clean-up | VM, disk, network card and address deleted the same night |
+
+Defects found: a missing preparation step in the guide and an SSH keep-alive setting; both fixed. Not covered: creating
+the network and the storage account from scratch, and switching public DNS.
+
+## Handing the service over
+
+The service is built so that a community-appointed operator can run it on its own: repository ownership,
+full data migration, and domain transfer or a permanent redirect. The handover plan can be run on 30 days' notice from
+SCF.
+
+<Steps>
+<Step>
+**Rebuild, by default.** The incoming operator builds its own environment from the repository with its own new
+secrets. Only a few items are carried over, because existing data and published artefacts depend on them: the three
+key peppers, the snapshot-signing key, the edge-signing key and the engine credentials. They are rotated after
+acceptance on a fixed date.
+</Step>
+<Step>
+**Freeze and dump.** The dashboard side is frozen while ingest keeps accepting and spooling. A logical dump is taken;
+its SHA-256 is passed out of band, never read from the storage it travels through.
+</Step>
+<Step>
+**Import and compare.** The dump is imported into an empty database; a fingerprint of every table, partition,
+sequence and role is compared with the source before any service starts.
+</Step>
+<Step>
+**Switch and accept.** Domains are transferred, DNS points to the new hosts, tenants are notified. Acceptance needs,
+among other items, 14 consecutive days in which nothing in production needed an action from us.
+</Step>
+</Steps>
+
+We rehearsed steps 2 and 3 with the live data: the live host as the old operator, a temporary VM as the
+new one. The freeze lasted 49 seconds. The import reported `IMPORT PASS` for 92 tables; the fingerprints of source and
+target were identical; the new stack published byte-identical snapshot keys; and the old operator's database password
+was refused by the new database. A wrong out-of-band hash and an import into a non-empty database were both refused, as
+designed. The DNS switch itself was not part of the drill.
+
+## The planned layouts
+
+| Layout | Shape | Status | Cost per month |
+|---|---|---|---|
+| Single VM | One small burstable VM (2 vCPU / 8 GiB), Standard SSD, backups in one region | <Status kind="live" /> | lowest; see the cost model |
+| Lean Azure, full size | One D8as_v5 VM with a Premium SSD data disk, optional standby VM for restore drills and cold standby, backups in two EU regions (ZRS) behind private endpoints, managed identities instead of SAS | <Status kind="planned" />; the OpenTofu module is written and tested against a mock provider only | ≈ US$555–565 |
+| Scale-out, for the service window | Two edge nodes and two core nodes in two availability zones, Patroni PostgreSQL with a synchronous standby, a monitoring and witness node in a second EU region, an external probe node, an egress proxy, health-controlled DNS at two providers | <Status kind="planned" />; Patroni failover measured on Compose (about 24 s, no acknowledged commit lost); health controller built; the OpenTofu environment and the multi-node playbook are still to be written | ≈ US$681–695 |
+
+The scale-out layout is what the funded window runs on, at 99.99 % ingestion and 99.90 % dashboard availability. Before
+the window starts, the plan is to build its OpenTofu environment, test it on containers, then power off one edge and
+the primary core under load on the real nodes and confirm that no acknowledged event is lost. Nothing of this layout has
+been created in any cloud yet.
+
+## Limits
+
+- **No failover.** A host event, a reboot for a kernel update or a disk loss takes ingest and dashboards down until the
+  VM is back or rebuilt. Accepted events are not lost while the disk survives (the tracker retries for 72 hours), but
+  they are delayed.
+- **One disk.** Repository 1 sits on the same disk as the database. Repository 2 is the off-host copy.
+- **One region.** Both backup copies are in the same EU region, with no geo-redundant copy. A regional disaster
+  could take the VM and its backups together.
+- **Monitoring inside the failure domain.** The status page and alerts run on the VM they watch; there is no outside
+  alert channel yet.
+- **No measured monthly report yet.** A month with less than 95 % probe coverage is reported as "not measured", never
+  as "met".
+
+## Related
+
+- [Security](/technical-architecture/security): network boundaries, keys, audit log
+- [Data and privacy](/technical-architecture/data-and-privacy): retention, erasure, where data lives
+- [Stellar integration](/technical-architecture/stellar-integration): ledger files the jobs service reads, the daily seal

@@ -1,0 +1,75 @@
+---
+title: Welcome to UsageMap
+description: Privacy-first web and API analytics for Stellar ecosystem projects. See how people really use your app, without cookies and without tracking anyone.
+icon: House
+---
+
+UsageMap tells you how your Stellar project is used: **visits to your website, wallet connections, calls to your API and
+invocations of your contracts**, in one dashboard. It does this without cookies, without storing IP addresses, and
+without ever recording a visitor's wallet address.
+
+<Cards>
+  <Card icon={<Rocket />} title="Quickstart" href="/quickstart">
+    From zero to your first counted page view in about five minutes.
+  </Card>
+  <Card icon={<Sparkles />} title="Features" href="/features">
+    Everything UsageMap measures, on one page.
+  </Card>
+  <Card icon={<Bot />} title="Using an AI assistant?" href="/ai-agents">
+    Give your coding agent our `SKILL.md` and let it do the integration.
+  </Card>
+  <Card icon={<LayoutDashboard />} title="Find your data" href="/dashboard">
+    A tour of the dashboard: where each number lives.
+  </Card>
+</Cards>
+
+## What you can integrate
+
+<Features>
+  <Feature icon={<Globe />} title="Websites and web apps">
+    One script tag, or a few lines in Next.js, Nuxt, SvelteKit, Astro, React and others. [Set it up →](/web)
+  </Feature>
+  <Feature icon={<Wallet />} title="Stellar wallets">
+    Connect, failed-connect and sign funnels for Stellar Wallets Kit, WalletConnect, Privy, Freighter, Albedo, xBull,
+    LOBSTR and passkeys, plus browser RPC health. [Wallets →](/wallets)
+  </Feature>
+  <Feature icon={<Server />} title="APIs and backends">
+    Standard OpenTelemetry from Node.js, Python, Go, Java, Rust, edge runtimes, Stellar SDK calls, x402 and MPP
+    payments, partner calls and anchors. [API analytics →](/api)
+  </Feature>
+  <Feature icon={<Smartphone />} title="Mobile apps">
+    App events from React Native, Expo, Flutter and Telegram Mini Apps. [Mobile apps →](/mobile)
+  </Feature>
+  <Feature icon={<Blocks />} title="Smart contracts">
+    Register your Soroban contracts and see daily on-chain usage and the DeFi protocols your users touch, next to
+    your traffic. [Contracts →](/onchain)
+  </Feature>
+  <Feature icon={<Wrench />} title="Developer tools">
+    Scaffold Stellar template, `stellar scf` CLI, GitHub pin Action, MCP server and live README badges.
+    [Tools →](/tools)
+  </Feature>
+</Features>
+
+Every integration has a card in the app and a runnable example app. [All integrations →](/integrations)
+
+## How it works
+
+<Steps>
+<Step>
+**You add a small tracker** (about 3 KB) to your site, or point your API's OpenTelemetry exporter at UsageMap.
+</Step>
+<Step>
+**UsageMap checks every event.** Bots, data-centre traffic and replayed requests are filtered out or marked as
+suspect, so your numbers hold up when someone else looks at them.
+</Step>
+<Step>
+**You see verified numbers** in the dashboard, and you can share them on a public page, as a badge or as a signed
+snapshot.
+</Step>
+</Steps>
+
+<Callout title="Privacy by design" type="success">
+  No cookies, no fingerprinting, no IP addresses, no query strings, no page titles and no wallet addresses are ever
+  stored. Whether your site still needs a consent prompt depends on where you and your visitors are, so a consent
+  mode is built in. [What we collect →](/privacy)
+</Callout>

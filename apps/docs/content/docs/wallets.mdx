@@ -1,0 +1,166 @@
+---
+title: Wallet analytics
+description: See how many people open your wallet dialog, connect, fail to connect, sign and submit, by wallet type, without recording a single address.
+icon: Wallet
+---
+
+The wallet adapters turn your Stellar wallet library's calls into a **wallet funnel**: dialog opened → wallet selected →
+connected (or failed to connect) → sign requested → approved or rejected → transaction submitted.
+
+<Callout title="No addresses, ever" type="success">
+  The adapters send only fixed categories: wallet type, network, outcome, a failure reason and a duration bucket. They
+  never send addresses, transaction hashes, XDR, amounts, memos or error messages.
+</Callout>
+
+<Callout type="warn" title="Adapters need the npm package">
+  The adapters ship in the tracker package `@usagemap/tracker` (version 1.2.0), which is not on the public npm
+  registry yet. Until it is, install it from the release (`npm install ./scf-analytics-tracker-1.2.0.tgz`, the
+  package file of the release). With the script tag alone, the `standard` profile still records the Wallets Kit's
+  dialog opening and closing and the wallet picked, without wallet access.
+</Callout>
+
+Every section below names its example app. Each example runs in three steps: install, set your site key (and add
+`localhost` as a dev origin), run it on `localhost`. The test is the same for all of them: the
+[website test command](/integrations#the-three-test-commands), then connect a wallet on testnet in the running app.
+
+## Stellar Wallets Kit
+
+Attach the adapter once, after the tracker has started:
+
+```ts title="analytics.ts"
+import { init } from "@usagemap/tracker";
+import { attachWalletsKit } from "@usagemap/tracker/wallets-kit";
+import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
+
+init({ site: "YOUR_SITE_KEY" });
+const detach = attachWalletsKit(StellarWalletsKit); // call detach() to undo
+```
+
+It works with Stellar Wallets Kit 2.x, including references to `signTransaction` that your app copied before attaching
+(as Scaffold Stellar does). For kit versions up to 1.9.5, use `attachWalletsKitV1`. A session the kit restores on page
+load is reported as a restored connection, never as a new one.
+
+**Module wrapper.** If your app also calls a kit wallet module itself, outside the kit, wrap the modules where you
+create them. With `attachWalletsKit` as well, every event is still counted once:
+
+```ts
+import { wrapWalletsKitModules } from "@usagemap/tracker/wallets-kit";
+
+StellarWalletsKit.init({ modules: wrapWalletsKitModules(defaultModules()) });
+```
+
+Examples: `examples/wallets-kit` (vanilla Vite) and `examples/nextjs-wallets-kit` (Next.js).
+
+## Failed connects and WalletConnect
+
+New in tracker 1.2.0, with nothing to configure:
+
+- **`wallet_connect_failed`**: every adapter reports a connect that did not give your app a usable connection, with
+  one reason: `user_rejected`, `wallet_not_installed`, `wallet_locked`, `network_mismatch`, `timeout` or
+  `error_other`. Pass `networkPassphrase` to the adapter so it can detect a network mismatch. A silent session restore
+  that finds nothing is not a failure.
+- **Wallet context `wc`**: connects, failed connects and WalletConnect sessions say whether the page runs inside a
+  wallet's in-app browser (`varial_inapp`, `dcent_inapp`, `scopuly_inapp`, `other_inapp`, `none`, `unknown`). It is
+  read from documented page sentinels only, never from the User-Agent.
+- **WalletConnect funnel**: with the Wallets Kit's WalletConnect module, `walletconnect_session` (proposed → approved or
+  rejected, with the proposal's network) and `walletconnect_request` (`sign_xdr`, `sign_submit_xdr`, `sign_message`,
+  `sign_auth_entry`; approved or rejected). It comes with `attachWalletsKit` and `wrapWalletsKitModules`.
+
+Example: `examples/walletconnect` (set your WalletConnect project id, pick WalletConnect and scan the QR code with a
+testnet wallet).
+
+## Privy
+
+For Privy embedded Stellar wallets, wrap Privy's hooks:
+
+```tsx
+import { useCreateWallet, useSignRawHash } from "@privy-io/react-auth/extended-chains";
+import { useLogin, usePrivy } from "@privy-io/react-auth";
+import { privyLoginCallbacks, wrapPrivyStellar } from "@usagemap/tracker/privy";
+
+const { createWallet } = wrapPrivyStellar(useCreateWallet(), { networkPassphrase });
+const { signRawHash } = wrapPrivyStellar(useSignRawHash(), { networkPassphrase });
+const { logout } = wrapPrivyStellar(usePrivy());
+const { login } = useLogin(privyLoginCallbacks({ onComplete: yourOnComplete }));
+```
+
+Only calls with `chainType: "stellar"` are counted, as wallet type `privy`: connect and failed connect, signing and
+disconnect. The user object, e-mail, wallet id, address, hash and signature are never read. EVM or Solana wallets in
+the same app pass through untouched.
+
+Example: `examples/privy` (set your Privy app id and allow `http://localhost:5173` in the Privy dashboard).
+
+## Other wallets and passkeys
+
+<Tabs items={["Single wallets", "Passkeys", "Your own submissions"]}>
+<Tab value="Single wallets">
+
+If you use a wallet's own API instead of the kit, wrap it:
+
+```ts
+import { wrapFreighter } from "@usagemap/tracker/wallets";
+```
+
+Available: `wrapFreighter`, `wrapAlbedo`, `wrapXBull`, `wrapLobstr`, `wrapHana`, `wrapHot`, and `wrapInjected` with
+`detectInjectedWallet` for other injected wallets. Example: `examples/freighter`.
+
+</Tab>
+<Tab value="Passkeys">
+
+```ts
+import { attachSmartAccountKit } from "@usagemap/tracker/passkey";
+```
+
+Also `attachPasskeyKit` and `attachPasskeyServer`. They count passkey sign-ins and smart wallets created. Example:
+`examples/passkey`.
+
+</Tab>
+<Tab value="Your own submissions">
+
+```ts
+import { attachHorizonServer, attachRpcServer } from "@usagemap/tracker/wallets";
+```
+
+These count transaction submissions made through your Horizon or Soroban RPC client.
+
+</Tab>
+</Tabs>
+
+## Stellar RPC from the browser
+
+New in tracker 1.2.0: measure the health of the Stellar RPC and Horizon calls your page makes, **as an aggregate
+only**.
+
+```ts
+import { attachHorizonTelemetry, attachRpcTelemetry } from "@usagemap/tracker/stellar-rpc";
+
+attachRpcTelemetry(server, { network: "testnet" }); // rpc.Server, js-stellar-sdk 14.3.1 to 17.x
+```
+
+The tracker keeps per-page counts by RPC method or Horizon route, outcome class and latency bucket, and sends them as
+one aggregate (`/stellar-rpc`) when the page is hidden. They are stored as daily totals per website only: no visitor,
+session, page, time of call, URL (provider API keys stay in the browser) or address.
+
+Example: `examples/stellar-rpc-browser` (press **Check RPC health**, then switch tabs).
+
+## What is recorded
+
+| Event | When |
+|---|---|
+| `wallet_modal_opened`, `wallet_modal_closed` | The wallet dialog opens or closes |
+| `wallet_selected` | The visitor picks a wallet |
+| `wallet_connect`, `wallet_disconnect` | A wallet connects or disconnects |
+| `wallet_connect_failed` | A connect fails, with its reason (1.2.0) |
+| `walletconnect_session`, `walletconnect_request` | The WalletConnect funnel (1.2.0) |
+| `sign_requested`, `sign_approved`, `sign_rejected` | A signature is asked for, given or refused |
+| `tx_submitted` | A transaction is sent to the network |
+| `smart_wallet_created`, `passkey_used` | Passkey and smart-wallet activity |
+
+Signing, submission and passkey events are **counted per day only**: they are never attached to a visit, so nobody
+can link a signature to a browsing session.
+
+## Where to see it
+
+Open your website and choose the **Wallets** tab. You'll see the funnel, a breakdown **By wallet type** (Freighter,
+Albedo, xBull, LOBSTR, Hana, HOT, Rabet, WalletConnect, Privy, Ledger, Trezor, …) and a network filter. If you also
+[register your contracts](/onchain), their on-chain counts are shown next to the funnel.

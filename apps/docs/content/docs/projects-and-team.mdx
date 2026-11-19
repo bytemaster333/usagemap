@@ -1,0 +1,52 @@
+---
+title: Projects and team
+description: Projects, roles, invitations, verification levels and ingest tokens.
+icon: Users
+---
+
+## Projects
+
+A project groups your websites, API services and contracts. You can create up to three projects. Each one has a
+status:
+
+| Status | Meaning |
+|---|---|
+| **Awaiting approval** | Your project is waiting for review; events are not counted yet |
+| **Active** | Everything is counted |
+| **Suspended** | Paused by the UsageMap team; events are refused |
+| **Removed** | No longer active |
+
+## Team and roles
+
+Open **Team → Invite someone** to create an invitation code (it starts with `scfi_` and is valid for 1 to 168 hours).
+Send it to your teammate; they paste it at **Accept an invitation** after signing in. There is no invitation e-mail.
+
+| Role | Can do |
+|---|---|
+| **owner** | Everything, including removing the project |
+| **admin** | Manage members, invitations, websites, services and tokens |
+| **member** | Work with websites and services, see all analytics |
+| **viewer** | Read analytics only |
+
+## Verification levels
+
+The more you prove, the more weight your numbers carry. **Verification** shows where you are:
+
+<Steps>
+<Step>**L0 Registered**: you created the project. Limited to 2 websites, 1 API service and 50,000 events a day.</Step>
+<Step>**L1 Domain verified**: a DNS TXT record, a `/.well-known/` file or an HTML meta tag.</Step>
+<Step>**L2 Stellar account linked**: you signed with an account listed in your domain's `stellar.toml`.</Step>
+<Step>**L3 Registry match**: your project matches an entry in a public Stellar project registry.</Step>
+<Step>**L4 Approved**: reviewed by the UsageMap team.</Step>
+</Steps>
+
+## Ingest tokens
+
+API services send data with an **ingest token** (`scfa_ing_…`). Create one under **Ingest tokens**. You can limit it
+to some services and give it an expiry date. You can have up to 5 active tokens. A token is shown only once.
+Creating or revoking one asks you to sign in again, and a revoked token stops working within a minute.
+
+## Sign-in
+
+You sign in with a Stellar wallet signature: no password is ever stored. Under **Account** you can link more sign-in
+identities and manage passkeys.

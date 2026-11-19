@@ -1,0 +1,607 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+/* UsageMap design system (Ink & Yellow, light only). Token values from the design system's tokens.json:
+   black does the reading, yellow marks what matters. */
+:root {
+  --stone: #f4f5f7;
+  --paper: #ffffff;
+  --sunken: #f8f9fa;
+  --hover: #eceef1;
+  --ink: #111111;
+  --ink-2: #2f3237;
+  --muted: #5d636b;
+  --subtle: #686e75;
+  --line: #e3e6ea;
+  --line-strong: #cbd0d6;
+  --yellow: #ffd43b;
+  --yellow-soft: #fff1b5;
+  --yellow-deep: #d9ae00;
+  --good: #1b6e45;
+  --good-soft: #d7f0e1;
+  --warn: #8a5600;
+  --warn-soft: #fbedc6;
+  --bad: #b42318;
+  --bad-soft: #fbe3df;
+  --orange: #b4501c;
+  --orange-soft: #fde3d2;
+
+  --color-fd-background: var(--stone);
+  --color-fd-foreground: var(--ink);
+  --color-fd-card: var(--paper);
+  --color-fd-card-foreground: var(--ink);
+  --color-fd-popover: var(--paper);
+  --color-fd-popover-foreground: var(--ink);
+  --color-fd-primary: var(--ink);
+  --color-fd-primary-foreground: var(--paper);
+  --color-fd-secondary: var(--paper);
+  --color-fd-secondary-foreground: var(--ink);
+  --color-fd-muted: var(--sunken);
+  --color-fd-muted-foreground: var(--muted);
+  --color-fd-accent: var(--yellow-soft);
+  --color-fd-accent-foreground: var(--ink);
+  --color-fd-border: var(--line);
+  --color-fd-ring: var(--ink);
+  --color-fd-info: var(--ink-2);
+  --color-fd-warning: var(--warn);
+  --color-fd-error: var(--bad);
+  --color-fd-success: var(--good);
+  --color-fd-idea: var(--ink-2);
+  color-scheme: light;
+}
+
+body {
+  font-family: var(--font-geist), "Segoe UI", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-manrope), "Segoe UI", system-ui, sans-serif;
+  text-wrap: balance;
+}
+h1 {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+h2 {
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+h3,
+h4 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+code,
+kbd,
+pre,
+.font-mono {
+  font-family: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+}
+
+/* Links in running text: ink with a yellow-deep underline. */
+.prose a:not(.not-prose a) {
+  color: var(--ink);
+  text-decoration-color: var(--yellow-deep);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.prose a:not(.not-prose a):hover {
+  background: var(--yellow-soft);
+}
+
+/* Inline code: a quiet chip on paper. */
+.prose :not(pre) > code {
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.1em 0.35em;
+  font-size: 0.88em;
+}
+
+/* Code blocks are one of the allowed reversed areas: ink ground, the dark Shiki palette. */
+html figure.shiki:not(.not-fumadocs-codeblock *) {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--sunken);
+}
+html figure.shiki:not(.not-fumadocs-codeblock *) code span {
+  color: var(--shiki-dark);
+  font-style: var(--shiki-dark-font-style);
+}
+html figure.shiki:not(.not-fumadocs-codeblock *) > div:first-child {
+  color: var(--subtle);
+  border-color: var(--ink-2);
+}
+html figure.shiki:not(.not-fumadocs-codeblock *) button {
+  color: var(--subtle);
+}
+html figure.shiki:not(.not-fumadocs-codeblock *) button:hover {
+  color: var(--yellow);
+  background: var(--ink-2);
+}
+
+/* Focus: a solid 2px ink ring with offset everywhere. */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* The selected sidebar item is the one yellow place in the navigation. */
+#nd-sidebar a[data-active="true"] {
+  background: var(--yellow-soft);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none;
+  }
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+/* ---------- architecture diagrams (components/arch.tsx) ---------- */
+.arch {
+  margin: 1.75rem 0;
+  padding: 20px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.arch-cap {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* node */
+.arch-node {
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.arch-node-hd {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.arch-node-ic {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--sunken);
+  color: var(--ink);
+}
+.arch-node-ic svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.7;
+}
+.arch-node-tx {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.arch-node-tx b {
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.arch-node-tx small {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.arch-node-bd {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.arch-node-bd ul {
+  margin: 0;
+  padding-left: 16px;
+  list-style: disc;
+}
+.arch-node-bd li + li {
+  margin-top: 2px;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: diagram rules are independent; tone overrides come first on purpose */
+.arch-node-bd code {
+  font-size: 11.5px;
+  background: var(--sunken);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.arch-tone-ink {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.arch-tone-ink .arch-node-tx b,
+.arch-tone-ink .arch-node-bd {
+  color: #fff;
+}
+.arch-tone-ink .arch-node-tx small {
+  color: #aab0b8;
+}
+.arch-tone-ink .arch-node-ic {
+  background: var(--yellow);
+  color: var(--ink);
+}
+.arch-tone-ink .arch-node-bd code {
+  background: var(--ink-2);
+  color: #fff;
+}
+.arch-tone-yellow .arch-node-ic {
+  background: var(--yellow);
+}
+.arch-tone-web .arch-node-ic {
+  background: var(--good-soft);
+  color: var(--good);
+}
+.arch-tone-api .arch-node-ic {
+  background: var(--orange-soft);
+  color: var(--orange);
+}
+.arch-tone-chain .arch-node-ic {
+  background: var(--yellow-soft);
+  color: #7a5c00;
+}
+.arch-tone-store .arch-node-ic {
+  background: var(--hover);
+  color: var(--ink-2);
+}
+
+/* flow */
+.arch-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.arch-flow > .arch-node {
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: diagram rules are independent; tone overrides come first on purpose */
+.arch-node-tx b,
+.arch-node-tx small,
+.arch-node-bd {
+  overflow-wrap: anywhere;
+}
+.arch-arrow {
+  flex: 0 0 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 4px;
+  position: relative;
+}
+.arch-arrow-line {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--ink);
+  position: relative;
+}
+.arch-arrow-line::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: -4px;
+  border-left: 7px solid var(--ink);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+.arch-arrow-lb {
+  font:
+    500 10.5px / 1.25 var(--font-geist-mono),
+    ui-monospace,
+    monospace;
+  color: var(--muted);
+  text-align: center;
+  word-break: break-word;
+}
+@media (max-width: 760px) {
+  .arch {
+    padding: 14px;
+  }
+  .arch-flow {
+    flex-direction: column;
+  }
+  .arch-arrow {
+    flex: 0 0 auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 4px 0 4px 22px;
+    min-height: 34px;
+  }
+  .arch-arrow-line {
+    width: 2px;
+    height: 26px;
+    flex: none;
+  }
+  .arch-arrow-line::after {
+    right: auto;
+    left: -4px;
+    top: auto;
+    bottom: -1px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid var(--ink);
+    border-bottom: 0;
+  }
+  .arch-arrow-lb {
+    text-align: left;
+    margin-left: 12px;
+  }
+}
+
+/* zones */
+.arch-zones {
+  display: grid;
+  gap: 12px;
+}
+.arch-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.arch-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.arch-cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .arch-cols-3,
+  .arch-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .arch-zones {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.arch-zone {
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.arch-zone-outside {
+  background: var(--paper);
+  border-style: dashed;
+  border-color: var(--line-strong);
+}
+.arch-zone-public {
+  background: var(--stone);
+}
+.arch-zone-stellar {
+  background: color-mix(in srgb, var(--yellow-soft) 45%, var(--paper));
+  border-color: #f0dc8a;
+}
+.arch-zone-hd {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: diagram rules are independent; tone overrides come first on purpose */
+.arch-zone-hd b {
+  font:
+    600 11px / 1.3 var(--font-geist-mono),
+    ui-monospace,
+    monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+/* biome-ignore lint/style/noDescendingSpecificity: diagram rules are independent; tone overrides come first on purpose */
+.arch-zone-hd small {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.arch-zone-bd {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* sequence */
+.arch-seq-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.arch-seq {
+  --arch-seq-col: 120px;
+  display: grid;
+  column-gap: 0;
+  row-gap: 4px;
+  min-width: min-content;
+}
+.arch-seq-actor {
+  justify-self: center;
+  margin: 0 6px 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.3;
+}
+.arch-seq-life {
+  justify-self: center;
+  width: 0;
+  border-left: 1.5px dashed var(--line-strong);
+}
+.arch-seq-msg {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 4px 0 6px;
+  z-index: 1;
+}
+.arch-seq-lb {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--ink);
+  padding: 0 10px 4px;
+}
+.arch-seq-lb i {
+  flex: none;
+  font:
+    600 10px / 16px var(--font-geist-mono),
+    ui-monospace,
+    monospace;
+  font-style: normal;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: var(--ink);
+  text-align: center;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: diagram rules are independent; tone overrides come first on purpose */
+.arch-seq-lb small {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.arch-seq-line {
+  display: block;
+  height: 2px;
+  background: var(--ink);
+  position: relative;
+}
+.arch-seq-right .arch-seq-line::after,
+.arch-seq-left .arch-seq-line::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+.arch-seq-right .arch-seq-line::after {
+  right: -1px;
+  border-left: 7px solid var(--ink);
+}
+.arch-seq-left .arch-seq-line::after {
+  left: -1px;
+  border-right: 7px solid var(--ink);
+}
+.arch-seq-self .arch-seq-lb {
+  margin: 0 8px;
+  padding: 6px 8px;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+/* facts */
+.arch-facts {
+  margin: 1.25rem 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.arch-fact {
+  padding: 12px 14px;
+  /* inner grid lines; the ones on the outer edges are clipped by the container */
+  box-shadow:
+    1px 0 0 var(--line),
+    0 1px 0 var(--line);
+}
+.arch-fact dt {
+  font:
+    600 10.5px / 1.3 var(--font-geist-mono),
+    ui-monospace,
+    monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.arch-fact dd {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+/* status chips */
+.arch-status {
+  display: inline-block;
+  font:
+    600 10.5px / 1 var(--font-geist-mono),
+    ui-monospace,
+    monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 7px;
+  border-radius: 5px;
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+.arch-status-live {
+  background: var(--good-soft);
+  color: var(--good);
+}
+.arch-status-built {
+  background: var(--hover);
+  color: var(--ink-2);
+}
+.arch-status-planned {
+  background: var(--yellow-soft);
+  color: #6b5000;
+}
+
+@media (max-width: 560px) {
+  .arch-seq {
+    --arch-seq-col: 74px;
+  }
+  .arch-seq-actor {
+    margin: 0 2px 8px;
+    padding: 5px 6px;
+    font-size: 11.5px;
+  }
+  .arch-seq-lb {
+    font-size: 11.5px;
+    padding: 0 4px 4px;
+  }
+  .arch-seq-lb small {
+    font-size: 10.5px;
+  }
+}

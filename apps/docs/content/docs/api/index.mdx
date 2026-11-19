@@ -1,0 +1,206 @@
+---
+title: API analytics
+description: Send standard OpenTelemetry metrics from your API and see requests, errors and latency per route. For Node.js and Python, environment variables are enough.
+icon: Server
+---
+
+UsageMap reads the standard HTTP server metric that every OpenTelemetry SDK already produces
+(`http.server.request.duration`). You don't add a vendor SDK, and your code stays the same.
+
+## Before you start
+
+<Steps>
+<Step>
+**Register the service.** In your project, open **API services → Register an API service**. The service name must match
+your `OTEL_SERVICE_NAME`.
+</Step>
+<Step>
+**Create an ingest token.** Open **Ingest tokens**, create one (optionally limited to this service) and copy it. It
+starts with `scfa_ing_` and is shown only once, so store it in your secret manager.
+</Step>
+</Steps>
+
+## Connect your API
+
+<Tabs items={["Node.js", "Python (FastAPI)", "Go", "Rust (axum)"]} persist>
+<Tab value="Node.js">
+
+No code change. Install two packages:
+
+```sh
+npm install --save-exact @opentelemetry/auto-instrumentations-node@0.83.0 @opentelemetry/instrumentation@0.301.1
+```
+
+Then start your app like this:
+
+```sh
+OTEL_SERVICE_NAME=my-api \
+OTEL_EXPORTER_OTLP_ENDPOINT=https://e1.usagemap.dev \
+OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer%20${USAGEMAP_TOKEN}" \
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+OTEL_METRICS_EXPORTER=otlp OTEL_TRACES_EXPORTER=none OTEL_LOGS_EXPORTER=none \
+OTEL_RESOURCE_ATTRIBUTES="service.instance.id=${HOSTNAME}" \
+node --experimental-loader=@opentelemetry/instrumentation/hook.mjs \
+  --import @opentelemetry/auto-instrumentations-node/register app.mjs
+```
+
+For CommonJS apps, drop the `--experimental-loader` line and use `--require` instead of `--import`.
+
+</Tab>
+<Tab value="Python (FastAPI)">
+
+```txt title="requirements.txt"
+opentelemetry-distro==0.66b2
+opentelemetry-exporter-otlp-proto-http==1.45.2
+opentelemetry-instrumentation-fastapi==0.66b2
+```
+
+Add a flush on shutdown, so that the last minute of data isn't lost on restart:
+
+```python title="app.py"
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from opentelemetry import metrics
+
+@asynccontextmanager
+async def lifespan(_app):
+    yield
+    getattr(metrics.get_meter_provider(), "shutdown", lambda: None)()
+
+app = FastAPI(lifespan=lifespan)
+```
+
+```sh
+OTEL_SERVICE_NAME=my-api \
+OTEL_EXPORTER_OTLP_ENDPOINT=https://e1.usagemap.dev \
+OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer%20${USAGEMAP_TOKEN}" \
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+OTEL_METRICS_EXPORTER=otlp OTEL_TRACES_EXPORTER=none OTEL_LOGS_EXPORTER=none \
+OTEL_SEMCONV_STABILITY_OPT_IN=http \
+OTEL_RESOURCE_ATTRIBUTES="service.instance.id=${HOSTNAME}" \
+opentelemetry-instrument uvicorn app:app --host 0.0.0.0 --port 8000
+```
+
+</Tab>
+<Tab value="Go">
+
+```sh
+go get go.opentelemetry.io/otel@v1.47.0 go.opentelemetry.io/otel/sdk/metric@v1.47.0 \
+  go.opentelemetry.io/contrib/exporters/autoexport@v0.72.0 \
+  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp@v0.72.0
+```
+
+```go title="main.go"
+reader, err := autoexport.NewMetricReader(ctx) // reads OTEL_* from the environment
+if err != nil {
+	log.Fatal(err)
+}
+res, err := resource.New(ctx, resource.WithService(), resource.WithFromEnv(), resource.WithTelemetrySDK())
+if err != nil {
+	log.Fatal(err)
+}
+mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader), sdkmetric.WithResource(res))
+otel.SetMeterProvider(mp)
+defer mp.Shutdown(context.Background()) // flushes the last interval
+
+mux := http.NewServeMux()
+mux.HandleFunc("GET /accounts/{id}", getAccount) // the pattern becomes the route
+log.Fatal(http.ListenAndServe(":8080", otelhttp.NewHandler(mux, "api")))
+```
+
+```sh
+OTEL_SERVICE_NAME=my-api
+OTEL_EXPORTER_OTLP_ENDPOINT=https://e1.usagemap.dev
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer%20scfa_ing_...
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+OTEL_METRICS_EXPORTER=otlp
+OTEL_RESOURCE_ATTRIBUTES=service.instance.id=api-1
+```
+
+</Tab>
+<Tab value="Rust (axum)">
+
+```toml title="Cargo.toml"
+[dependencies]
+opentelemetry = "0.33.1"
+opentelemetry_sdk = "0.33.1"
+opentelemetry-otlp = { version = "0.33.1", features = ["reqwest-rustls"] }
+opentelemetry-instrumentation-tower = { version = "0.19.0", features = ["axum"] }
+```
+
+```rust title="main.rs"
+let exporter = opentelemetry_otlp::MetricExporter::builder().with_http().build()?;
+let mp = SdkMeterProvider::builder()
+    .with_resource(Resource::builder().build()) // reads OTEL_SERVICE_NAME and OTEL_RESOURCE_ATTRIBUTES
+    .with_periodic_exporter(exporter)
+    .build();
+global::set_meter_provider(mp.clone()); // before building the layer
+
+let app = axum::Router::new()
+    .route("/accounts/{id}", axum::routing::get(account))
+    .layer(opentelemetry_instrumentation_tower::http::server::Layer::new()); // after the routes
+```
+
+Use the same environment variables as for Go, without `OTEL_METRICS_EXPORTER`. The `axum` feature is required, or every
+request lands under `{unknown}`.
+
+</Tab>
+</Tabs>
+
+## More API integrations
+
+<Cards>
+  <Card icon={<Zap />} title="Edge runtimes" href="/api/edge">
+    Cloudflare Workers, Vercel Edge, Deno and Bun, with one wrapper and no OpenTelemetry SDK.
+  </Card>
+  <Card icon={<Network />} title="Stellar SDK calls" href="/api/stellar-sdk">
+    Stellar RPC and Horizon calls your backend makes, from Node.js or Python.
+  </Card>
+  <Card icon={<Landmark />} title="Payments, partners and anchors" href="/api/payments-and-anchors">
+    x402 and MPP payments, SCF Integration List partner calls, SEP anchor funnels and the Anchor Platform.
+  </Card>
+  <Card icon={<Puzzle />} title="All integrations" href="/integrations">
+    Every integration with its example app and test command.
+  </Card>
+</Cards>
+
+Every stack above has a runnable example: `examples/api-node-express`, `examples/api-python-fastapi`,
+`examples/api-go-nethttp`, `examples/api-java-spring` and `examples/api-rust-axum`.
+
+<Callout title="Java, .NET, Next.js?">
+  Any OpenTelemetry SDK that exports the HTTP server duration metric over OTLP/HTTP works. Already exporting to
+  an APM such as Datadog, Grafana or Honeycomb? [Send a copy to UsageMap](/api/existing-apm).
+</Callout>
+
+## Test with curl
+
+Send one data point by hand, without touching your app. A `200` means accepted; it appears on the API dashboard within
+about two minutes as the route `/curl-test`.
+
+```sh
+curl -sS -i https://e1.usagemap.dev/v1/metrics \
+  -H "Authorization: Bearer $USAGEMAP_TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data '{"resourceMetrics":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"my-api"}},{"key":"service.instance.id","value":{"stringValue":"curl-test"}}]},"scopeMetrics":[{"scope":{"name":"curl-test"},"metrics":[{"name":"http.server.request.duration","unit":"s","histogram":{"aggregationTemporality":1,"dataPoints":[{"attributes":[{"key":"http.request.method","value":{"stringValue":"GET"}},{"key":"http.route","value":{"stringValue":"/curl-test"}},{"key":"http.response.status_code","value":{"intValue":"200"}}],"startTimeUnixNano":"'$(( $(date +%s) - 60 ))000000000'","timeUnixNano":"'$(date +%s)000000000'","count":"1","sum":0.012,"bucketCounts":["0","1","0"],"explicitBounds":[0.005,0.025]}]}}]}]}]}'
+```
+
+The service's card under **Integrations** in the app gives you this command with your own service name filled in, and a live check that shows it arriving.
+
+## What is kept
+
+<Features>
+  <Feature icon={<Check />} title="Kept">
+    Service name and instance, environment, route, HTTP method, status code, duration.
+  </Feature>
+  <Feature icon={<X />} title="Dropped before storage">
+    Every other metric and attribute, logs, query strings, headers and request bodies.
+  </Feature>
+  <Feature icon={<Replace />} title="Rewritten">
+    Stellar accounts and contracts in paths become `{account}` and `{contract}`; secrets, tokens and e-mails become `{redacted}`.
+  </Feature>
+  <Feature icon={<Gauge />} title="Limits">
+    Up to 50 requests per second per project, 4 MiB per request (compressed). Over the limit you get `429` with `Retry-After`, and SDKs retry by themselves.
+  </Feature>
+</Features>
+
+The API dashboard's **Data quality** section shows exactly what was received and what was dropped, and why.

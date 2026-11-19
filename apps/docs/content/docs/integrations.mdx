@@ -1,0 +1,172 @@
+---
+title: Integrations
+description: Every way to send data to UsageMap, each with a runnable example. Pick one in the app, copy the generated configuration, run the test command and watch it arrive.
+icon: Puzzle
+---
+
+UsageMap has an integration for websites, wallets, APIs and backends, edge runtimes, payments, anchors, mobile apps,
+on-chain registration and developer tools. Every one of them has a card in the app and a minimal runnable example
+(42 example apps in all, one folder each under `examples/` in the UsageMap source repository, which is published
+together with the npm packages).
+
+## Pick, configure, test, see it arrive
+
+Open your project and choose **Integrations**. Every card works the same way:
+
+<Steps>
+<Step>
+### Pick it
+
+Filter by kind (websites, wallets, APIs, mobile apps, on-chain, developer tools) or type a stack such as `nextjs`,
+`python` or `workers`. Integrations that fit what UsageMap already sees from your project are listed first.
+</Step>
+<Step>
+### Copy the generated configuration
+
+Choose the website or API service it is for. The configuration is generated with your public site key and service
+name already filled in. Ingest tokens are never shown on this page: they are shown once, when you create them under
+**Ingest tokens**. Configurations contain the placeholder `<INGEST_TOKEN>` or read the token from the shell variable
+`SCF_OTLP_TOKEN`.
+</Step>
+<Step>
+### Run the test command
+
+The card's test sends one test event or data point through the same endpoint your app will use. **Test traffic is
+never counted** in any figure, dashboard, public statistic or snapshot.
+</Step>
+<Step>
+### See it arrive
+
+Press **Start live check**, run the command, and the card shows the test arriving: within seconds for websites and
+wallets, within about a minute for APIs and app events. The card also links its guide and, where there is one, its
+example app.
+</Step>
+</Steps>
+
+Each card says what the integration measures, what it never sends, and how ready it is:
+
+| Label | Meaning |
+|---|---|
+| **Ready** | Works against usagemap.dev today. |
+| **From the repository** | Works today. Its npm package is published together with the public repository; until then use the script tag, or install the package from the release. |
+| **Beta** | Built and tested, but not yet run against the upstream tool or hosting platform itself. |
+
+And where your website or service stands:
+
+| Status | Meaning |
+|---|---|
+| **Not started** | Nothing has arrived yet. |
+| **Test received** | A test arrived and nothing has been counted yet. |
+| **Live data seen** | Counted events, stored requests or accepted app events in the last 7 days. |
+| **Configured** | Contracts are registered (on-chain), or the statistics are public (badges). |
+| **Runs locally** | A tool on your machine that sends nothing to UsageMap. |
+
+The status belongs to the website or API service, not to one card: UsageMap cannot tell whether a page view came
+from the script tag or from the npm package, so both cards of one website show the same status.
+
+## The three test commands
+
+<Tabs items={["Websites and wallets", "APIs", "Mobile apps"]}>
+<Tab value="Websites and wallets">
+
+One page view of `/usagemap-test` from `localhost`. Add `localhost` as a **dev origin** of the website first (the card
+does it in one click): events from dev origins are shown in the first-event panel for 24 hours and never counted.
+
+```sh
+curl -sS -i 'https://e1.usagemap.dev/v1/e' \
+  -H 'Origin: http://localhost:5173' \
+  -H 'Content-Type: text/plain;charset=UTF-8' \
+  --data '{"v":1,"s":"YOUR_22_CHAR_SITE_KEY","p":"standard","tv":"1.2.0","e":[{"id":"usagemap-test-event-01","k":"pv","u":"/usagemap-test"}]}'
+```
+
+The answer is `HTTP 202`. The panel then lists the page view as *would be rejected (`challenge_missing`)*. That is
+expected: the real tracker solves a small proof of work before it sends events, and curl does not. The test proves
+that the site key, the edge and your dev origin are right.
+
+The Privy and WalletConnect cards send one of their own wallet events instead, for example
+`{"k":"wl","sv":1,"n":"wallet_connect_failed","wt":"privy","net":"testnet","fr":"user_rejected","wc":"none"}`. The
+Wallets Kit, Freighter and passkey cards are tested in the browser: run your app on `localhost`, connect a wallet on
+testnet and sign once.
+
+</Tab>
+<Tab value="APIs">
+
+One OpenTelemetry data point for your service, through the endpoint your SDK uses. Export an ingest token first.
+
+```sh
+: "${SCF_OTLP_TOKEN:?export SCF_OTLP_TOKEN=<an ingest token of this project> first}"
+T=$(date +%s)000000000
+S=$(( $(date +%s) - 3600 ))000000000
+curl -sS -i 'https://e1.usagemap.dev/v1/metrics' \
+  -H "Authorization: Bearer $SCF_OTLP_TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data-binary @- <<EOF
+{"resourceMetrics":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"my-api"}},{"key":"service.instance.id","value":{"stringValue":"usagemap-test-$T-$$"}}]},"scopeMetrics":[{"scope":{"name":"usagemap-test"},"metrics":[{"name":"http.server.request.duration","unit":"s","histogram":{"aggregationTemporality":2,"dataPoints":[{"attributes":[{"key":"http.request.method","value":{"stringValue":"GET"}},{"key":"http.route","value":{"stringValue":"/usagemap-test"}},{"key":"http.response.status_code","value":{"intValue":"200"}}],"startTimeUnixNano":"$S","timeUnixNano":"$T","count":"1","sum":0.012,"bucketCounts":["0","1","0"],"explicitBounds":[0.005,0.025]}]}}]}]}]}
+EOF
+```
+
+`HTTP 200` with `{"partialSuccess":{}}` means accepted. `401` means the token is missing or wrong, `403` that the
+project is pending or suspended, `429` or `503` to try again shortly. The point comes from a new process, so it is
+recorded as one **baseline point** in the service's data-quality table and adds no request, route or latency to any
+figure. Cards whose package exports its own metric (Stellar SDK hooks, partner calls, payments, anchors) send their
+test point in that metric.
+
+</Tab>
+<Tab value="Mobile apps">
+
+One app event with your website's public key, timed two days ago, so the edge checks it and then drops it as
+`stale`. It is never counted.
+
+```sh
+TS=$(( $(date +%s) - 172800 ))000
+curl -sS -i 'https://e1.usagemap.dev/v1/app-events' \
+  -H 'Content-Type: application/json' \
+  --data-binary @- <<EOF
+{"v":1,"k":"YOUR_22_CHAR_SITE_KEY","platform":"android","app_version":"0.0.0","sdk_version":"curl-test/0.1.0","events":[{"ts":$TS,"session":"usagemap-test-session-01","name":"usagemap_test"}]}
+EOF
+```
+
+The answer is `HTTP 202 {"accepted":0,"dropped":1}`. The Telegram Mini App card uses the website test, because a Mini
+App is a web page.
+
+</Tab>
+</Tabs>
+
+## All integrations
+
+| Kind | Integration | Guide | Example |
+|---|---|---|---|
+| Website | Script tag, plain HTML | [Add the tracker](/web) | `examples/html` |
+| Website | Eleventy, Astro, VitePress, Docusaurus | [Framework guides](/web/frameworks) | `examples/eleventy`, `examples/astro`, `examples/vitepress`, `examples/docusaurus` |
+| Website | React (Vite), Next.js, Nuxt, SvelteKit, React Router | [Framework guides](/web/frameworks) | `examples/vite-react`, `examples/nextjs`, `examples/nuxt`, `examples/sveltekit`, `examples/react-router` |
+| Wallet | Stellar Wallets Kit (and the module wrapper) | [Wallets](/wallets#stellar-wallets-kit) | `examples/wallets-kit`, `examples/nextjs-wallets-kit` |
+| Wallet | Failed connects and the WalletConnect funnel | [Wallets](/wallets#failed-connects-and-walletconnect) | `examples/walletconnect` |
+| Wallet | Freighter and other wallets called directly | [Wallets](/wallets#other-wallets-and-passkeys) | `examples/freighter` |
+| Wallet | Passkey wallets and smart accounts | [Wallets](/wallets#other-wallets-and-passkeys) | `examples/passkey` |
+| Wallet | Privy embedded Stellar wallets | [Wallets](/wallets#privy) | `examples/privy` |
+| Wallet | Stellar RPC and Horizon calls from the browser | [Wallets](/wallets#stellar-rpc-from-the-browser) | `examples/stellar-rpc-browser` |
+| API | OpenTelemetry: Node.js, Python, Go, Java, Rust | [API analytics](/api) | `examples/api-node-express`, `examples/api-python-fastapi`, `examples/api-go-nethttp`, `examples/api-java-spring`, `examples/api-rust-axum` |
+| API | Edge middleware: Cloudflare Workers, Vercel, Deno, Bun | [Edge runtimes](/api/edge) | `examples/edge-cloudflare-workers`, `examples/edge-vercel`, `examples/edge-deno`, `examples/edge-bun` |
+| API | Stellar SDK hooks: `stellar-otel` (JS), `stellar-otel-py` | [Stellar SDK calls](/api/stellar-sdk) | `examples/stellar-rpc-node`, `examples/stellar-rpc-python` |
+| API | Payments: x402 and MPP | [Payments, partners and anchors](/api/payments-and-anchors#payments-x402-and-mpp) | `examples/api-x402`, `examples/payments-mpp` |
+| API | Calls to SCF Integration List partners | [Payments, partners and anchors](/api/payments-and-anchors#partner-calls) | `examples/partner-calls` |
+| API | Wallet-side anchor funnel | [Payments, partners and anchors](/api/payments-and-anchors#wallet-side-anchor-funnel) | `examples/anchor-wallet-sdk` |
+| API | Anchor Platform: OpenTelemetry agent and Kafka event listener | [Payments, partners and anchors](/api/payments-and-anchors#anchor-platform) | `examples/api-anchor-platform`, `examples/anchor-platform-listener` |
+| Mobile | React Native and Expo | [Mobile apps](/mobile#react-native-and-expo) | `examples/mobile-react-native` |
+| Mobile | Flutter and Dart | [Mobile apps](/mobile#flutter-and-dart) | `examples/mobile-flutter` |
+| Mobile | Telegram Mini Apps | [Mobile apps](/mobile#telegram-mini-apps) | `examples/telegram-mini-app` |
+| On-chain | Register contracts with a footprint registration key | [Developer tools](/tools#footprint-registration-keys) | `examples/footprint-register` |
+| On-chain | Scaffold Stellar template | [Developer tools](/tools#scaffold-stellar-template) | `examples/scaffold-stellar` |
+| Tool | `stellar scf` CLI plugin | [Developer tools](/tools#the-stellar-scf-cli) | `examples/stellar-scf-cli` |
+| Tool | GitHub Action that keeps tracker pins current | [Developer tools](/tools#github-pin-action) | `examples/pin-action` |
+| Tool | MCP server (hosted and local) | [Developer tools](/tools#mcp-server) | `examples/mcp-claude` |
+| Tool | Live README badges | [Developer tools](/tools#badges) | none: the card generates the badge |
+
+Every example's README has the same parts: three steps (install, set your key, run), the lines that add UsageMap,
+what you will see in the app, and the test command that works without the app.
+
+<Callout title="npm packages are not on the registry yet">
+  The `@scf-analytics` packages (tracker, wallet adapters, edge, Stellar SDK, payments, partner and anchor packages)
+  are published to npm together with the public repository. Until then, use the script tag for websites, or install a
+  package from the release.
+</Callout>

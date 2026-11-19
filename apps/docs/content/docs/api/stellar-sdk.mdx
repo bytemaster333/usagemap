@@ -1,0 +1,64 @@
+---
+title: Stellar SDK calls
+description: Measure the Stellar RPC and Horizon calls your backend makes, from Node.js (stellar-otel) or Python (stellar-otel-py).
+icon: Network
+---
+
+Two small packages measure the calls your **server** makes to Stellar RPC and Horizon: latency per RPC method or
+Horizon route, and the outcome class of submissions, polls and simulations. They record through your own
+OpenTelemetry setup and never record an address, hash, XDR, key or URL.
+
+The figures appear under **By Stellar surface** on the API dashboard. They describe the health of your outbound calls,
+and never count as API traffic. (Calls made from a browser are measured by the tracker instead:
+[Stellar RPC from the browser](/wallets#stellar-rpc-from-the-browser).)
+
+<Tabs items={["Node.js (stellar-otel)", "Python (stellar-otel-py)"]} persist>
+<Tab value="Node.js (stellar-otel)">
+
+For `@stellar/stellar-sdk` 17:
+
+```ts
+import { Horizon, rpc } from "@stellar/stellar-sdk";
+import { instrumentHorizon, instrumentStellarRpc } from "@usagemap/stellar-otel";
+
+export const server = new rpc.Server("https://soroban-testnet.stellar.org");
+instrumentStellarRpc(server, { network: "testnet" });
+instrumentHorizon(new Horizon.Server("https://horizon-testnet.stellar.org"), { network: "testnet" });
+```
+
+1. **Install** `@usagemap/stellar-otel` from the release (it is not on the npm registry yet), next to your
+   OpenTelemetry setup.
+2. **Set your key:** register the service and create an ingest token, then
+   `export OTEL_SERVICE_NAME=my-backend OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=https://e1.usagemap.dev/v1/metrics
+   OTEL_EXPORTER_OTLP_METRICS_HEADERS="Authorization=Bearer%20scfa_ing_…"`.
+3. **Run** your backend; the metrics are exported every interval and once on exit.
+
+Example: `examples/stellar-rpc-node`.
+
+</Tab>
+<Tab value="Python (stellar-otel-py)">
+
+For `py-stellar-base`: pass the instrumented client to each server.
+
+```python
+from scf_stellar_otel import HorizonClient, StellarRpcClient
+
+rpc = SorobanServer(RPC_URL, client=StellarRpcClient(network="testnet"))
+horizon = Server(HORIZON_URL, client=HorizonClient(network="testnet"))
+```
+
+1. **Install** `stellar-otel-py` from the release (it is not on PyPI yet), next to your OpenTelemetry setup.
+2. **Set your key:** the same `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` and
+   `OTEL_EXPORTER_OTLP_METRICS_HEADERS` as for Node.js.
+3. **Run** your backend; the metrics are exported every interval and once on exit.
+
+Example: `examples/stellar-rpc-python`.
+
+</Tab>
+</Tabs>
+
+## Test it
+
+The Integrations cards **Stellar SDK calls** give you the [API test command](/integrations#the-three-test-commands)
+with your service name filled in. Their test point is sent in the package's own metric, so it also shows that
+UsageMap accepts that metric. It is never counted.

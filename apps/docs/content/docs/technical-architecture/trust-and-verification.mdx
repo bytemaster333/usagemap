@@ -1,0 +1,313 @@
+---
+title: Trust and verification
+description: How much anyone can trust each number UsageMap shows, what each label means, and which checks stand behind it.
+icon: ShieldCheck
+---
+
+A usage number is only useful to a reader if they know how it was produced and how hard it is to fake. UsageMap
+answers this per number: every figure carries one of three labels that says where it comes from, the checks behind
+it are published, and the limits of those checks are stated next to it. Advisory signals (a trust score, anomaly
+flags, assurance levels) sit beside the numbers and never change them, so a reader always sees the raw figure, the
+filtered figure and the reasons for the difference.
+
+<Facts>
+  <Fact label="Where it lives">`services/gateway` (verdicts), `services/jobs` (trust score, API assurance), `services/control-plane` (flags, ladder, snapshots)</Fact>
+  <Fact label="Algorithms">`trust/1.0.0`, `A1-1.0.0`, methodology `scf-methodology/1.0.0`</Fact>
+  <Fact label="Runs">verdicts per request; scores daily at 03:00 UTC</Fact>
+  <Fact label="Status"><Status kind="live" /></Fact>
+</Facts>
+
+## Three labels, three kinds of evidence
+
+The three data sources are not equally strong, so UsageMap never mixes them into one number. Each figure in the
+portal, the operator console and the public pages carries its label.
+
+<Zones cols={3} caption="Each source has its own label. The label says what kind of evidence stands behind the number, not how large it is.">
+  <Zone title="Web" kind="public" note="Label: Verified">
+    <Node icon={<Globe />} title="Website visits" sub="Pinned tracker script" tone="web">
+      - challenge and proof of work
+      - bot and network checks
+      - raw shown next to verified
+    </Node>
+  </Zone>
+  <Zone title="API" kind="outside" note="Label: Self-reported">
+    <Node icon={<Server />} title="API requests" sub="OpenTelemetry from the project's servers" tone="api">
+      - valid ingest token
+      - plausibility checks
+      - cannot be proven genuine
+    </Node>
+  </Zone>
+  <Zone title="On-chain" kind="stellar" note="Label: Ledger-checked">
+    <Node icon={<Blocks />} title="Contract invocations" sub="Public Stellar ledger data" tone="chain">
+      - only verified contracts
+      - read from ledger files
+      - anyone can recount
+    </Node>
+  </Zone>
+</Zones>
+
+| Label | Applies to | What it means | What it does not mean |
+|---|---|---|---|
+| **Verified** | web page views and daily visitors | the event passed the gateway's anti-inflation checks: a valid challenge token, a solved proof of work, and no suspect reason | that a human visited, or that SCF or SDF endorsed the project |
+| **Self-reported** | API requests, error rate, latency | the project's own servers reported the figures with a valid ingest token, and the daily plausibility checks ran on them | that the requests happened; a server can report anything |
+| **Ledger-checked** | invocations and distinct invokers of the project's contracts | counted by UsageMap from public ledger data, only for contracts whose deployer or current admin is a proven account of the project | that each invoker is a separate person; relayers and the project's own accounts count too |
+
+"Verified" is also used for one other thing — a contract whose ownership was checked on the ledger — and the text
+always says which one it means. The wording rule of the methodology forbids "SCF verified", "certified usage" and
+"genuine users" in every output. How contracts are checked and counted is on the
+[Stellar integration](/technical-architecture/stellar-integration) page.
+
+## Web: how an event earns "Verified"
+
+The site key in the tracker is public, so anyone can send events for any site. The gateway therefore treats every
+event as a claim and checks it in layers before it is counted. Each layer has a stated limit (ADR-0008).
+
+<Flow caption="The tracker earns a token and a proof before its first event. The gateway gives every event a verdict; only verified events count towards the Verified figures and the daily quota.">
+  <Node icon={<Globe />} title="Browser" sub="Tracker script" tone="web" />
+  <Arrow label="GET challenge" />
+  <Node icon={<Cpu />} title="Proof of work" sub="Solved in the page" tone="plain">
+    - PBKDF2, 512 iterations per try
+    - about 0.3 s median
+  </Node>
+  <Arrow label="event + token + proof" />
+  <Node icon={<Shield />} title="Gateway" sub="Checks and verdict" tone="ink">
+    - verified, suspect or rejected
+    - answers 202 to every valid request
+  </Node>
+  <Arrow label="v / s tag" />
+  <Node icon={<Database />} title="Analytics store" sub="Rejected never arrives" tone="store" />
+</Flow>
+
+<Steps>
+<Step>
+**Payload rebuild (L0).** The gateway builds a new record from an allow-list of fields. The client cannot choose the
+time, the IP address, the User-Agent or the hostname that reach storage; unknown fields are dropped.
+</Step>
+<Step>
+**Origin binding (L1).** The `Origin` host must be one of the site's declared domains, otherwise the event is
+rejected (`origin_mismatch`). A declared but not yet verified domain makes the event suspect (`domain_unverified`).
+</Step>
+<Step>
+**Signed challenge (L2).** Before the first event the tracker fetches a token: an HMAC over the site, the issue time, the
+truncated network and the reduced browser class, keyed with an hourly key. A token is accepted for 30 minutes. No token or a
+forged one is a rejection.
+</Step>
+<Step>
+**Proof of work (L3).** The tracker solves a PBKDF2 puzzle bound to the token: 512 iterations per attempt over a
+counter space of 1,024 at base difficulty, which took about 0.3 s in the median in our timing tests. Difficulty rises up to eight times
+for a site or network that sends abnormal volume. One proof covers one page load, up to 300 events per token.
+</Step>
+<Step>
+**Request consistency and bot list (L4, L5).** Fetch-metadata headers, client hints and, on `standard` sites, three
+browser booleans (automation flag, hidden page, user activation). Header combinations a browser cannot produce are
+rejected. The `isbot` list Umami itself uses is applied to the raw User-Agent before it is reduced.
+</Step>
+<Step>
+**Multiplicity and network class (L6).** In memory, per site and truncated network, the gateway counts distinct
+visitor pseudonyms in a 10-minute window; above a threshold that depends on the network class the events become
+suspect. Datacenter networks alone make an event suspect; VPN and Tor networks only lower the thresholds.
+</Step>
+<Step>
+**Daily aggregate analysis (L7).** The trust score and anomaly flags described below.
+</Step>
+</Steps>
+
+### Verdicts
+
+| Verdict | When | Effect |
+|---|---|---|
+| `verified` | valid token and proof, no suspect reason | counted in Verified and in Raw; counts towards the daily quota |
+| `suspect` | for example `proof_missing`, `net_datacenter`, `multiplicity_high`, `automation_flag`, `header_inconsistent`, `domain_unverified`, `rate_anomaly` | stored with tag `s`; counted in Raw only |
+| `rejected` | for example `challenge_missing`, `challenge_invalid`, `proof_invalid`, `origin_mismatch`, `ua_bot`, `fetch_impossible`, `token_flood` | never stored as an event; only counted per site, day and reason |
+
+Every well-formed request gets the same `202` answer whatever its verdict, so the response tells a bot nothing about
+which check it failed. Verdict and reason counts per site and day are stored for 25 months and shown to the project on
+its installation check page and to SCF operators. Daily quotas count verified events only, so a competitor who floods
+a site with junk cannot use up its quota.
+
+<Callout type="warn" title="What the web checks cannot prove">
+A real headless browser on residential proxies passes L0–L5 and is only *detectable* by L6–L7. A scripted client with
+copied headers and the open-source solver passes the challenge and the proof. The checks raise the cost of inflation
+and make it visible; they cannot prove that a person was behind a page view. An attacker can also pollute another
+project's Raw figures; this shows up as a rise in the suspect share, which the project and SCF operators can annotate.
+</Callout>
+
+## API: plausible, not proven
+
+API figures come from the project's own servers through OpenTelemetry. UsageMap cannot observe those requests, so it
+does not call them verified. Instead, the daily `trust_scoring` job gives every API service an assurance level per
+day (algorithm `A1-1.0.0`). Levels are cumulative.
+
+| Level | Check | Reason codes when it fails |
+|---|---|---|
+| **A0** | the data arrived with a valid ingest token; the tenant is bound on the server, never taken from the payload | — (every row has A0) |
+| **A1** | plausibility: no malformed or negative points and status codes in 100–599 (`status_mix`); with at least 1,000 requests, a mean latency of at least 0.1 ms (`latency`); requests at most 10 × the median of at least 7 earlier days (`rate`); no route-cardinality overflow (`route_profile`) | `a1_status_mix_implausible`, `a1_latency_implausible`, `a1_rate_implausible`, `a1_route_profile_implausible` |
+| **A2** | liveness probe of the service's declared public base URL | `a2_no_base_url` when none is declared |
+| **A3** | separate badge: on a day the API reported requests, did any verified contract of the project have a successful invocation? `consistent`, `inconsistent`, `unavailable` or `not_applicable` | `a3_onchain_inconsistent`, `a3_no_verified_contract`, `a3_not_applicable` |
+
+A2 is designed but not produced today <Status kind="planned" />: the jobs service has no outbound network access, so
+the stored A2 status is `not_probed` and the highest level a service reaches is A1. A1 says the numbers are
+*plausible*, not that they are true: a server that invents a steady, well-shaped stream of requests passes it. The A3
+badge is the only check that ties API activity to something outside the project's control, and only for projects
+whose API leads to contract calls.
+
+## The trust score `trust/1.0.0`
+
+The trust score is an advisory number from 0 to 100 per website and day, computed in two windows (1 day and 28 days)
+from aggregate counters only — it never reads individual events. It never changes a count, never blocks anything and
+is never published in snapshots, public pages or the metrics document. The project sees its own score and reasons
+exactly as SCF operators do.
+
+The formula is a weighted penalty. Each component turns one measured share into a penalty `p` between 0 and 1,
+linear between a published lower threshold (`lo`, no penalty) and upper threshold (`hi`, full penalty):
+
+```text
+p   = clamp((value − lo) / (hi − lo), 0, 1)
+T   = round(100 − Σ weight × p)          weights sum to 100
+```
+
+| Component | Weight | Measures | lo → hi |
+|---|---|---|---|
+| `proof_coverage` | 25 | share of raw page views that are not verified | 0.10 → 0.60 |
+| `network_quality` | 15 | share of events from datacenter, VPN or Tor networks | 0.10 → 0.50 |
+| `multiplicity` | 15 | share of events in the high multiplicity bucket (many pseudonyms from few networks) | 0.05 → 0.30 |
+| `engagement` | 15 | share of events with an automation flag, a hidden page or no user activation (`standard` sites only) | 0.20 → 0.70 |
+| `mix` | 10 | Jensen–Shannon divergence of the day's device or country mix from the previous 28 days (the larger one) | 0.10 → 0.50 |
+| `temporal` | 10 | the larger of a step (day ÷ median of earlier days) and a burst (largest hourly share of the day) | step 3 → 10, burst 0.25 → 0.75 |
+| `pow_latency` | 5 | share of proofs of work solved in under 100 ms | 0.05 → 0.50 |
+| `cross_signal` | 5 | neutral in 1.0.0: always `p = 0` | — |
+
+Rules that keep the score fair:
+
+- A component without input is **omitted** and adds no penalty. A `strict` site sends no browser signals, so
+  `engagement` is omitted for it; `mix` and the step half of `temporal` need at least 7 days of history. A missing
+  signal never lowers a score.
+- Below 10 raw page views in the window there is no score, only the code `insufficient_data`.
+- Every component with a penalty emits its reason code (for example `proof_coverage_low`, `multiplicity_share_high`,
+  `burstiness_high`), so the reader sees *why* a score is low.
+- The weights are the platform setting `trust_weights`; a build refuses to run when the stored algorithm version does
+  not match its own, and the weights must sum to 100.
+- The thresholds are absolute and not yet calibrated against real traffic. Ecosystem percentiles of each component are
+  attached only when at least 20 projects are active, and are informational.
+
+<Sequence actors={["Jobs", "PostgreSQL", "Control plane", "SCF operator"]} caption="Scores are computed once a day from stored aggregates. An operator reads them through an audited function; the read itself leaves an audit row.">
+  <Msg from="Jobs" to="PostgreSQL" note="03:00 UTC, for D-1 and D-4">read daily counters</Msg>
+  <Msg from="Jobs" to="Jobs" note="windows 1 and 28 days">score each site</Msg>
+  <Msg from="Jobs" to="PostgreSQL" note="under the project's context">write web_trust_scores</Msg>
+  <Msg from="SCF operator" to="Control plane">open Web › Trust scores</Msg>
+  <Msg from="Control plane" to="PostgreSQL" note="writes an audit row">op_trust(range)</Msg>
+  <Msg from="Control plane" to="SCF operator" note="lowest first">score, band, signals</Msg>
+</Sequence>
+
+The job scores each day twice: the day before (as soon as the hourly rollup has closed it) and three days later, when
+the rollup is final. In the operator console a score of 80 or more is shown as high, 50–79 as medium and below 50 as
+low; a site without a score shows a dash with the reason. Selecting a site shows each component's value, penalty and
+weight. Components and the decision rate are withheld when the score itself is withheld.
+
+## Anomaly flags and appeals
+
+An anomaly flag is a trust-score or assurance reason code on a day. Flags are advisory: they inform the reader, they
+never change a count, and UsageMap never ranks or excludes a project because of them.
+
+<Steps>
+<Step>
+**The project sees every flag** with its reason codes and inputs on its own Trust page, as SCF operators do.
+</Step>
+<Step>
+**The project explains it** with an annotation on the period, for example a launch campaign, listing the codes it
+explains. That closes those flags in snapshot counts; the annotation stays visible to SCF operators.
+</Step>
+<Step>
+**An SCF operator reviews** and records a decision as an operator annotation: marked explained, or left open with a
+reason the project can read. Operator actions go into the audit log.
+</Step>
+<Step>
+**SCF decides** what a flag means for a programme. The platform provides the record.
+</Step>
+</Steps>
+
+Signed traction snapshots carry the number of open flags as two counts (web and API) — never the codes, days or
+sites — and a confidence level computed from them and from the data:
+
+| Confidence | Rule |
+|---|---|
+| `insufficient` | under 10 raw page views in the period, and neither API nor on-chain data |
+| `high` | no reason applies |
+| `medium` | exactly one reason applies |
+| `low` | two or more reasons apply |
+
+The reasons are `few_events` (raw page views under 10 per day of the period), `partial_coverage` (web events on fewer
+than 80 % of the days), `days_not_final`, `high_suspect_share` (over 30 % of page views suspect),
+`open_anomaly_flags`, `domain_unverified` (project at L0) and `no_verified_contracts` (on-chain counting on, nothing
+verified).
+
+## The verification ladder: who is behind a project
+
+Separate from the numbers, the ladder records how much UsageMap knows about *who* runs a project. The level is
+computed from stored evidence, each piece re-checked on its own schedule; it is shown to SCF operators and is not a
+gate, except that L0 projects are limited to 2 sites, 1 API service, 50,000 web events and 100 API routes per day,
+and operator views list L1 and above by default.
+
+<Flow caption="Every project starts at L0 (unverified). The level is the highest one whose evidence is valid. L2 and L3 each need domain control plus one more kind of evidence; L4 is a decision by an SCF operator.">
+  <Node icon={<Globe />} title="L1" sub="Domain control" tone="web" />
+  <Arrow label="+ account" />
+  <Node icon={<KeyRound />} title="L2" sub="Stellar-linked" tone="chain" />
+  <Arrow label="+ registry" />
+  <Node icon={<BookCheck />} title="L3" sub="Registry match" />
+  <Arrow label="operator" />
+  <Node icon={<BadgeCheck />} title="L4" sub="Approved" tone="ink" />
+</Flow>
+
+| Level | Evidence |
+|---|---|
+| L1 | control of a declared domain: a DNS TXT record, a `/.well-known/` file or a meta tag. Re-checked daily in the first week, then weekly; after a failed check a 14-day grace period, then the evidence lapses and the level drops |
+| L2 | domain control **and** a Stellar account linked by a SEP-53 message signature that meets the account's medium threshold, whose `home_domain` is a verified domain of the project and whose `stellar.toml` lists the account |
+| L3 | domain control **and** a confirmed match to an SCF-awarded project in a public registry (Stellarlight, PG Atlas), synced nightly with provenance; matches are made on domains or verified contracts, never on names |
+| L4 | an approval recorded by an SCF operator |
+
+The lifecycle state is separate: `pending` (in approval mode; ingest refused), `active`, `suspended` (ingest stops,
+data kept), `removed` (ingest stops, data hidden, purged after 30 days). The Stellar side of L2 is described on the
+[Stellar integration](/technical-architecture/stellar-integration) page.
+
+## The published methodology
+
+Every definition, threshold, weight and floor on this page is published as a versioned document:
+[scf-methodology/1.0.0](https://app.usagemap.dev/docs/methodology/1.0.0). Every snapshot names the version it was
+computed under, and the version in force at an SCF round's closing date applies to that round; a change after
+the deadline takes effect from the next round. A change that can move a figure, score or confidence is a new minor or
+major version, and old versions stay published.
+
+## Signatures, the daily seal and public pages
+
+- **Signature.** Each traction snapshot is signed with the platform's Ed25519 key over its canonical JSON. Anyone can
+  check it at `/verify/<snapshot>` or with the published key. It proves UsageMap issued exactly this document — not
+  that the traffic behind it was real. <Status kind="live" />
+- **Series.** Snapshots are numbered per project, each carrying the hash of the one before, and all of them, revoked
+  ones included, are listed publicly. A withheld snapshot shows as a gap, so picking the best of many windows is
+  visible.
+- **Daily seal (opt-in).** Once a day one Stellar transaction anchors a Merkle root over the previous day's root, the
+  audit log anchor and the snapshots signed that day. It is tamper-evidence of published numbers, never proof that
+  they are genuine, and it is currently written to Stellar testnet. How it is built and checked is on the
+  [Stellar integration](/technical-architecture/stellar-integration) page.
+- **Public project pages.** `/p/<slug>` shows a project's metrics document with small counts suppressed. It is off by
+  default: it is readable without a key only after the project switches public statistics on, otherwise only with a
+  read-only share key the project creates. A private, unknown or removed project answers the same "not available", so
+  the page reveals nothing about which projects exist. <Status kind="live" />
+
+## Limits
+
+- The web checks raise the cost of inflation; they do not prove humans. Paid people on real devices pass everything.
+- API figures are self-reported. A1 checks shape, not truth; A2 is not running yet.
+- The trust thresholds are not calibrated against real traffic; treat the score as a pointer to look closer.
+- Multiplicity counts are per gateway node. On today's single VM this has no effect; in the multi-node design for
+  later, spreading traffic over nodes would divide the count.
+- Distinct invokers include relayers, sponsors and the project's own accounts; they are a lower bound of end users.
+- The seal runs on testnet, which is reset several times a year; a testnet seal is a demonstration, not durable
+  evidence.
+
+## Related
+
+- [Web analytics](/technical-architecture/web-analytics) — the tracker, gateway and engine in detail
+- [API analytics](/technical-architecture/api-analytics) — the OpenTelemetry path behind Self-reported figures
+- [Stellar integration](/technical-architecture/stellar-integration) — contract verification, ledger counting, the seal
+- [Data, privacy and isolation](/technical-architecture/data-and-privacy) — what the checks may and may not keep

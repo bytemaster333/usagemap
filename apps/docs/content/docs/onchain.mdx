@@ -1,0 +1,59 @@
+---
+title: Smart contracts
+description: Register your Soroban contracts and see their daily on-chain usage next to your website and API numbers.
+icon: Blocks
+---
+
+UsageMap can count how often your contracts are used on the Stellar network: **daily invocations, successful
+invocations and distinct callers**, on mainnet. It reads public ledger data; you don't install anything.
+
+<Steps>
+<Step>
+### Prove you own a Stellar account
+
+In your project, open **Verification** and link the Stellar account that deployed (or administers) your contracts, by
+signing a message with it.
+</Step>
+<Step>
+### Register your contracts
+
+Open **Set-up wizard → Stellar contracts** (or **Register your Stellar contracts**) and add each contract ID (`C…`)
+with its network, mainnet or testnet. A contract is **verified** when its deployer or admin is one of your linked
+accounts.
+
+No contracts? Choose **no footprint** so the dashboard stops asking.
+</Step>
+<Step>
+### See the numbers
+
+The **Overview** tile **On-chain invocations** shows the last 30 days for your verified mainnet contracts, and the
+website's **Wallets** tab shows the same counts next to the wallet funnel.
+</Step>
+</Steps>
+
+<Callout type="info" title="Counting has to be switched on">
+  On-chain counting is off until a project owner or admin turns it on. There is no switch in the app yet: send
+  `PATCH /v1/tenants/{project_id}` with `{"onchain_correlation_enabled": true}` while signed in. The project's
+  **Overview** shows whether it is on.
+</Callout>
+
+<Callout>
+  On-chain counts are shown **next to** your web and wallet numbers, never joined with them: UsageMap does not know
+  which visitor made which transaction, by design.
+</Callout>
+
+Only contract IDs can be registered today. Issuing accounts, app accounts and WASM hashes aren't supported yet.
+
+## Register from your deploy script
+
+A **footprint registration key** (`scfa_reg_…`) lets your deploy script or the Scaffold Stellar template add each
+newly deployed contract as `claimed`, so you don't have to type contract IDs into the app. It can do nothing else.
+See [Developer tools](/tools#footprint-registration-keys); example: `examples/footprint-register`.
+
+## DeFi protocols your users touch
+
+Once a contract is verified, the **Protocols** page of your project shows, per day, how many of the transactions that
+touch your contracts also touch **Blend, Soroswap, DeFindex, Aquarius or Reflector**. The counts come from the public
+ledger and are exact, but they are **lower bounds**: contracts a protocol creates at run time that UsageMap's curated
+list does not include are not seen. Only the protocol name is kept, never an account or another contract. These
+figures are for your team; SCF operators see them per project, never on a public page.

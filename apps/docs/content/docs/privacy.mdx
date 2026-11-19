@@ -1,0 +1,60 @@
+---
+title: Privacy and data
+description: What UsageMap collects, what it never collects, how long it keeps data, and how to erase it.
+icon: ShieldCheck
+---
+
+## Never stored
+
+<Features>
+  <Feature icon={<EyeOff />} title="About visitors">
+    IP addresses, raw user-agent strings, cookies, cross-site identifiers, wallet addresses and transaction hashes.
+  </Feature>
+  <Feature icon={<Link2Off />} title="About pages">
+    Query strings (including UTM tags), `#fragments`, page titles and full referrer URLs. Only the referrer's host is kept.
+  </Feature>
+  <Feature icon={<Ban />} title="Never shown">
+    Lists of visitors, session replays, city or region, and anything that could identify one person.
+  </Feature>
+  <Feature icon={<Lock />} title="Secrets">
+    Stellar secret seeds, tokens, API keys and e-mail addresses found in paths are replaced with `{redacted}` before storage.
+  </Feature>
+</Features>
+
+## What is collected
+
+| Source | Data |
+|---|---|
+| Website, **standard** profile | Page path, referrer host, screen-size class, language, country (derived from a shortened IP address that is then discarded), device, browser and OS family, custom events |
+| Website, **strict** profile | Page path only, plus country, device, browser and OS family |
+| Wallets | Wallet type, network, outcome and a duration bucket |
+| APIs | Service, route (with IDs replaced), method, status code and duration |
+| Contracts | Public on-chain data about your registered contracts |
+
+If you turn off the **visitor identifier** for a website, only page views, countries and devices are counted, with no
+unique visitors.
+
+## Visitor choices
+
+- **Global Privacy Control** and **Do Not Track** are honoured: the tracker sends nothing.
+- **Opt-out**: `optOut()` stops sending and stores one flag in the browser.
+- **Consent mode**: nothing is sent before your banner calls `grantConsent()`. See [consent mode](/web/events-and-consent#consent-mode).
+
+## Retention
+
+| Data | Kept for |
+|---|---|
+| Individual web events | 90 days |
+| Hourly figures | 25 months |
+| Daily figures | As long as the project exists |
+| Backups | Cleared within 56 days |
+
+## Erasing data
+
+Open **Data erasure** in your project. Choose one website, one API service or the whole project, narrow it down by
+days, path pattern, event name or property, preview what will be deleted, then confirm. You get a completion report
+when it's done.
+
+## Where data is stored
+
+In the EU: data is processed and stored in one EU region, with backups in the same region.

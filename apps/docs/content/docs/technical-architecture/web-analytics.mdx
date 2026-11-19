@@ -1,0 +1,315 @@
+---
+title: Website analytics pipeline
+description: How one page view travels from the pinned tracker script through the gateway and the Umami engine to a number on your dashboard.
+icon: Globe
+---
+
+This page follows one page view from a visitor's browser to a number on your dashboard. Every step names the part that
+does the work and what it keeps or drops. The design has one goal: count real visits on Stellar ecosystem websites
+without cookies and without storing anything that identifies a visitor. Fake page views should be expensive to make
+and easy to see.
+
+<Facts>
+  <Fact label="Where it lives">`tracker`, `services/gateway`, `services/engine-proxy`, `vendor/umami`, `services/jobs`, `services/control-plane`</Fact>
+  <Fact label="Language">TypeScript (tracker, jobs, control plane), Go (gateway, engine proxy)</Fact>
+  <Fact label="Ingest hosts">`e1.usagemap.dev`, `e2.usagemap.dev`</Fact>
+  <Fact label="Status"><Status kind="live" /> Umami 3.5.0, unmodified</Fact>
+</Facts>
+
+## The whole path
+
+<Flow caption="A page view goes left to right. The visitor's IP address and raw browser string never get past the gateway.">
+  <Node icon={<Globe />} title="Browser" sub="Tracker 1.2.0" tone="web">
+    - path only
+    - no cookies
+    - solves a puzzle
+  </Node>
+  <Arrow label="POST /v1/e" />
+  <Node icon={<Shield />} title="Gateway" sub="Checks, labels" tone="ink">
+    - day pseudonym
+    - drops IP, raw UA
+    - fsync, then 202
+  </Node>
+  <Arrow label="mTLS" />
+  <Node icon={<Server />} title="Umami" sub="Behind engine proxy" tone="plain">
+    - 30-min visit rule
+    - stores events
+  </Node>
+  <Arrow label="live or rollup" />
+  <Node icon={<LayoutDashboard />} title="Portal" sub="Your dashboard" tone="web">
+    - verified and raw
+    - 7 metrics
+  </Node>
+</Flow>
+
+Today every part runs on one virtual machine in an EU region. Both ingest host names point to that
+machine. The tracker uses the second name only when the first does not answer. The design also allows separate edge
+and core servers at two providers. That is an option for later, not what runs now (see
+[Hosting and operations](/technical-architecture/hosting-and-operations)).
+
+## Step by step
+
+<Steps>
+<Step>
+
+### The browser loads a pinned script
+
+Your page loads the tracker with a script tag that names an exact version and its SHA-384 hash:
+`https://e1.usagemap.dev/lib/1.2.0/standard.js` with `integrity="sha384-…"`. If one byte differs from the hash, the
+browser refuses to run the script (Subresource Integrity). There is no `latest` URL and no remote configuration. We
+cannot change the code on your page; you upgrade on purpose. A version withdrawn for a security defect answers
+`410 Gone`. Your page still works, but nothing is sent. An npm package of the same tracker is built but not yet
+published on the public registry.
+
+There are two builds of each version:
+
+| Profile | Sends with each page view | Size limit (gzip) |
+|---|---|---|
+| `standard` | path, referrer host (first page view of a page load only), screen-width class (4 values), primary language, browser signals (automation flag, page visibility, user activation), Wallets Kit presence | 3.5 kB |
+| `strict` | path only | 2.5 kB |
+
+The `strict` build does not contain the code that reads the other fields, so it cannot send them by mistake. Both builds
+use the same checks, so `strict` traffic can still count as verified.
+
+</Step>
+<Step>
+
+### The tracker decides whether it may send
+
+The tracker sets no cookies. The only thing it ever writes to browser storage is an opt-out flag, and only when the
+visitor opts out. It sends nothing when:
+
+- the browser sends Global Privacy Control or Do Not Track;
+- the visitor opted out (`optOut()`);
+- the site uses `data-consent="required"` and your consent tool has not called `grantConsent()`. Calls made before
+  consent are dropped, not queued.
+
+It reads `location.pathname` only. Query strings and fragments are never sent. Page titles are not collected. Each
+event gets a random 128-bit ID that lives only in page memory, so retries can be recognised.
+
+</Step>
+<Step>
+
+### Proof of work before the first event
+
+Before the first event, the tracker calls `POST /v1/c` with the site key. The gateway answers with a signed token and a
+puzzle. The token is valid for 30 minutes. It is bound to the site, the time, the visitor's truncated network and the
+browser family. The puzzle asks for a counter value, out of 1,024 by default, whose PBKDF2-SHA-256 output (512
+iterations per try) starts with 32 given bits. The browser does this work with WebCrypto, off the main thread.
+
+For one visitor this costs a fraction of a second. For someone who wants a million fake page views it costs real CPU
+time. When a site gets a burst of traffic, the gateway can raise the difficulty, up to 8 times the default. If the page
+is hidden before the puzzle is solved, the event is sent without a proof and labelled `suspect`. The tracker asks for
+a new token after 25 minutes or 300 events.
+
+</Step>
+<Step>
+
+### The gateway checks, strips and labels
+
+`POST /v1/e` carries up to 10 events (8 KiB at most). The gateway runs the steps below in memory, in this order:
+
+1. **Format and site.** It checks the closed JSON schema and finds the site by its public key. It checks the page's
+   `Origin` against your declared domains, the challenge token and proof, the browser's fetch headers and the
+   connection's TLS fingerprint against the claimed browser. It also checks the bot list Umami uses (`isbot`), applied
+   to the raw User-Agent.
+2. **Rate limits.** A per-network limit and a per-site limit. Traffic without a valid token gets its own budget, so a
+   flood cannot crowd out real visitors.
+3. **One-day pseudonym.** HMAC-SHA-256 over the full IP address and the raw User-Agent, with a key that exists only in
+   the gateway's locked memory. The key is replaced at 00:00 UTC and never written to disk. The same visitor gets a
+   new pseudonym every day, and nobody, including us, can turn it back into an address. If you switch visitor IDs off
+   for a site (or for some countries), each event gets a random value instead.
+4. **Country.** The address is cut to /24 (IPv4) or /48 (IPv6), then looked up in DB-IP Lite Country. Unknown
+   gives `XX`. Countries you excluded are dropped and only counted.
+5. **Browser.** The User-Agent is reduced to browser family, major version, OS and device class. A fixed synthetic
+   string takes its place.
+6. **Path.** The path goes through the same rule set as API routes ([`pathnorm`](/technical-architecture/api-analytics#paths-become-route-templates)).
+   Stellar addresses, hashes and long numbers become placeholders such as `{account}` or `{hash}`. Secret seeds,
+   tokens, e-mail addresses and phone numbers become `{redacted}`. The `relaxed` setting keeps numbers, dates and
+   slugs. Nothing can keep a StrKey or a seed.
+7. **Verdict.** Every event is labelled `verified`, `suspect` or `rejected`, with reason codes (next section).
+
+Then the raw IP address and raw User-Agent are gone. They were never logged, spooled or forwarded.
+
+</Step>
+<Step>
+
+### Written to disk, then 202
+
+Verified and suspect events are appended to a local spool and `fsync`'d. Only then does the gateway answer
+`202 Accepted`. It sends the same `202` for a rejected event, so a script cannot learn how it was classified. Rejected
+events are only counted, never stored. Errors that do not reveal a verdict keep their own codes: `400` malformed, `404`
+unknown site, `410` withdrawn version, `429` and `503` with `Retry-After`.
+
+</Step>
+<Step>
+
+### Forwarded to Umami through the engine proxy
+
+A forwarder inside the gateway reads the spool and sends each record to the engine proxy over mutual TLS. Records
+carry the pseudonym in place of an IP address, the country, the synthetic browser string, the receipt time and a tag:
+`v` (verified) or `s` (suspect). The engine proxy is the only way to reach Umami. It allows the gateway's certificate
+one route (`POST /api/send`) and drops a second copy of the same event within one hour. A record that cannot be
+delivered for 72 hours is discarded and counted.
+
+</Step>
+<Step>
+
+### Read from Umami or from rollups
+
+Umami stores each event and computes the web metrics. A `jobs` service reads Umami's tables through read-only views
+and writes hourly and daily totals per site into our own database. When you open the dashboard, the control plane
+answers recent days live from Umami and older days from those totals (details below).
+
+</Step>
+</Steps>
+
+<Sequence actors={["Tracker", "Gateway", "Engine proxy", "Umami"]} caption="Collecting one page view. Steps 7 and 8 happen before the browser gets its answer in step 9; steps 10 to 12 run after it.">
+  <Msg from="Tracker" to="Gateway" note="checked against the SRI hash">GET /lib/1.2.0/standard.js</Msg>
+  <Msg from="Tracker" to="Tracker" note="stop on GPC, DNT, opt-out, no consent">Check privacy signals</Msg>
+  <Msg from="Tracker" to="Gateway" note="public site key">POST /v1/c</Msg>
+  <Msg from="Gateway" to="Tracker" note="valid 30 min, bound to site and network">Signed token + puzzle</Msg>
+  <Msg from="Tracker" to="Tracker" note="PBKDF2 in WebCrypto">Solve the puzzle</Msg>
+  <Msg from="Tracker" to="Gateway" note="path, event ID, token, proof">POST /v1/e</Msg>
+  <Msg from="Gateway" to="Gateway" note="IP and raw UA dropped here">Check, pseudonym, verdict</Msg>
+  <Msg from="Gateway" to="Gateway" note="fsync before answering">Append to spool</Msg>
+  <Msg from="Gateway" to="Tracker" note="same answer for every verdict">202 Accepted</Msg>
+  <Msg from="Gateway" to="Engine proxy" note="mTLS, tag v or s">POST /api/send</Msg>
+  <Msg from="Engine proxy" to="Umami" note="visit token only if last event ≤ 30 min ago">Event + visit token</Msg>
+  <Msg from="Umami" to="Engine proxy" note="kept in memory, never returned">200 + visit token</Msg>
+</Sequence>
+
+## Verified, suspect, rejected
+
+We cannot prove that a human sent an event. The labels make cheap inflation fail and expensive inflation visible.
+
+| Label | When | What happens |
+|---|---|---|
+| `rejected` | Known bot User-Agent, page origin not one of your domains, missing, forged or expired challenge, wrong proof, more than 300 events on one token, headers no browser can produce, project pending or suspended | Counted per reason, never stored |
+| `suspect` | No proof (page hidden too early), origin missing, domain not yet verified, data-centre network, automation flag, TLS fingerprint does not match the claimed browser, many visitors from one address, sudden rate jump on the site, page hidden or pre-rendered | Stored with tag `s` |
+| `verified` | None of the above | Stored with tag `v` |
+
+The per-reason counters are visible to you on the installation check, and they feed the trust score described in
+[Trust and verification](/technical-architecture/trust-and-verification).
+
+## Why Umami, and why unmodified
+
+[Umami](https://umami.is) is an open-source (MIT) web analytics engine. It has well-defined sessions, visits, bounces
+and breakdowns. We run release 3.5.0 at a pinned commit, built from source by us. Our patch directory is empty. We use
+it unmodified because a fork would be ours to maintain alone, and because anyone can check our numbers against the
+upstream code. Everything we need around it lives outside it:
+
+- Umami sits on an internal Docker network with no published port. Only the engine proxy reaches it.
+- It never sees a real IP address. The engine proxy refuses any address outside the documentation range `2001:db8::/32`,
+  where our pseudonyms live.
+- Telemetry, update checks and its own database migrations at start are switched off.
+- The control plane reads with a separate view-only Umami user per project.
+- The engine proxy adds our 30-minute visit rule. Umami would otherwise keep a replayed visit open for ever. The proxy
+  keeps Umami's visit token in memory and sends it back only if the visitor's previous event is at most 30 minutes
+  old. The memory is emptied at 00:00 UTC.
+
+Each site has a main Umami website for events with a visitor pseudonym. A second "twin" website holds events with a
+random value. Twin events count as page views, countries and devices, but never as visitors or visits.
+
+## Live window and rollups
+
+Umami cannot answer long ranges fast enough for large sites. So each site has a **live window**: the number of recent
+UTC days that keeps one Umami query under 250,000 events. It is at least 1 day and at most 90. It is sized from the
+larger of the 28-day daily average and today's count projected to a full day.
+
+<Sequence actors={["Portal", "Control plane", "Umami", "Rollups"]} caption="One dashboard request. Recent days come from Umami, older days from our own daily totals.">
+  <Msg from="Portal" to="Control plane" note="session cookie, your project only">GET web stats</Msg>
+  <Msg from="Control plane" to="Umami" note="through the engine proxy, 5 s timeout">Days in the live window</Msg>
+  <Msg from="Control plane" to="Rollups" note="row-level security per project">Older days</Msg>
+  <Msg from="Control plane" to="Portal" note="source: live, rollup or mixed">Figures + definitions</Msg>
+</Sequence>
+
+The `jobs` service writes the totals. It runs hourly for the current day and daily at 01:30 UTC for the four previous
+days. The fourth day is final. If Umami takes longer than 5 seconds, the control plane falls back to today's hourly
+totals and says so (`partial_today`).
+
+What is kept, and for how long (defaults):
+
+| Data | Where | Kept |
+|---|---|---|
+| Events with pseudonym, path, country, browser class | Umami database | 90 days (operator setting, 30 to 395) |
+| Hourly totals per site | Our database | 25 months |
+| Daily totals and top-50 breakdowns per site | Our database | No time limit |
+| Rejected events | Nowhere | Counted only |
+
+## How the seven metrics are defined
+
+The full definitions, with known biases, are in the
+[published methodology](https://app.usagemap.dev/docs/methodology/1.0.0). In short:
+
+| Metric | Definition |
+|---|---|
+| Page views | Count of page-view events. **Verified** = tag `v`; **raw** = all stored events |
+| Unique visitors | Distinct pseudonyms per site per UTC day. Over several days: the sum of daily figures, because the key changes daily |
+| Session duration | Per visit, first to last page view, averaged. A visit ends after 30 minutes without an event |
+| Bounce rate | Visits with one page view and no custom or wallet event, divided by all visits |
+| Referrers | Page views per external referrer host (`standard` only; no paths or campaign parameters) |
+| Country | From the truncated address. Unknown is `XX` |
+| Device and browser | From the reduced User-Agent |
+
+Visits, bounce rate and duration have one figure only. Taking suspect events out of the middle of a visit would split
+it and distort all three. These figures are shown next to the share of suspect page views instead.
+
+## What you see in the portal
+
+The site dashboard at `app.usagemap.dev` shows page views and unique visitors as verified and raw figures side by side,
+and a band chart of the gap per day. It shows visits, bounce rate and duration, and breakdowns by path, referrer,
+country, device and browser. Ranges are the last 24 hours, 7, 30 or 90 days, 12 months, everything, or a custom range
+of whole UTC days, with a comparison to the previous period. Each response says whether it came from Umami, from the
+rollups, or from both. By default ("anonymous reports"), breakdown rows below 10 merge into "Other" and counts are
+rounded to 10; totals stay exact.
+
+## Wallet events
+
+The tracker can also count Stellar Wallets Kit use: a modal opened or closed, a wallet selected, a connect or sign
+result. Events fire only on user actions, never on page load. They carry closed lists of values only, never an address,
+transaction or signature. A visit with a wallet event does not count as a bounce. Details are on
+[Stellar integration](/technical-architecture/stellar-integration).
+
+## Where each step runs
+
+<Zones cols={3} caption="Today all our parts share one VM. Only the gateway and the portal accept connections from the internet.">
+  <Zone title="Internet" kind="outside" note="Not ours">
+    <Node icon={<Globe />} title="Visitor's browser" sub="Your page + our script" tone="web" />
+    <Node icon={<Network />} title="Cloudflare DNS" sub="DNS only, not proxied" />
+  </Zone>
+  <Zone title="host · public ports" note="HTTPS (portal also redirects 80)">
+    <Node icon={<Shield />} title="Gateway" sub="e1 / e2.usagemap.dev" tone="ink" />
+    <Node icon={<LayoutDashboard />} title="Portal" sub="app.usagemap.dev" tone="web" />
+  </Zone>
+  <Zone title="host · no public port" note="Umami and PostgreSQL on internal-only networks">
+    <Node icon={<KeyRound />} title="Engine proxy" sub="mTLS, allow-lists" />
+    <Node icon={<Server />} title="Umami 3.5.0" sub="Unmodified" />
+    <Node icon={<Cog />} title="Jobs + control plane" sub="Rollups, reads" />
+    <Node icon={<Database />} title="PostgreSQL" sub="umami + scf databases" tone="store" />
+  </Zone>
+</Zones>
+
+DNS is not proxied, so TLS ends on our machine and the gateway sees the real client address it needs for the
+pseudonym and the country. Then it discards that address.
+
+## Limits
+
+- **Not proof of humans.** A determined attacker with real browsers on residential networks can pay the proof-of-work
+  cost and look verified. The labels and counters make that visible and costly; they do not prevent it.
+- **Unique visitors are approximate.** One person on two browsers or two networks counts twice. Several people behind
+  one address with the same browser build count once. If the gateway restarts during the day, it makes a new daily key,
+  and that day's visitors are over-counted.
+- **Visits can split.** A restart of the engine proxy clears its visit memory, so an open visit starts again.
+- **One machine.** A host failure stops collection until the VM is back. Browsers do not keep events, so those page
+  views are lost.
+- **Blocked or opted-out visitors are not counted.** That includes GPC, DNT, opt-out, missing consent, and browsers
+  that block our hosts.
+
+## Related
+
+- [API analytics pipeline](/technical-architecture/api-analytics)
+- [Stellar integration](/technical-architecture/stellar-integration)
+- [Trust and verification](/technical-architecture/trust-and-verification)
+- [Data and privacy](/technical-architecture/data-and-privacy)
+- [Add the tracker to your site](/web)

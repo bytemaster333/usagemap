@@ -1,0 +1,98 @@
+---
+title: Mobile apps
+description: Named app events from React Native, Expo, Flutter and Telegram Mini Apps, with your website's public key. Self-attested and kept apart from verified web numbers.
+icon: Smartphone
+---
+
+Native apps cannot load the web tracker. They send **named events** to `POST /v1/app-events` with your website's public
+site key, the same 22-character key as in the web tag. No new key, no third-party account.
+
+<Callout type="warn" title="Self-attested">
+  The web tracker proves each visit with a browser proof of work; an app cannot. App events are therefore stored and
+  shown as your app's own report, labelled **self-attested**, and never mixed into verified web visits, trust scores,
+  public statistics or traction snapshots. Use them to understand your app, not as independently verified usage.
+</Callout>
+
+<Callout title="Availability">
+  The endpoint and the helpers exist and are tested. The helpers are not on npm or pub.dev yet: copy the single source
+  file from the example app. App counts are stored once the operator of your UsageMap host has switched app events on.
+</Callout>
+
+**Never sent:** user ids, device ids, advertising ids, IP addresses, wallet addresses, or Telegram's `initData` and
+user object. The session id is random, kept in memory only and replaced at least every 30 minutes.
+
+## React Native and Expo
+
+```tsx title="App.tsx"
+import { createUsageMapApp } from "./usagemap";
+
+export const analytics = createUsageMapApp({
+  siteKey: process.env.EXPO_PUBLIC_USAGEMAP_SITE ?? "YOUR_22_CHAR_SITE_KEY",
+  platform: Platform.OS === "ios" ? "ios" : "android",
+  appVersion: "1.0.0",
+});
+```
+
+1. **Install:** copy `usagemap.ts` from the example into your app (Expo SDK 58 in the example).
+2. **Set your key:** `export EXPO_PUBLIC_USAGEMAP_SITE=<22-character site key>` (project → **Websites**).
+3. **Run:** `npx expo start`, open the app on a phone or emulator, and send an event.
+
+Example: `examples/mobile-react-native`.
+
+## Flutter and Dart
+
+```dart title="lib/main.dart"
+final analytics = UsageMapApp(
+  siteKey: const String.fromEnvironment('USAGEMAP_SITE', defaultValue: 'YOUR_22_CHAR_SITE_KEY'),
+  platform: Platform.isIOS ? 'ios' : 'android',
+  appVersion: '1.0.0',
+  transport: ioTransport(),
+);
+```
+
+1. **Install:** copy `usagemap_app_events.dart` and `io_transport.dart` from the example into `lib/`.
+2. **Set your key:** pass it at build time: `--dart-define=USAGEMAP_SITE=<site key>`.
+3. **Run:** `flutter run --dart-define=USAGEMAP_SITE=<site key>` on a device or emulator.
+
+Example: `examples/mobile-flutter`.
+
+## Telegram Mini Apps
+
+A Mini App is a web page in Telegram's WebView, so the **web tracker works there unchanged** and is the right default.
+Add the Mini App's origin as the website's domain, load `telegram-web-app.js` first, then the tracker tag. The tracker
+sends the path only, never the fragment where Telegram puts its launch parameters.
+
+If you also want app-style counts per Telegram client, use the app-event helper with `platform: "web"`:
+
+```ts
+import { createUsageMapApp, tmaPlatform } from "./usagemap";
+
+const analytics = createUsageMapApp({
+  siteKey: "YOUR_22_CHAR_SITE_KEY",
+  platform: "web",
+  appVersion: "2.0.0",
+  tmaPlatform: tmaPlatform(window.Telegram?.WebApp?.platform), // android | ios | macos | desktop | web | other
+});
+analytics.track("mini_app_open");
+```
+
+1. **Install:** the tracker (script tag, or the package from the release) and, optionally, the helper file.
+2. **Set your key:** your site key; add the Mini App's origin as the domain and `localhost` as a dev origin.
+3. **Run** it on `localhost`, then point your bot's Mini App URL at a tunnel to it (BotFather → **Bot Settings** →
+   **Configure Mini App**).
+
+Example: `examples/telegram-mini-app`.
+
+## Test it
+
+The React Native and Flutter cards give you the [app-event test command](/integrations#the-three-test-commands): one
+event timed two days ago, which the edge checks and drops as `stale`, so it is never counted. The answer is
+`HTTP 202 {"accepted":0,"dropped":1}`. The Telegram Mini App card uses the website test.
+
+| Answer | Meaning |
+|---|---|
+| `202 {"accepted":n,"dropped":m}` | Stored as counts; dropped events are counted with a reason |
+| `400`, `413`, `415` | The request shape is wrong; fix the integration |
+| `404 unknown_site` | Wrong site key |
+| `403` | Your project is not approved yet, or suspended |
+| `429`, `503` | Too many requests, or try again later; honour `Retry-After` |

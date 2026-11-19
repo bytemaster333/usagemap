@@ -1,0 +1,47 @@
+---
+title: Share your numbers
+description: Public stats page, README badge, signed snapshots for grant reports, and a JSON metrics document.
+icon: Share2
+---
+
+**Who sees what.** Your project's dashboard is private to your team. SCF operators have a global view
+across all projects, so they can review the programme. Public stats are optional and **off by default**: nothing about
+your project is public until you turn them on. All sharing is set up under the project's **Sharing** and
+**Traction snapshots** tabs.
+
+<Cards>
+  <Card icon={<Globe />} title="Public stats page">
+    Turn on public stats and your project gets a page at `app.usagemap.dev/p/your-short-name` that anyone can open
+    without signing in. It shows web and API usage, the traffic that was not counted, and your signed snapshots.
+  </Card>
+  <Card icon={<BadgeCheck />} title="Badge">
+    The public page offers **Embed a badge**: a live badge for your README or website, as SVG or through Shields.io.
+    See [badges](/tools#badges).
+  </Card>
+  <Card icon={<Signature />} title="Signed snapshots">
+    Freeze a period into a signed document, with presets for an SCF build tranche, a campaign, a quarter or a custom
+    range. Anyone can check one at `app.usagemap.dev/verify`.
+  </Card>
+  <Card icon={<Braces />} title="Metrics document (JSON)">
+    `GET https://app.usagemap.dev/public/v1/projects/your-short-name/metrics.json`, rebuilt hourly. Public when public
+    stats are on; otherwise send a share key.
+  </Card>
+</Cards>
+
+## Share keys
+
+To share your metrics document without making it public, create a **share key** (`scfa_pub_…`) under **Sharing** and
+send it in a header:
+
+```sh
+curl -H "Authorization: Bearer $USAGEMAP_SHARE_KEY" \
+  https://app.usagemap.dev/public/v1/projects/your-short-name/metrics.json
+```
+
+A share key only reads that one document. It can't see dashboards, change settings or send data. Keys in a URL are
+refused, so they don't end up in logs.
+
+## Anonymous reports
+
+Under a website's **Settings**, **Anonymous reports** hides rows with fewer than 10 visitors and rounds the rest to
+the nearest 10, so that small numbers can't single anyone out.

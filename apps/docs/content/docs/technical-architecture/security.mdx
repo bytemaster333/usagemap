@@ -1,0 +1,293 @@
+---
+title: Security
+description: How people sign in, what each role may do, how keys are stored, what the audit log proves, and which threats each control answers.
+icon: ShieldCheck
+---
+
+UsageMap holds analytics for many Stellar ecosystem projects in one database, and its numbers feed SCF decisions. Two
+things must therefore hold: one project can never read or change another project's data, and nobody, including the
+people who run the service, can quietly rewrite what happened. This page explains the controls that hold those two
+lines, from sign-in to the network, and states where they stop.
+
+<Facts>
+  <Fact label="Where it lives">`services/control-plane` (sign-in, roles, keys, audit), `apps/portal` (headers), `db/` (row-level security, audit chain)</Fact>
+  <Fact label="Language">TypeScript, Go, SQL</Fact>
+  <Fact label="Status"><Status kind="live" /></Fact>
+  <Fact label="Full threat model">`docs/threat-model.md` (top threats summarised below)</Fact>
+</Facts>
+
+## Trust boundaries
+
+<Zones cols={3} caption="Only two front ends take traffic from the internet; everything that holds data sits on Docker networks with no route out.">
+  <Zone title="Internet" kind="outside" note="Not trusted">
+    <Node icon={<Globe />} title="Visitors' browsers" sub="Pinned tracker" tone="web" />
+    <Node icon={<Server />} title="Project API servers" sub="OTLP with a token" tone="api" />
+    <Node icon={<Users />} title="Project members, SCF operators" sub="Portal in a browser" />
+  </Zone>
+  <Zone title="Front ends on the VM" note="Port 443 only">
+    <Node icon={<Shield />} title="Gateway" sub="Web events, OTLP door, tracker files" tone="ink" />
+    <Node icon={<LayoutDashboard />} title="Portal (Caddy)" sub="Pages + API on one origin" tone="ink" />
+  </Zone>
+  <Zone title="Internal networks" note="No egress">
+    <Node icon={<Cpu />} title="Control plane, jobs, writer" sub="Per-role database logins" />
+    <Node icon={<Lock />} title="Engine proxy → Umami" sub="Mutual TLS, path allow-lists" />
+    <Node icon={<Database />} title="PgBouncer → PostgreSQL" sub="Row-level security" tone="store" />
+  </Zone>
+</Zones>
+
+The diagram reads left to right. Everything in the left column is outside our control. The middle column is the only
+place where an outside connection ends: the gateway (web events, the OpenTelemetry front door and the tracker files)
+and the portal, a Caddy server that serves the pages and forwards `/v1/*` and `/public/*` to the control plane. The
+control plane publishes no port of its own and trusts `X-Forwarded-For` only from the portal's fixed address.
+
+| Boundary | What enforces it |
+|---|---|
+| Internet → VM | Cloud network security group: 80 and 443 to the two front addresses, SSH from the operator's single address only. Port 80 on the portal address answers only with a `308` to HTTPS. A host firewall (nftables) repeats the rule with default deny. |
+| Front end → internal | Separate Docker networks per zone: `engine`, `db`, `data`, `core`, `otlp` and `cpi` are internal networks with no route to the internet. Only the `public` bridge reaches out, on ports 80 and 443. |
+| Gateway → Umami | The gateway calls Umami only through the engine proxy, over mutual TLS with a node certificate from our private CA. The proxy picks the caller's path allow-list from the certificate and refuses every route on a fixed deny-list (Umami's own ingest, shares, export, login). |
+| Engine proxy → control plane | The internal edge API is a mutual-TLS hop on its own network (`cpi`), shared by these two services only. |
+| Collector → metrics writer | Mutual TLS. The OTLP front door and the Collector share a private network (`otlp`) that nothing else joins. |
+| Application → database | Every unit of work sets a transaction-local tenant context; row-level security on every tenant table and partition decides what a row query may see. No runtime role bypasses it. |
+| Backups → storage | Only the PostgreSQL container joins the `backup` bridge, the only network that may reach the storage endpoints. |
+
+The application and database containers run with a read-only root file system, all Linux capabilities dropped and
+`no-new-privileges`. The design for the funded window adds a Squid egress proxy with a domain allow-list per node class
+(Ansible role `egress_proxy`). It is <Status kind="built" /> but not on the live host: there, the host firewall limits
+container egress to ports 80 and 443 from the `public` bridge and to the storage endpoints from the `backup` bridge.
+
+## Signing in
+
+UsageMap has no passwords. A person signs in with one of three first factors and can add passkeys on top.
+
+| Method | What happens |
+|---|---|
+| Stellar wallet, SEP-53 <Status kind="live" /> | The wallet signs a short message from the control plane ("Purpose: sign in to UsageMap"). The signing key must meet the account's medium threshold. Details on [Stellar integration](/technical-architecture/stellar-integration). |
+| Stellar wallet, SEP-10 <Status kind="live" /> | A challenge transaction, for hardware wallets and multisig accounts that cannot sign a SEP-53 message. Same page. |
+| GitHub OAuth <Status kind="built" /> | Authorization-code flow with PKCE (`S256`) and scope `read:user` only. Not configured on the live host. |
+| Passkey (WebAuthn) <Status kind="live" /> | Never a first factor. A second factor and the "recent sign-in" check for sensitive actions. |
+
+### GitHub sign-in, step by step
+
+<Sequence actors={["Browser", "Control plane", "GitHub"]} caption="The GitHub token is used once to read the account id, then dropped; only our own session cookie remains.">
+  <Msg from="Browser" to="Control plane" note="state, PKCE verifier, binder cookie">GET /v1/auth/github/start</Msg>
+  <Msg from="Control plane" to="Browser" note="scope read:user, S256 challenge">302 to GitHub</Msg>
+  <Msg from="Browser" to="GitHub">user approves</Msg>
+  <Msg from="GitHub" to="Browser" note="code + state">302 to callback</Msg>
+  <Msg from="Browser" to="Control plane">GET /v1/auth/github/callback</Msg>
+  <Msg from="Control plane" to="GitHub" note="code + PKCE verifier">token exchange</Msg>
+  <Msg from="Control plane" to="GitHub" note="id, login, created_at">read user</Msg>
+  <Msg from="Control plane" to="Browser" note="__Host-scf_session">303 with session cookie</Msg>
+</Sequence>
+
+<Steps>
+<Step>
+**Start.** The control plane creates three random values: the OAuth `state`, the PKCE verifier and a binder. It stores
+only the SHA-256 of `state` (valid 10 minutes, single use) and sets the binder in a `__Host-scf_oauth` cookie.
+</Step>
+<Step>
+**Redirect.** The browser goes to GitHub with `scope=read:user`, `code_challenge_method=S256` and the state.
+</Step>
+<Step>
+**Callback.** The control plane consumes the state first, whatever happens next, then compares the hash of the binder
+cookie with the stored one in constant time. A state used from another browser fails here.
+</Step>
+<Step>
+**Exchange.** It trades the code plus verifier for a GitHub token, reads the numeric account id, the login and the
+account creation date, and discards the token. It is never stored or logged.
+</Step>
+<Step>
+**Session.** It creates a session and answers `303` with the session cookie and a return path that must stay on the
+portal origin.
+</Step>
+</Steps>
+
+### Sessions and sign-out
+
+| Property | Value |
+|---|---|
+| Cookie | `__Host-scf_session`, `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/` |
+| Value | 256 random bits; the database stores only its SHA-256. No IP address and no User-Agent are stored with a session. |
+| Lifetime, project members | 12 hours idle, 14 days absolute |
+| Lifetime, SCF operators | 30 minutes idle, 12 hours absolute |
+| Recent sign-in | Ownership transfer, project removal, erasure confirmation and account deletion need a sign-in or passkey assertion at most 10 minutes old. |
+| Cross-site requests | Every state-changing portal call must carry `X-SCF-Request: 1` and the portal's own `Origin`. |
+
+**Sign-out fails closed.** When someone signs out, the control plane first puts the session's hash on a deny list in
+memory, so the cookie is refused at once. Then it writes the revocation to the database. If that write fails (database
+down, timeout), the session stays refused and the revocation is retried in the background until it is written or the
+session would have expired anyway. The audit row comes last; if it fails, the sign-out still stands.
+
+### SCF operators
+
+An SCF operator is a portal user with the platform role `operator` or `operator_admin`. Operators see across projects,
+so they carry more checks:
+
+- A passkey assertion at every sign-in before the session counts as complete.
+- At least two registered passkeys before any operator operation runs, so one lost device does not lock the account.
+  The last two cannot be deleted while the role is held.
+- A passkey step-up, valid 10 minutes, for operations marked as such; a step-up rotates the session cookie.
+- The role is read again at every request, so a revoked grant takes effect at once.
+
+## Roles
+
+| Role | Can do |
+|---|---|
+| `viewer` | Read dashboards and project configuration |
+| `member` | The above, plus manage sites, domains, API services, declared contracts and annotations |
+| `admin` | The above, plus members (except the owner), invitations, ingest tokens, share keys, erasure requests, project settings and traction snapshots |
+| `owner` | The above, plus ownership transfer and project removal. Exactly one per project. |
+| `operator` | Read-only views across projects through audited database functions, moderation |
+| `operator_admin` | The above, plus granting operator roles, platform settings, revoking sessions and immediate purges |
+
+A request for a project the user is not a member of, an unknown id and a malformed id all receive the same `404`, so the
+API never confirms that another project exists.
+
+## API keys and tokens
+
+All keys share one format: `scfa_<kind>_<12-character id>_<27-character secret><6-character checksum>`. The secret holds
+160 random bits. The checksum (CRC-32) is checked before any database lookup, so a mistyped key costs nothing.
+
+| Kind | Prefix | What it opens | Who creates it |
+|---|---|---|---|
+| Ingest token | `scfa_ing_` | Sending OpenTelemetry data for one project, optionally limited to named services | Project `admin` or `owner` |
+| Share key | `scfa_pub_` | Read-only access to that project's metrics endpoint, nothing else | Project `admin` or `owner` |
+| Footprint registration key | `scfa_reg_` | One scope, `footprint:register`: a build tool adds a contract it just deployed as "claimed" | Project `admin` or `owner` |
+| SCF-operator API key | `scfa_op_` | The operator metrics API and the programme metrics endpoint | SCF operator |
+
+How they are kept:
+
+1. The full key appears once, in the creation response, with `Cache-Control: no-store`.
+2. The database keeps the id, the last four characters and `HMAC-SHA-256(pepper, secret)` with the pepper's version.
+   Each kind has its own pepper set, held in the service's secrets, not in the database. A stolen database copy alone
+   does not let anyone test guesses offline.
+3. Verification looks the row up by id and compares the HMAC in constant time.
+4. Revocation is fast: the gateway refuses a revoked ingest token within 60 seconds (it learns tokens from a signed
+   snapshot); an operator key within 5 seconds (cache bound).
+5. A key in a URL is never accepted, only in the `Authorization` header. Ingest tokens older than 12 months show a
+   rotation reminder.
+
+The public site key in the tracker snippet is not a secret and opens nothing but event intake for that site. Tokens
+of the MCP OAuth server (for AI assistants) are stored as SHA-256 only; that server is <Status kind="built" /> and off
+on the live host.
+
+## The audit log
+
+Every change, and every operator read of a project's data, writes an audit row in the same database transaction as the
+action itself. If the row cannot be written, the action does not happen.
+
+<Flow caption="An operator read leaves a row in that project's own chain, and the chain heads are fixed once a day.">
+  <Node icon={<KeyRound />} title="SCF operator" sub="Passkey step-up" />
+  <Arrow label="HTTPS" />
+  <Node icon={<Cpu />} title="Control plane" sub="Checks first">
+    - role read now
+    - two passkeys
+    - step-up within 10 min
+  </Node>
+  <Arrow label="same tx" />
+  <Node icon={<Database />} title="op_* function" sub="Fixed query + audit row" tone="ink" />
+  <Arrow label="trigger" />
+  <Node icon={<ScrollText />} title="Audit chain" sub="Hash-linked rows" tone="store">
+    - daily verify
+    - daily anchor
+  </Node>
+</Flow>
+
+<Steps>
+<Step>
+**Check.** The control plane confirms the operator role, two passkeys and, where required, a step-up younger than 10
+minutes.
+</Step>
+<Step>
+**Read through a fixed door.** Operators never query tables directly. They call `op_*` functions: `SECURITY DEFINER`
+functions with a fixed search path, owned by a role that cannot log in, each on an explicit allow-list. Each one writes
+its own audit row.
+</Step>
+<Step>
+**Chain.** A trigger computes `row_hash = SHA-256(prev_hash || canonical row)` and moves the chain head. There is one
+chain per project and one platform chain. An operator action on one project goes into that project's chain, so the
+project can see it.
+</Step>
+<Step>
+**Append only.** Triggers reject every `UPDATE`, `DELETE` and `TRUNCATE` on the log. No runtime role may write chain
+heads directly.
+</Step>
+<Step>
+**Fix the heads.** Job `audit_verify` re-checks every chain daily. Job `audit_anchor` writes every chain head into a
+daily anchor file at 00:15 UTC (never replaced), and job `daily_seal` puts that file into the day's seal, one Stellar
+transaction, at 00:30 UTC.
+</Step>
+</Steps>
+
+On the live host the seal runs on the Stellar **testnet**, which is reset several times a year; it shows the mechanism
+but is not durable evidence. A mainnet seal waits for the operator's explicit approval. What the chain cannot stop: a person with
+database superuser access could rewrite the rows written since the last anchor, up to one day. We detect that kind of
+insider through the anchor and the restore drills; we cannot prevent it.
+
+A second split protects signing: the internet-facing control plane holds no signing key. Traction snapshots and the
+daily seal are signed by the jobs service, which publishes no port.
+
+## The portal's headers
+
+Checked on the live portal on 2026-11-20:
+
+| Header | Value |
+|---|---|
+| `Content-Security-Policy` | `default-src 'none'`; scripts, styles, fonts only from `'self'`; no inline code, no `eval`; `connect-src` adds only the two public Horizon origins (for the seal check on `/verify`); `frame-ancestors 'none'`; `base-uri 'none'`; `object-src 'none'`; `require-trusted-types-for 'script'` with `trusted-types 'none'`; `upgrade-insecure-requests` |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains` |
+| `Permissions-Policy` | Every feature off except passkeys (`publickey-credentials-create/get`) and clipboard write, both for our origin only |
+| Others | `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy: same-origin`, `Cache-Control: no-store` on pages and API answers |
+
+The headers come from one source file that also drives the browser tests, so the tests run under the production policy.
+
+## Tracker and supply chain
+
+The tracker runs on pages where visitors connect Stellar wallets, so tampered tracker bytes are the worst case we
+plan for. The controls:
+
+- **Pinned versions.** Files live at `/lib/<version>/<profile>.js`. There is no `latest` alias. A version's bytes never
+  change; a version with a security defect is withdrawn with `410 Gone`, never replaced.
+- **SRI.** The portal's snippet always carries `integrity="sha384-…"`. If the bytes differ, the browser refuses to run
+  the file; analytics stops and the page keeps working. The live checks compare the served bytes with the published
+  hash after every deploy, and the status page repeats it.
+- **Built into the gateway.** The tracker files are compiled into the gateway binary, so a host cannot serve bytes
+  that were not in the build.
+- **Reproducible build.** Pinned Node and pnpm, frozen lockfile, no timestamps or absolute paths; a second build from
+  source must produce the same digests.
+
+Base images are pinned by digest. On deploy, the Ansible role refuses any image whose configuration
+digest differs from the one recorded at build time.
+
+## Threat model in one table
+
+| Threat | Control | Rating left |
+|---|---|---|
+| A project inflates its web numbers with scripts | Signed challenge and proof of work, per-token caps, bot list, transport and multiplicity checks; a reason code on every unverified event | High against paid humans and real-browser farms; see [Trust and verification](/technical-architecture/trust-and-verification) |
+| A project sends fabricated API telemetry | Ingest token, allow-list rebuild of every data point in the Collector; labelled "self-attested", never "verified" | High: telemetry cannot be proven genuine |
+| One project reads another's data | Row-level security on every table and partition, same `404` for foreign and unknown ids, isolation test matrix | Medium if the control-plane process itself is compromised |
+| Tampered tracker bytes | Pinned versions, SRI-only snippets, reproducible build, bytes compiled into the gateway | Medium: a project may drop SRI from its own page |
+| A bug in the Umami engine | Reachable only through the engine proxy with mutual TLS and per-caller path allow-lists | Medium until upstream fixes a bug on an allowed route |
+| An operator rewrites history | Hash-chained, append-only audit log, daily verify, anchor and seal | Medium: up to one day open to a database superuser |
+| A compromised control plane signs data | Holds no signing key and no provisioning credential; the jobs service, which publishes no port, signs | Narrows the damage of the row above; does not remove it |
+| Secrets or IP addresses reach logs | Log scanner counts personal-data and secret shapes without exporting them, with an alert | Low |
+| Floods and oversized payloads | Body and decompression limits, timeouts, per-subnet and per-site rate limits, per-project quotas | Medium: no CDN in front of ingest |
+
+What we do not defend against, stated in the threat model: paid humans and patient farms; a project's own site being
+compromised; a project that removes SRI or self-hosts a modified tracker; visitors' browser extensions; the hosting
+provider itself; volumetric DDoS beyond the provider's capacity.
+
+## Limits
+
+- GitHub sign-in is built and tested but not switched on for the live host.
+- No SCF operator account exists on the live host yet: it needs a person to register two passkeys.
+- Release images are not signed: live releases are built from a commit on the operator's workstation and checked by
+  image digest.
+- The egress proxy with a domain allow-list is <Status kind="planned" /> for the multi-node layout; the live host limits
+  egress by port, not by destination name.
+- The daily seal runs on testnet.
+
+## Related
+
+- [Stellar integration](/technical-architecture/stellar-integration): SEP-53 and SEP-10 sign-in, the daily seal
+- [Trust and verification](/technical-architecture/trust-and-verification): anti-inflation checks
+- [Data and privacy](/technical-architecture/data-and-privacy): what is stored and for how long
+- [Hosting and operations](/technical-architecture/hosting-and-operations): the host, backups, deploys

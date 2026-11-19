@@ -1,0 +1,90 @@
+---
+title: Quickstart
+description: Create a project, add the tracker, and see your first verified page view in about five minutes.
+icon: Rocket
+---
+
+<Steps>
+<Step>
+### Sign in
+
+Open [app.usagemap.dev](https://app.usagemap.dev) and sign in with a **Stellar wallet**: Freighter, xBull, Albedo,
+LOBSTR, Hana or any wallet that can sign a message. Hardware wallets and multisig accounts can sign a transaction
+instead. There is no password to create.
+</Step>
+
+<Step>
+### Create your project
+
+Choose **Find your project** to look your project up in the public Stellar project registries and fill the form in
+for you, or **Create a project** and type a name and a short name (used in links).
+
+<Callout type="info">
+  Some projects are reviewed before they count traffic. Until then the project shows **Awaiting approval**.
+</Callout>
+</Step>
+
+<Step>
+### Add your website
+
+In the project, choose **Add a website**. Keep the defaults (profile **standard**, visitor identifier **On**) unless
+you need the [strict profile](/web#profiles). Then open **Settings → Domains** and add the domain your site runs
+on.
+</Step>
+
+<Step>
+### Paste the snippet
+
+Open the website's **Snippet** tab and copy the tag. It already contains your site key and the right `integrity`
+hash. Put it in the `<head>` of every page:
+
+```html title="index.html"
+<script
+  src="https://e1.usagemap.dev/lib/1.2.0/standard.js"
+  integrity="sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId"
+  crossorigin="anonymous"
+  data-site="YOUR_SITE_KEY"
+  defer
+></script>
+```
+
+Using a framework? See [framework guides](/web/frameworks).
+</Step>
+
+<Step>
+### See your first event
+
+Deploy, open your site in a normal browser window, then open the website's **Installation check** tab. Within about a
+minute it shows your first event and whether it was counted.
+
+<Callout type="warn" title="Testing locally?">
+  Events from `localhost` or preview URLs are only counted after you add them as a **dev origin**, and they are kept
+  for 24 hours, never mixed into your real numbers. Browsers with Global Privacy Control turned on (Brave does this by
+  default) send nothing at all, by design.
+</Callout>
+</Step>
+
+<Step>
+### Verify your domain
+
+Back in **Settings → Domains**, choose **Verify by** DNS TXT record, a file under `/.well-known/`, or an HTML meta tag.
+Until your domain is verified, its page views are marked as *suspect*.
+</Step>
+</Steps>
+
+## Next steps
+
+<Cards>
+  <Card icon={<Wallet />} title="Track wallet connections" href="/wallets" />
+  <Card icon={<Server />} title="Add your API" href="/api" />
+  <Card icon={<MousePointerClick />} title="Send custom events" href="/web/events-and-consent" />
+  <Card icon={<Share2 />} title="Share your numbers" href="/sharing" />
+  <Card icon={<Puzzle />} title="All integrations" href="/integrations" />
+</Cards>
+
+<Callout title="Prefer a checklist?">
+  In the app, the project's **Set-up wizard** walks you through the same steps. The **Integrations** page has a card
+  for every integration (websites, wallets, APIs, mobile apps, on-chain and developer tools) with the configuration
+  generated for your project, a `curl` test and a live check that shows it arriving. See
+  [Integrations](/integrations).
+</Callout>

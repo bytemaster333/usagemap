@@ -1,0 +1,125 @@
+---
+title: Developer tools
+description: Footprint registration keys, the Scaffold Stellar template, the stellar scf CLI, the GitHub pin Action, the MCP server and live README badges.
+icon: Wrench
+---
+
+<Callout title="What you can use today">
+  Badges, footprint registration keys and the hosted MCP server work on usagemap.dev now. The Scaffold Stellar
+  template, the `stellar scf` CLI plugin, the pin Action and the local MCP server are distributed with the UsageMap
+  source repository, which is published together with the npm packages; until then they are not available to
+  download.
+</Callout>
+
+## Footprint registration keys
+
+A **footprint registration key** (`scfa_reg_…`) lets a build tool or deploy script add a freshly deployed contract to
+your project's [footprint](/onchain) as `claimed`, and nothing else: it cannot verify, remove or read anything.
+
+1. **Create one:** project → **Footprint** → create a registration key (admin or owner; at most five; optionally
+   limited to `mainnet` or `testnet`). The page also shows your project id.
+2. **Set it:** `export SCF_FOOTPRINT_KEY=scfa_reg_… USAGEMAP_TENANT_ID=<project id>` in your deploy environment.
+3. **Register after each deploy:**
+
+```sh
+curl -sS -i -X POST "https://app.usagemap.dev/v1/tenants/$USAGEMAP_TENANT_ID/footprint/register" \
+  -H "Authorization: Bearer $SCF_FOOTPRINT_KEY" \
+  -H 'Content-Type: application/json' \
+  --data '{"kind":"contract","subject":"C…","network":"testnet","label":"my-contract"}'
+```
+
+`HTTP 201` with `"status":"claimed"` means registered; `409` means it was already declared, which is fine. You still
+verify the contract as described in [Smart contracts](/onchain). The key stops working when you revoke it or when its
+creator is no longer an admin or owner. Example: `examples/footprint-register` (`./register.sh <C…> testnet my-contract`).
+
+## Scaffold Stellar template
+
+A Scaffold Stellar template with the tracker and the Wallets Kit adapter already in place, plus a post-deploy
+extension that registers each deployed contract with your registration key.
+
+1. **Install:** create the dApp from the template.
+2. **Set your keys:** `PUBLIC_USAGEMAP_SITE=<site key>` in `app/.env`; for registration
+   `SCF_FOOTPRINT_KEY` and `USAGEMAP_TENANT_ID`, and `register: true` in `scaffold.yml` (or `USAGEMAP_REGISTER=1`).
+3. **Run:** deploy as usual. Without the keys the extension prints the request it would send (a dry run).
+
+Example: `examples/scaffold-stellar` (`./try-extension.sh` shows the dry run).
+
+## The `stellar scf` CLI
+
+A Stellar CLI plugin that checks OpenTelemetry payloads offline, before you send anything.
+
+| Command | What it does |
+|---|---|
+| `stellar scf check <payload.json>` | Shows what UsageMap would keep and drop, and why. Offline |
+| `stellar scf route <path>` | Shows the route template a path is stored under. Offline |
+| `stellar scf test --service my-api` | Sends the API test point (`--dry-run` prints the curl) |
+| `stellar scf init --site <key> --service my-api` | Prints the pinned script tag and the OpenTelemetry variables |
+| `stellar scf status` | Checks platform health, your site key at the edge and your ingest token (an empty export that is never stored) |
+
+`test` and `status` read the ingest token from `USAGEMAP_INGEST_TOKEN`, never from the command line. Example:
+`examples/stellar-scf-cli` (`./check.sh` prints `KEPT 2`, `DROPPED 0`).
+
+## GitHub pin Action
+
+A GitHub Action that checks every UsageMap tracker tag in your repository on each pull request: the version exists,
+it is not withdrawn, and the `integrity` hash matches. When a newer release exists, it proposes a patch that moves the
+tag to it with the right hash.
+
+1. **Install:** add the workflow file `usagemap-pins.yml` to `.github/workflows/`.
+2. **Set your hosts:** `hosts:` lists the ingest hosts (default `e1.usagemap.dev,e2.usagemap.dev`), `path:` the
+   directory to scan. No key or token is needed.
+3. **Run:** open a pull request.
+
+It reads the public release list:
+
+```sh
+curl -sS https://app.usagemap.dev/v1/tracker/versions
+```
+
+Example: `examples/pin-action`.
+
+## MCP server
+
+A read-only Model Context Protocol server, so an AI assistant can answer questions about your project's numbers. Every
+call runs with your own key, and the same access rules as the app apply. See also [For AI agents](/ai-agents).
+
+- **Hosted:** `https://app.usagemap.dev/mcp` (Streamable HTTP). Send your project's **share key** (`scfa_pub_…`,
+  project → **Sharing**) as `Authorization: Bearer …`. Sign-in with OAuth instead of a key (for the claude.ai and
+  Claude Desktop connectors) is built and is switched on for usagemap.dev in a later step.
+- **Local:** the same tools over stdio, reading the key from a file. Example: `examples/mcp-claude` (Claude Code, Claude
+  Desktop, Cursor).
+
+Test the hosted server with your share key:
+
+```sh
+curl -s https://app.usagemap.dev/mcp \
+  -H "Authorization: Bearer $USAGEMAP_KEY" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'MCP-Protocol-Version: 2026-07-28' \
+  -H 'Mcp-Method: tools/call' \
+  -H 'Mcp-Name: project_metrics_document' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"project_metrics_document","arguments":{"slug":"your-project"},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}'
+```
+
+## Badges
+
+A live badge with your verified visitors or API requests for your README or your SCF project record, updated hourly. A badge
+exists only while your project's statistics are public (project → **Sharing**).
+
+```md title="README.md"
+[![Measured by UsageMap](https://img.shields.io/endpoint?url=https%3A%2F%2Fapp.usagemap.dev%2Fpublic%2Fv1%2Fprojects%2Fyour-short-name%2Fbadge.json)](https://app.usagemap.dev/p/your-short-name)
+```
+
+Or the SVG UsageMap serves itself: `https://app.usagemap.dev/public/v1/projects/your-short-name/badge.svg` (add
+`?metric=api` for API requests). Counts below a floor (100 visitors, 1,000 API requests) read as "&lt; floor", and API
+requests are labelled self-attested. The Shields.io form means only Shields contacts UsageMap, never your readers.
+
+Test it:
+
+```sh
+curl -sS -i https://app.usagemap.dev/public/v1/projects/your-short-name/badge.json
+```
+
+`HTTP 200` with the Shields.io document means it works. `404` means the statistics are private, or the hourly public
+document has not been built yet since you made them public.

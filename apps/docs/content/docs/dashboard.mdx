@@ -1,0 +1,65 @@
+---
+title: Your dashboard
+description: A tour of the app at app.usagemap.dev. Where to find each number, and what "verified", "raw" and "suspect" mean.
+icon: LayoutDashboard
+---
+
+Everything lives in [app.usagemap.dev](https://app.usagemap.dev). After you sign in, **Your projects** lists every
+project you belong to. Open one to see its tabs.
+
+## Where to find what
+
+| I want to see… | Go to |
+|---|---|
+| The big picture for the last 30 days | Project → **Overview** |
+| Page views, visitors, referrers, countries, devices | Project → website → **Dashboard** |
+| Wallet connections and signatures | Project → website → **Wallets** |
+| Funnels, goals and journeys | Project → website → **Reports** |
+| Whether my snippet works | Project → website → **Installation check** |
+| API requests, errors and latency | Project → **API services** → service → **Dashboard** |
+| What was filtered out, and why | Project → **Trust and anomalies** |
+| A public page or badge for my project | Project → **Sharing** |
+| A signed report of a period | Project → **Traction snapshots** |
+
+## Overview
+
+The project's home page. Four tiles cover the last 30 days: **Verified page views**, **Visitors**, **API requests** and
+**On-chain invocations**. Below them are any anomaly flags and a sparkline for each website.
+
+## Website dashboard
+
+<Features>
+  <Feature icon={<Eye />} title="Tiles">
+    Page views, unique visitors, visits, bounce rate, average visit duration and suspect page views.
+  </Feature>
+  <Feature icon={<ChartLine />} title="Over time">
+    A chart of verified vs raw traffic, with anomaly flags marked. Turn on **Compare with previous period** for a second line.
+  </Feature>
+  <Feature icon={<ChartColumn />} title="Breakdowns">
+    Referrers, top pages, countries, devices, browsers, operating systems and custom events.
+  </Feature>
+  <Feature icon={<Download />} title="Export">
+    **Download daily figures (CSV)** for any range.
+  </Feature>
+</Features>
+
+Pick a range at the top: the last 24 hours, 7, 30 or 90 days, 12 months, all time, or **Custom days**.
+
+## API dashboard
+
+Requests, server errors (5xx), client errors (4xx) and p50 / p95 / p99 latency, then **Status codes**, **Routes**
+(with a CSV export), **By Stellar surface** for Horizon and RPC calls, **Availability objective** with its error
+budget, and **Data quality**, which shows what was received but not kept.
+
+## Verified, raw and suspect
+
+UsageMap checks every event before counting it, and always shows you the result:
+
+| | Meaning |
+|---|---|
+| **Verified** | Passed every check. This is the headline number. |
+| **Suspect** | Counted in *raw* only: for example, an unverified domain, data-centre traffic or a missing proof of work. |
+| **Rejected** | Never counted: for example, a page that isn't on one of your domains. |
+
+The **Trust and anomalies** tab lists the reasons, day by day. You can add a note to a flagged day, for example
+"launch on Product Hunt", so that anyone reading your numbers knows why it spiked.

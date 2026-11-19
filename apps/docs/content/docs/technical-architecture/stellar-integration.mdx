@@ -1,0 +1,486 @@
+---
+title: Stellar integration
+description: Every place UsageMap reads from, writes to or understands Stellar, with the standard or data source used, how it works step by step, its status and its limits.
+icon: Orbit
+---
+
+UsageMap is analytics for Stellar ecosystem projects, so Stellar is part of how it works, not an add-on. People sign
+in with a Stellar account, projects prove which accounts and contracts are theirs, contract usage is counted from
+public ledger files, wallet and SDK activity is measured without addresses, and published numbers are sealed in a
+Stellar transaction that anyone can check. This page walks through each of these, names the SEP, API or data source,
+and says what runs today and what does not.
+
+<Facts>
+  <Fact label="Where it lives">`services/control-plane`, `services/jobs`, `services/onchain-reader`, `tracker`, `packages/pathnorm`, `collector`</Fact>
+  <Fact label="Standards">SEP-1, SEP-10, SEP-23, SEP-43, SEP-53, SEP-54, CAP-46</Fact>
+  <Fact label="Data sources">Horizon, Stellar RPC, public ledger files, Stellarlight, PG Atlas</Fact>
+  <Fact label="Network">One per deployment: mainnet on usagemap.dev; the seal on testnet</Fact>
+</Facts>
+
+## Where UsageMap meets Stellar
+
+<Zones cols={4} caption="Four zones. UsageMap reads public Stellar data and writes one transaction a day; it never holds a project's keys or an end user's address.">
+  <Zone title="Your project" kind="outside" note="Your code, your keys">
+    <Node icon={<Wallet />} title="Your dApp in the browser" sub="Wallets Kit, Freighter, passkeys" tone="web" />
+    <Node icon={<Server />} title="Your backend" sub="js-stellar-sdk, py-stellar-base, Anchor Platform" tone="api" />
+    <Node icon={<Hammer />} title="Your deploy script" sub="Scaffold Stellar, scfa_reg key" tone="plain" />
+  </Zone>
+  <Zone title="UsageMap" note="One VM today">
+    <Node icon={<KeyRound />} title="Control plane" sub="Sign-in, proofs, footprint" tone="ink" />
+    <Node icon={<Shield />} title="Gateway and Collector" sub="Wallet events, SDK metrics" />
+    <Node icon={<Cog />} title="Jobs and on-chain reader" sub="Verify, count, seal" />
+    <Node icon={<Database />} title="PostgreSQL" sub="Counts only" tone="store" />
+  </Zone>
+  <Zone title="Stellar network" kind="stellar" note="Public">
+    <Node icon={<Search />} title="Horizon" sub="Accounts, operations, ledger hashes" tone="chain" />
+    <Node icon={<Cpu />} title="Stellar RPC" sub="Contract instance storage" tone="chain" />
+    <Node icon={<Archive />} title="Ledger files" sub="Galexie export, AWS Open Data" tone="chain" />
+    <Node icon={<Stamp />} title="Seal account" sub="One MEMO_HASH a day (testnet)" tone="chain" />
+  </Zone>
+  <Zone title="Ecosystem registries" kind="public" note="Read only">
+    <Node icon={<List />} title="Stellarlight" sub="SCF-awarded projects, contract ids" />
+    <Node icon={<List />} title="PG Atlas" sub="Public goods registry" />
+  </Zone>
+</Zones>
+
+| Touch point | Stellar standard or source | Status |
+|---|---|---|
+| 1. Sign in with a Stellar account | SEP-53 signed message; SEP-10 challenge; Horizon signers | SEP-53 <Status kind="live" /> SEP-10 <Status kind="built" /> |
+| 2. Prove a project controls an account | SEP-53 or SEP-10, `home_domain`, SEP-1 `ACCOUNTS` | <Status kind="live" /> |
+| 3. Register and verify contracts | Horizon operations, CAP-46 contract ids, RPC `getLedgerEntries` | <Status kind="live" /> |
+| 4. Count contract usage | Ledger files (SEP-54 layout), Horizon ledger hashes | <Status kind="built" /> |
+| 5. DeFi protocol co-usage | Ledger files, curated protocol contract list | <Status kind="built" /> |
+| 6. Wallet analytics in the browser | Wallets Kit, Freighter API, SEP-43 error codes | <Status kind="live" /> |
+| 7. Stellar-aware API analytics | SEP-23 StrKeys, RPC methods, Horizon routes, SEP-6/24/31 | <Status kind="live" /> |
+| 8. Find and match projects | Stellarlight, PG Atlas | <Status kind="live" /> |
+| 9. Public proof of published numbers | `MEMO_HASH` transaction, SEP-1 `stellar.toml` | <Status kind="live" /> on testnet |
+
+"Built, off by default" for rows 4 and 5 means the pipeline is deployed but counts nothing for a project until that
+project turns on-chain counting on.
+
+## 1. Sign in with a Stellar account
+
+A person signs in by signing a short text message with their Stellar key (SEP-53). There is no password and no
+transaction. The portal talks to Freighter through `@stellar/freighter-api`; for any other wallet or tool the person
+copies the message, signs it there and pastes the signature back.
+
+<Sequence actors={["Wallet", "Portal", "Control plane", "Horizon"]} caption="SEP-53 sign-in. The challenge is single use and expires after 10 minutes; Horizon is asked only for the account's signers and thresholds.">
+  <Msg from="Portal" to="Control plane" note="account G…">POST /v1/auth/stellar/challenge</Msg>
+  <Msg from="Control plane" to="Portal" note="nonce stored as a hash">SEP-53 message, 10 min</Msg>
+  <Msg from="Portal" to="Wallet">signMessage(message)</Msg>
+  <Msg from="Wallet" to="Wallet" note="no fee, nothing submitted">person approves</Msg>
+  <Msg from="Wallet" to="Portal">Ed25519 signature</Msg>
+  <Msg from="Portal" to="Control plane">POST /v1/auth/stellar/verify</Msg>
+  <Msg from="Control plane" to="Horizon">GET /accounts/G…</Msg>
+  <Msg from="Horizon" to="Control plane" note="404 = unfunded: master key, weight 1">signers, med_threshold</Msg>
+  <Msg from="Control plane" to="Portal">session cookie</Msg>
+</Sequence>
+
+The message the wallet shows has a fixed form:
+
+```text
+usagemap.dev wants you to sign in with your Stellar account:
+G…
+Purpose: sign in to UsageMap
+Signing this message does not send a transaction or cost a fee.
+Network: public
+Nonce: …  Issued At: …  Expiration Time: …
+```
+
+<Steps>
+<Step>
+**Challenge.** The control plane checks the `G…` account id (SEP-23 StrKey with its CRC16 checksum), creates a
+22-character random nonce, stores only its SHA-256 hash and returns the message. The network is the deployment's own
+(`SCF_STELLAR_NETWORK`, mainnet on usagemap.dev); the client cannot choose it, so an unfunded testnet twin of a
+mainnet account cannot be used to get in.
+</Step>
+<Step>
+**Signature.** The control plane verifies the Ed25519 signature over `SHA-256("Stellar Signed Message:\n" ‖ message)`
+with the account's public key. The challenge is consumed whatever the outcome.
+</Step>
+<Step>
+**Authority.** It reads the account from Horizon. The signing key must have a weight above 0 that meets the account's
+**medium threshold**. A master key that was disabled or weakened on a multisig account therefore cannot sign in
+alone. An account that does not exist yet has only its master key (weight 1, thresholds 0).
+</Step>
+<Step>
+**Session.** A user is found or created for the provider `stellar` and the account id. The display name is the first
+and last four characters of the account.
+</Step>
+</Steps>
+
+**SEP-10** is the second method, for hardware wallets and multisig accounts that cannot sign a message. The control
+plane builds a challenge transaction with the `@stellar/stellar-sdk` WebAuth module (sequence 0, a `manage_data`
+operation `<home domain> auth` with a random nonce, a 10-minute time bound, signed by the server key). The person signs
+it and pastes the envelope back. The control plane checks that it is exactly the transaction it issued (same hash) and
+that the signatures reach the account's medium threshold. SEP-10 is offered only when the deployment has a SEP-10
+signing key.
+
+## 2. Prove that a project controls a Stellar account
+
+Signing in proves who a person is. Linking proves that a **project** controls an account, the second step of the
+project's verification ladder.
+
+| Level | Evidence |
+|---|---|
+| L0 | none |
+| L1 | a verified domain (DNS TXT record, a `.well-known` file or a meta tag) |
+| L2 | L1 and a linked Stellar account |
+| L3 | L1 and a confirmed match with an SCF-awarded project in a public registry (section 8) |
+| L4 | approval by an SCF operator |
+
+<Steps>
+<Step>
+**Challenge for this project.** The message says
+`Purpose: link this account to the project <slug> (<id>) on UsageMap`, so a sign-in signature cannot be replayed as a
+link proof. It is bound to the project and the member, single use, valid for 10 minutes. SEP-10 works here too.
+</Step>
+<Step>
+**Signature and threshold.** Checked as in sign-in: a valid signature by a key that meets the medium threshold.
+</Step>
+<Step>
+**On-ledger `home_domain`.** The account's `home_domain`, read from Horizon, must be one of the project's verified
+domains.
+</Step>
+<Step>
+**SEP-1 `stellar.toml`.** The control plane fetches `https://<home_domain>/.well-known/stellar.toml` with the same
+SSRF rules as the domain check (public addresses only) and requires the account in its top-level `ACCOUNTS` list.
+</Step>
+<Step>
+**Evidence.** A `stellar_account` evidence row is written with the method, signer weight, threshold, home domain and
+network; the change is recorded in the project's audit chain. An account that belonged to a removed project cannot
+be linked again.
+</Step>
+</Steps>
+
+The link therefore needs three things to agree: the key (signature), the ledger (`home_domain`) and the project's own
+web server (`stellar.toml`).
+
+## 3. Register and verify contracts
+
+A project registers the Soroban contracts it owns (`C…` ids, mainnet or testnet) as its **Registered Footprint**.
+A registered contract is `claimed`; it counts for nothing until a job proves on the ledger that it belongs to the
+project, and then it is `verified`.
+
+<Sequence actors={["Project", "Control plane", "Jobs", "Horizon", "Stellar RPC"]} caption="Contract verification. A contract is verified when a linked account of the project deployed it or is its current admin.">
+  <Msg from="Project" to="Control plane" note="portal, or deploy script with scfa_reg_…">register C… (claimed)</Msg>
+  <Msg from="Control plane" to="Jobs" note="checked within 5 minutes">next_check_at = now</Msg>
+  <Msg from="Jobs" to="Horizon" note="paged, oldest first">GET /accounts/G…/operations</Msg>
+  <Msg from="Jobs" to="Jobs" note="CAP-46: network id, deployer, salt">derive created contract ids</Msg>
+  <Msg from="Jobs" to="Stellar RPC" note="instance storage, key Admin">getLedgerEntries</Msg>
+  <Msg from="Jobs" to="Control plane" note="audited per project">verified or rejected</Msg>
+</Sequence>
+
+<Steps>
+<Step>
+**Register.** In the portal, or from a deploy script with a **footprint registration key** (`scfa_reg_…`). That key
+has one scope, `footprint:register`: it can add a contract as `claimed` for one project (optionally one network) and
+do nothing else. The Scaffold Stellar template's post-deploy step uses it, so a new contract is registered the moment
+it is deployed.
+</Step>
+<Step>
+**Deployer.** Job `contract_verification` (daily at 05:00 UTC, and every 5 minutes for items that are due) walks
+each linked account's operations on Horizon. Every `invoke_host_function` that created a contract
+(`CreateContract` or `CreateContractV2`) gives the deployer and the salt; the contract id follows from CAP-46 and is
+compared with the claim. Only a walk that covers the account's whole life counts as "never deployed".
+</Step>
+<Step>
+**Admin.** If the deployer does not match, the job reads the contract's instance entry through Stellar RPC
+`getLedgerEntries` and looks for an `Admin` key whose value is an account. This check needs an RPC endpoint in the
+configuration.
+</Step>
+<Step>
+**Decision.** `verified` (role `deployer` or `admin`), or `rejected` with `not_deployer_or_admin` or
+`not_found_on_ledger`, only when the ledger answer is definite. An incomplete walk or a missing RPC leaves the status
+as it was; a verified contract is never downgraded because a look-up ran out of budget.
+</Step>
+<Step>
+**Conflicts.** A contract verified for two projects on the same network is flagged for both and counted for neither,
+until an SCF operator resolves it. Nobody wins by registering first.
+</Step>
+</Steps>
+
+Limits: a contract deployed through a factory contract names the factory, not the account, so it is found only if the
+account is its admin. An admin kept in persistent storage outside the instance is not found. The deployer walk reads
+at most 100,000 operations per account and run. Issuing accounts, app accounts and WASM hashes can be described in
+the data model but are not accepted or counted yet (see [Planned Stellar work](#planned-stellar-work)).
+
+## 4. Count contract usage from public ledger files
+
+For each verified contract of a project that turned on-chain counting on, UsageMap stores three numbers per UTC day:
+**invocations**, **successful invocations** and **distinct callers**. The source is the public ledger itself, as
+exported by Galexie, not an indexer or a third-party API.
+
+<Flow caption="Step 1, fetch: only the files of the days still needed are downloaded, and each is checked before it is kept.">
+  <Node icon={<Archive />} title="Ledger files" sub="AWS Open Data, pubnet" tone="chain" />
+  <Arrow label="HTTPS · fetch" />
+  <Node icon={<Download />} title="Fetcher" sub="onchain-reader fetch" tone="ink">
+    - MD5 against the ETag
+    - decodes, checks the range
+  </Node>
+  <Arrow label="whole files" />
+  <Node icon={<HardDrive />} title="Local mirror" sub="7 days, about 3 GB a day" tone="store" />
+</Flow>
+
+<Flow caption="Step 2, count: a day is stored only when it is complete and its anchor hash matches Horizon's.">
+  <Node icon={<HardDrive />} title="Local mirror" tone="store" />
+  <Arrow label="files" />
+  <Node icon={<Cpu />} title="Reader" sub="Go, no network" tone="ink">
+    - checks the hash chain
+    - callers in memory only
+  </Node>
+  <Arrow label="day anchor" />
+  <Node icon={<Search />} title="Horizon" sub="/ledgers/{seq} hash" tone="chain" />
+  <Arrow label="counts" />
+  <Node icon={<Database />} title="PostgreSQL" sub="onchain_daily" tone="store" />
+</Flow>
+
+<Steps>
+<Step>
+**Fetch.** Job `onchain_correlation` (daily, 06:00 UTC) runs `onchain-reader fetch`. It reads the store's
+`.config.json` (SEP-54 layout), finds each needed UTC day's ledger range by probing close times, and downloads only
+missing files. Each file must decode as a `LedgerCloseMetaBatch` of exactly the expected, contiguous ledgers before it
+is kept. The default mainnet store is `aws-public-blockchain.s3.amazonaws.com/v1.1/stellar/ledgers/pubnet`.
+</Step>
+<Step>
+**Verify every ledger.** The reader recomputes each ledger's header hash, transaction-set hash and result-set hash
+and checks that consecutive ledgers chain through `previousLedgerHash`. Any mismatch stops the run with no row.
+</Step>
+<Step>
+**Count.** An **invocation** is a top-level `InvokeHostFunction` operation calling `InvokeContract` on the contract.
+It is **successful** when its transaction succeeded (for a fee-bump, the inner result). The **caller** is the
+operation's source account, else the transaction's source; for a fee-bump the inner source, never the sponsor; a muxed
+account counts as its underlying account.
+</Step>
+<Step>
+**Complete days only.** A day is complete when its ledgers are contiguous and the ledgers just before and after it
+were seen. Partial days are not stored and are retried.
+</Step>
+<Step>
+**Day anchor.** The checks above would pass a whole forged but self-consistent chain. So the hash of the first ledger
+after the day, which commits to every ledger of the day, is compared with Horizon's `GET /ledgers/{seq}`. A mismatch
+refuses the day and raises an alert; a Horizon that cannot answer leaves the day for the next run.
+</Step>
+<Step>
+**Store.** One row per contract and day in `scf.onchain_daily`, written under the project's own row-level security
+context. The project sees the last 30 days on its Overview, next to (never joined with) its web and wallet numbers.
+</Step>
+</Steps>
+
+**What is never stored.** Caller accounts are held in the reader's memory for one run, only to count distinct values,
+and are never written, logged or returned (tested). The mirror is a copy of the public ledger and is never copied into
+the database. Contract-to-contract sub-calls, contract creation and WASM uploads are not counted as invocations.
+
+**Ecosystem Usage Map.** Job `usage_map` (07:30 UTC) runs the same reader for every registry project that lists
+contract ids, whether or not it uses UsageMap: daily invocations, distinct callers and calls per contract function,
+and weekly active accounts as the SCF Growth Hack rules define them ("the account that initiated at least one
+operation"), counted with and without failed transactions because the rules do not say. Unclaimed projects are
+visible to SCF operators only, labelled "public chain data, ownership not verified".
+
+## 5. DeFi protocol co-usage
+
+Job `protocol_usage` (07:45 UTC) counts, per project and day, how many of the transactions that touch the project's
+verified contracts also touch **Blend, Soroswap, DeFindex, Aquarius or Reflector**. The protocols' contract ids are a
+curated, versioned list in the jobs service: 68 ids across mainnet and testnet, each taken from the protocol's
+official source at a pinned commit or its official documentation.
+
+A transaction **touches** a contract through its top-level call, any contract in its authorization trees, or any
+contract data key in its Soroban footprint (Soroban loads the instance of every contract it runs, so the footprint
+names every contract executed or read). A project that is itself the protocol does not count as interacting with
+itself.
+
+The counts are exact for what the list covers and a **lower bound** otherwise: pools, pairs and vaults a protocol
+creates at run time and the list does not name are not seen. The reader never reads an account in this mode; only
+counts per project, day and protocol name leave it. The figures are shown to the project and, per project, to SCF
+operators, never on a public page.
+
+## 6. Wallet analytics in the browser
+
+The tracker turns wallet activity into a fixed, address-free event vocabulary (`scf-stellar-events/1`), the same for
+every project so that SCF can compare them. The project adds one line, for example
+`attachWalletsKit(StellarWalletsKit)`; the tracker never imports or installs a wallet library itself.
+
+<Flow caption="Wallet events. Every value is a closed enum; events that could be matched to a ledger transaction are only counted, never stored per visit.">
+  <Node icon={<Wallet />} title="Wallet call in your dApp" sub="Kit, Freighter, passkey kit, Privy" tone="web" />
+  <Arrow label="wrapped call" />
+  <Node icon={<Code />} title="Tracker adapter" sub="Reads outcomes, not data" tone="ink">
+    - wallet type, network
+    - SEP-43 error class
+    - never an address
+  </Node>
+  <Arrow label="HTTPS · wl event" />
+  <Node icon={<Shield />} title="Gateway" sub="Checks the schema" />
+  <Arrow label="daily counts" />
+  <Node icon={<Database />} title="Property rollup" sub="Wallet funnel per day" tone="store" />
+</Flow>
+
+| What is sent | Examples of values |
+|---|---|
+| Event name | `wallet_connect`, `wallet_connect_failed`, `sign_requested`, `sign_approved`, `sign_rejected`, `tx_submitted`, `smart_wallet_created`, `passkey_used`, `walletconnect_session` |
+| Wallet type | `freighter`, `xbull`, `lobstr`, `albedo`, `hana`, `ledger`, `walletconnect`, `passkey`, `privy`, … `unknown` |
+| Network | `mainnet`, `testnet`, `futurenet`, `local`, `unknown`, mapped in memory from the passphrase |
+| Error class | from the SEP-43 `code` only: `user_rejected`, `invalid_request`, `external_service`, `internal`, `timeout` |
+| Submit result | from RPC `sendTransaction` and the app's own poll, or Horizon's status: `success`, `failed`, `pending`, … |
+
+**Never sent:** addresses (`G…`, `C…`, `M…`), secret seeds, transaction hashes, XDR, amounts, memos, signatures,
+passphrases, error messages or any free text.
+
+**Counted only.** Signing, submission, smart-wallet and passkey events happen at the same moment as a public ledger
+transaction. On a quiet contract, a visit record with a timestamp could be matched to that transaction and tie a
+public account to a browser. These events are therefore only added to per-day counts: never forwarded to the
+analytics engine, never written to the per-visit store.
+
+The `/stellar-rpc` entry measures the RPC and Horizon calls the dApp makes from the browser: per RPC method or Horizon
+route template, network, outcome class and latency bucket, sent once when the page is hidden and stored as per-site
+daily totals. User-facing details: [Wallet analytics](/wallets).
+
+## 7. Stellar-aware API analytics
+
+API paths in Stellar backends are full of identifiers. The path normaliser (`packages/pathnorm`, Go) runs in the
+Collector for API data and in the gateway for page paths, in memory, before anything is queued or stored. It
+recognises all ten SEP-23 StrKey types by shape and decodes them with their checksum.
+
+| In the path | Becomes |
+|---|---|
+| `G…` account, `M…` muxed account | `{account}` |
+| `C…` contract | `{contract}` |
+| `L…` liquidity pool | `{pool}` |
+| `B…` claimable balance, or its 72-character hex form | `{balance}` |
+| `T…`, `X…`, `P…` signer keys | `{signer}` |
+| `CODE:G…` asset | `{asset}` |
+| 64-character hex (transaction hash) | `{hash}` |
+| `S…` secret seed (by shape alone, never decoded) | `{redacted}`, counted by kind only |
+
+So `/accounts/GA…/payments` is stored as `/accounts/{account}/payments`. A StrKey with a bad checksum becomes `{id}`.
+The rule set has a 451-vector test corpus.
+
+Packages that report through the project's own OpenTelemetry setup:
+
+- **`stellar-otel`** (js-stellar-sdk 13–17) and **`stellar-otel-py`** (py-stellar-base): latency per RPC method or
+  Horizon route template (50 templates), and outcome classes of submissions, polls and simulations. Shown under "By
+  Stellar surface" and never counted as API traffic.
+- **`anchor-otel`**: a wallet's anchor funnel through SDF's Wallet SDK (SEP-6, SEP-24, SEP-31), per anchor home
+  domain: authenticated, KYC, interactive started, completed. The **Anchor Platform** listener reads the platform's
+  Kafka `TRANSACTION` topic with its own consumer group and counts transactions per SEP and status, never amounts,
+  accounts or memos.
+- **`partner-otel`** and **`payments-otel`**: calls to SCF Integration List partners, and x402 / MPP payment outcomes.
+
+The Collector keeps only allow-listed metrics and attributes from these packages. Details:
+[Stellar SDK calls](/api/stellar-sdk), [Payments, partners and anchors](/api/payments-and-anchors),
+[API analytics architecture](/technical-architecture/api-analytics).
+
+## 8. Find and match projects in ecosystem registries
+
+Job `registry_sync` (daily, 04:00 UTC) imports public project lists so that a new user can pick their project and so
+that SCF operators can see every awarded project:
+
+- **Stellarlight**: `GET /api/projects/search?scfAwarded=true`, with name, website, SCF rounds and awards, and the
+  project's contract ids where listed. 711 SCF-awarded projects were imported on the live host.
+- **PG Atlas**: `GET /projects?project_type=scf-project`, then one detail request per changed project. The client is
+  paced, honours `429` and `Retry-After`, and keeps stored rows when details are deferred.
+
+Each row keeps its source, a content hash and the time it was fetched. A run that suddenly sees far fewer rows is
+marked `suspicious` and lapses nothing.
+
+**Matching** never uses names or GitHub organisations. A project gets a candidate link to a registry entry when one
+of its verified domains equals, or is a subdomain of, the entry's website, or when one of its **verified** contracts
+is listed by the entry. A domain match is confirmed automatically. A confirmed link to an SCF-awarded entry gives
+`registry_match` evidence (level L3); it lapses when the entry has been missing from the source for more than 14 days.
+
+## 9. Public proof: the daily seal on Stellar
+
+Projects can publish signed traction snapshots (Ed25519 over the RFC 8785 canonical form). Once a day, UsageMap seals
+the day's new snapshots and the head of its audit log in one Stellar transaction. The seal shows that a published
+number was not changed later. It does **not** show that the number is genuine; the seal API and the `/verify` page say so.
+
+<Flow caption="The daily seal. One transaction a day holds the Merkle root of the day's snapshots and audit log, chained to the previous day.">
+  <Node icon={<FileCheck />} title="Day's inputs" sub="Signed snapshots, audit anchor" tone="plain" />
+  <Arrow label="salted leaves" />
+  <Node icon={<GitMerge />} title="Merkle tree" sub="RFC 9162, SHA-256" tone="ink">
+    - leaf 0: previous day's root
+    - leaf 1: audit anchor hash
+    - leaves 2…: snapshots
+  </Node>
+  <Arrow label="root" />
+  <Node icon={<Stamp />} title="Stellar transaction" sub="MEMO_HASH = root" tone="chain" />
+  <Arrow label="anyone" />
+  <Node icon={<BadgeCheck />} title="/verify page" sub="Recomputes in the browser" tone="web" />
+</Flow>
+
+<Steps>
+<Step>
+**Inputs (00:15 UTC).** Job `audit_anchor` writes the day's audit-anchor document: the head (sequence and hash) of
+every audit chain at midnight. Its SHA-256 becomes leaf 1.
+</Step>
+<Step>
+**Tree (00:30 UTC).** Job `daily_seal` builds an RFC 9162 Merkle tree. Leaf 0 is the previous day's root (32 zero
+bytes on the first day), so the days form a chain. Each snapshot of a project that opted in becomes a leaf with a
+fresh 32-byte salt, so nobody can test guesses against the root.
+</Step>
+<Step>
+**Transaction.** One `BUMP_SEQUENCE(0)` operation with `MEMO_HASH(root)`, base fee, a 5-minute time bound, signed by
+the seal account. The transaction hash is stored before it is submitted, so a crash never loses it. Days are submitted
+in order; an expired transaction is rebuilt.
+</Step>
+<Step>
+**History check.** Daily, the job walks the seal account's full transaction history on Horizon against every stored
+day; any difference fails the run.
+</Step>
+<Step>
+**Verify.** `app.usagemap.dev/verify` checks, in the reader's browser, the snapshot signature with the published key,
+the snapshot's place in the project's gap-free public list, the salted leaf and its inclusion path to the day's root,
+the chain of days, and, on request, the transaction on Horizon.
+</Step>
+</Steps>
+
+The seal runs today on **testnet**: `GET /public/v1/seals/{day}` returns the day's root, previous root, audit-anchor
+hash, transaction hash and ledger. Testnet is reset several times a year, so a testnet seal is labelled a
+demonstration, not durable evidence; after a reset the account is funded again and a new segment of the chain starts.
+Mainnet needs the operator's explicit approval and a funded key; the deployment refuses mainnet without that flag.
+UsageMap publishes `usagemap.dev/.well-known/stellar.toml` (SEP-1) listing the seal account in `ACCOUNTS` and the
+snapshot signing key as a Stellar StrKey, so a reader can find both from the domain. Details:
+[Trust and verification](/technical-architecture/trust-and-verification).
+
+## 10. Stellar data in the trust signals
+
+- **API assurance badge A3** compares a project's API with its contracts: `consistent`, or `inconsistent` when the API
+  reported requests on a day with no successful invocation of any verified contract; `not_applicable` without a
+  verified contract; `unavailable` without on-chain rows.
+- **Web trust score `trust/1.0.0`** has a `cross_signal` component (weight 5 of 100) that is neutral in this version:
+  a signal that is not configured is never penalised.
+- **Snapshot v2** carries the project's on-chain counts next to its web and API figures.
+
+How the scores are computed: [Trust and verification](/technical-architecture/trust-and-verification).
+
+## Planned Stellar work
+
+| What | Why | How |
+|---|---|---|
+| Mainnet seal <Status kind="planned" /> | Testnet resets make the seal a demonstration | Same job and transaction; `SCF_SEAL_NETWORK=mainnet` with the operator's approval and a funded key |
+| Issuing accounts, app accounts, WASM hashes in the footprint <Status kind="planned" /> | Many projects are assets, wallets or factory products, not single contracts | Accounts by SEP-1 `ACCOUNTS` or a signed challenge (already in the data model); products of a factory counted by instances a verified deployer created, with the WASM hash as a filter |
+| CAP-67 metrics <Status kind="planned" /> | Usage that is not a contract call | Transactions touching the project's contracts and accounts, fees paid, fee-sponsored transactions, payments into project accounts, as new `onchain_daily` columns |
+| Quality labels on on-chain counts <Status kind="planned" /> | SCF's rules disregard self-generated and wash activity | Fee-payer concentration, relayer or sponsor flag, share of new accounts (age from the sequence number), computed per day and discarded; feeds the trust score |
+| Web → wallet → chain consistency <Status kind="planned" /> | Show whether site visits, wallet connections and contract use move together | Day-level ratios only; the browser never collects transaction hashes |
+| Official Wallets Kit analytics hook <Status kind="planned" /> | Every app would be measured without wrapping | An address-free hook in the kit itself; needs the maintainers' agreement, nobody contacted yet |
+| RPC/Horizon relay <Status kind="planned" /> | Per-method data without client packages | A written post-v1 design only: opt-in, server-side, behind a highly available edge. Not in v1, because a relay outage would break the project's dApp and the relay would see end-user addresses and XDR |
+
+## What we cannot do (yet)
+
+- **On-chain figures need opt-in and verification.** Nothing is counted for a contract that is not verified, or for
+  a project that has not turned counting on.
+- **Callers are submitting accounts.** Relayers, sponsors and smart wallets hide end users, so distinct callers is a
+  lower bound. We do not link a ledger account to a visitor, and we do not try.
+- **Seven days of ledger history.** The mirror keeps seven days; older usage is not rebuilt from earlier files.
+- **Protocol counts** are lower bounds for contracts the curated list does not name.
+- **The seal is tamper-evidence, not truth,** and on testnet it does not survive a reset.
+- **API and anchor figures are self-attested:** they come from the project's own backend and are labelled so.
+- **One network per deployment.** usagemap.dev verifies and counts mainnet contracts; testnet contracts can be
+  registered but are not checked or counted there.
+
+## Related
+
+- [Trust and verification](/technical-architecture/trust-and-verification)
+- [Web analytics architecture](/technical-architecture/web-analytics) · [API analytics architecture](/technical-architecture/api-analytics)
+- [Data and privacy](/technical-architecture/data-and-privacy)
+- User guides: [Smart contracts](/onchain) · [Wallet analytics](/wallets) · [Stellar SDK calls](/api/stellar-sdk)
+- [Published methodology 1.0.0](https://app.usagemap.dev/docs/methodology/1.0.0)

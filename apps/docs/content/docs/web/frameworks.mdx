@@ -1,0 +1,190 @@
+---
+title: Framework guides
+description: Where the tracker goes in Next.js, Nuxt, SvelteKit, Astro, React, Vue and static site generators.
+icon: Layers
+---
+
+The tracker works the same everywhere: put the tag in the `<head>` of every page, once. Route changes in single-page
+apps are detected automatically, so you never call anything on navigation.
+
+In every example, replace the `src`, `integrity` and `data-site` values with the ones from your website's **Snippet**
+tab.
+
+Each framework has a runnable example app: `examples/nextjs`, `examples/nuxt`, `examples/sveltekit`,
+`examples/astro`, `examples/vite-react`, `examples/react-router`, and for static sites `examples/eleventy`,
+`examples/vitepress` and `examples/docusaurus`. Each runs in three steps (install, set your site key, run), and the
+[website test command](/integrations#the-three-test-commands) checks your key without the app.
+
+<Tabs items={["Next.js", "Nuxt", "SvelteKit", "Astro", "React (Vite)", "React Router", "Vue (Vite)", "Static sites"]} persist>
+<Tab value="Next.js">
+
+App Router: add the tag to the root layout.
+
+```tsx title="app/layout.tsx"
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <script
+          src="https://e1.usagemap.dev/lib/1.2.0/standard.js"
+          integrity="sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId"
+          crossOrigin="anonymous"
+          data-site={process.env.NEXT_PUBLIC_USAGEMAP_SITE}
+          defer
+        />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+</Tab>
+<Tab value="Nuxt">
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  app: {
+    head: {
+      script: [
+        {
+          src: "https://e1.usagemap.dev/lib/1.2.0/standard.js",
+          integrity: "sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId",
+          crossorigin: "anonymous",
+          "data-site": "YOUR_SITE_KEY",
+          defer: true,
+        },
+      ],
+    },
+  },
+});
+```
+
+</Tab>
+<Tab value="SvelteKit">
+
+```html title="src/app.html"
+<head>
+  <!-- … -->
+  <script
+    src="https://e1.usagemap.dev/lib/1.2.0/standard.js"
+    integrity="sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId"
+    crossorigin="anonymous"
+    data-site="YOUR_SITE_KEY"
+    defer
+  ></script>
+  %sveltekit.head%
+</head>
+```
+
+</Tab>
+<Tab value="Astro">
+
+`is:inline` stops Astro from bundling the tag, which would break the `integrity` check. View transitions
+(`<ClientRouter />`) are supported.
+
+```astro title="src/layouts/Layout.astro"
+<head>
+  <script
+    is:inline
+    src="https://e1.usagemap.dev/lib/1.2.0/standard.js"
+    integrity="sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId"
+    crossorigin="anonymous"
+    data-site="YOUR_SITE_KEY"
+    defer
+  ></script>
+</head>
+```
+
+</Tab>
+<Tab value="React (Vite)">
+
+```html title="index.html"
+<head>
+  <script
+    src="https://e1.usagemap.dev/lib/1.2.0/standard.js"
+    integrity="sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId"
+    crossorigin="anonymous"
+    data-site="YOUR_SITE_KEY"
+    defer
+  ></script>
+</head>
+```
+
+React Strict Mode runs effects twice in development; that is fine, the tracker starts only once.
+
+</Tab>
+<Tab value="React Router">
+
+Framework mode: add the tag to the `Layout` in `app/root.tsx`.
+
+```tsx title="app/root.tsx"
+export function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <Meta />
+        <Links />
+        <script
+          src="https://e1.usagemap.dev/lib/1.2.0/standard.js"
+          integrity="sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId"
+          crossOrigin="anonymous"
+          data-site="YOUR_SITE_KEY"
+          defer
+        />
+      </head>
+      <body>
+        {children}
+        <ScrollRestoration />
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+```
+
+</Tab>
+<Tab value="Vue (Vite)">
+
+```html title="index.html"
+<head>
+  <script
+    src="https://e1.usagemap.dev/lib/1.2.0/standard.js"
+    integrity="sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId"
+    crossorigin="anonymous"
+    data-site="YOUR_SITE_KEY"
+    defer
+  ></script>
+</head>
+```
+
+Vue Router's history mode is detected automatically.
+
+</Tab>
+<Tab value="Static sites">
+
+Eleventy, Hugo, Jekyll, Docusaurus, WordPress or any CMS: put the tag into the shared base template or the "code in
+`<head>`" setting, so that it appears on every page.
+
+```html
+<script
+  src="https://e1.usagemap.dev/lib/1.2.0/standard.js"
+  integrity="sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId"
+  crossorigin="anonymous"
+  data-site="YOUR_SITE_KEY"
+  defer
+></script>
+```
+
+</Tab>
+</Tabs>
+
+## Check it works
+
+<Steps>
+<Step>Deploy, then open your site in a normal browser window (without Global Privacy Control).</Step>
+<Step>In the browser's network tab, you should see the tracker file load and a `POST` to `/v1/c`.</Step>
+<Step>Open **Installation check** in the app: your event appears within about a minute, with its verdict.</Step>
+</Steps>
+
+Nothing showing up? See [troubleshooting](/troubleshooting).

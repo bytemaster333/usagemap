@@ -1,0 +1,28 @@
+{
+  "title": "UsageMap",
+  "pages": [
+    "---Get started---",
+    "index",
+    "quickstart",
+    "features",
+    "ai-agents",
+    "---Integrate---",
+    "integrations",
+    "web",
+    "wallets",
+    "api",
+    "onchain",
+    "mobile",
+    "tools",
+    "---Use the dashboard---",
+    "dashboard",
+    "sharing",
+    "projects-and-team",
+    "---Reference---",
+    "privacy",
+    "troubleshooting",
+    "reference",
+    "---Technical architecture---",
+    "...technical-architecture"
+  ]
+}

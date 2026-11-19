@@ -1,0 +1,111 @@
+---
+title: Payments, partners and anchors
+description: Count x402 and MPP payments, calls to SCF Integration List partners, and SEP anchor funnels from the wallet or the Anchor Platform side, without personal data.
+icon: Landmark
+---
+
+These integrations add Stellar-specific counts to the OpenTelemetry metrics your backend already sends to UsageMap
+([API analytics](/api)). Like all API figures, they are reported by your own backend and labelled **self-attested** in
+the app.
+
+<Callout type="warn" title="Not on npm yet">
+  The packages on this page (`@usagemap/payments-otel`, `@usagemap/partner-otel`,
+  `@usagemap/anchor-otel`) are published to npm together with the public repository. Until then, install them
+  from the release.
+</Callout>
+
+Every section follows the same three steps: **install** the package from the release, **set your key** (register the
+service, create an ingest token, export `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=https://e1.usagemap.dev/v1/metrics`
+and `OTEL_EXPORTER_OTLP_METRICS_HEADERS="Authorization=Bearer%20scfa_ing_…"`), and **run** your service. Each card's
+test sends the [API test command](/integrations#the-three-test-commands) in the integration's own metric; it is never
+counted.
+
+## Payments: x402 and MPP
+
+For APIs that sell calls to agents. One call adds how many requests got a `402`, how many payments were verified,
+settled or paid, and a closed reason class for every failure. No payer, payee, transaction hash, amount, path or
+query string is ever recorded.
+
+<Tabs items={["x402", "MPP (mppx)"]}>
+<Tab value="x402">
+
+```js
+import { instrumentX402Http } from "@usagemap/payments-otel";
+
+const payments = instrumentX402Http(httpServer); // your x402 HTTP server
+```
+
+Works with `@x402/express`, `@x402/hono`, `@x402/next` or `@x402/core`. Example: `examples/api-x402` (start it,
+then `curl -i localhost:8402/report` answers `402 Payment Required`).
+
+</Tab>
+<Tab value="MPP (mppx)">
+
+```js
+import { instrumentMppx } from "@usagemap/payments-otel";
+
+instrumentMppx(mppx);
+```
+
+Example: `examples/payments-mpp` (start it, then `pnpm run pay` pays once: `402`, then `200`).
+
+</Tab>
+</Tabs>
+
+## Partner calls
+
+Integration Track projects integrate building blocks from the SCF Integration List. This measures **your backend's
+calls to those partners' APIs** (Soroswap, DeFindex, Trustless Work, ramps, bridges): how often, how fast, with which
+result. It records the partner, the route template, an outcome class and the network, never the URL, query string,
+ids in the path, headers (your partner API key), bodies or amounts.
+
+```js
+import { partnerFetch } from "@usagemap/partner-otel";
+
+const fetch = partnerFetch(); // wraps globalThis.fetch; other hosts pass through unmeasured
+```
+
+For axios, use `instrumentPartnerAxios`. Example: `examples/partner-calls`.
+
+## Wallet-side anchor funnel
+
+For a wallet or app that uses anchors (SEP-6, 24, 31) through SDF's Wallet SDK. Per anchor (its public home domain),
+every SEP step's latency and outcome class, and the funnel: authenticated → KYC → interactive started → deposit
+completed.
+
+```js
+import { instrumentWalletSdk } from "@usagemap/anchor-otel";
+
+const wallet = Wallet.TestNet();
+instrumentWalletSdk(wallet); // before wallet.anchor(…)
+```
+
+Example: `examples/anchor-wallet-sdk`.
+
+<Callout type="error" title="Never put a tracker on SEP-24 interactive or KYC pages">
+  Their URL carries a short-lived token and the pages collect identity documents. The funnel is measured without them.
+</Callout>
+
+## Anchor Platform
+
+For anchors running Anchor Platform 5.x, two parts:
+
+- **API usage** (requests per SEP route, latency, errors): the OpenTelemetry Java agent, configuration only. Add
+  `OTEL_EXPORTER_OTLP_ENDPOINT=https://e1.usagemap.dev`, the token header and a `service.instance.id` to the platform's
+  environment. Example: `examples/api-anchor-platform`.
+- **Business funnel**: the event listener `ap-listener` reads the platform's Kafka topic (`TRANSACTION`) with **its
+  own consumer group**, so the platform and your business server see every event as before. It counts transactions
+  created per SEP, kind and client wallet, status transitions, time in each status, KYC status counts and firm
+  quotes. It never reads amounts, fees, accounts, memos, external ids, customers or quote prices.
+
+```sh
+AP_KAFKA_BROKERS=kafka:9092 \
+STELLAR_NETWORK=mainnet \
+OTEL_SERVICE_NAME=my-anchor-events \
+OTEL_EXPORTER_OTLP_ENDPOINT=https://e1.usagemap.dev \
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer%20scfa_ing_... \
+./ap-listener
+```
+
+`./ap-listener -check-config` checks the environment and prints `configuration ok`. Example:
+`examples/anchor-platform-listener` (it also has a sample event to produce to any Kafka).

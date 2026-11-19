@@ -1,0 +1,5 @@
+{
+  "title": "API analytics",
+  "icon": "Server",
+  "pages": ["index", "existing-apm", "edge", "stellar-sdk", "payments-and-anchors"]
+}

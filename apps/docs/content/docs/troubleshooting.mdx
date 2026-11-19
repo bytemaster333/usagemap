@@ -1,0 +1,72 @@
+---
+title: Troubleshooting
+description: Nothing showing up? The common causes for websites and APIs, and how to fix them.
+icon: LifeBuoy
+---
+
+<Callout title="Start here">
+  The website's **Installation check** tab shows every event that arrived in the last minutes and its verdict. Turn on
+  **Debug mode** there to see the server's reason in each response's `X-Scf-Debug` header.
+</Callout>
+
+## Website
+
+<Accordions>
+<Accordion title="The tracker file doesn't load">
+
+- **No request at all:** the tag isn't in the served page. Check the page source and purge your CDN cache.
+- **Integrity error in the console:** the `integrity` hash doesn't match the version. Copy the snippet from the app
+  again; never edit the version without the hash.
+- **Content Security Policy error:** add `https://e1.usagemap.dev` to `script-src`.
+- **`ERR_BLOCKED_BY_CLIENT`:** an ad blocker. Test without it. Don't proxy the tracker through your own server.
+
+</Accordion>
+<Accordion title="The tracker loads but sends nothing">
+
+This is by design when the browser has **Global Privacy Control** or **Do Not Track** on (Brave turns GPC on by
+default), when the visitor opted out, or when consent mode is waiting for `grantConsent()`. Test in a clean browser
+profile.
+
+If a request to `/v1/c` is blocked, your CSP's `connect-src` needs **both** `https://e1.usagemap.dev` and
+`https://e2.usagemap.dev`.
+
+</Accordion>
+<Accordion title="Requests are sent but nothing is counted">
+
+| Installation check says | Fix |
+|---|---|
+| `origin_mismatch` | The page runs on a host that isn't one of your domains. Add the domain, or add it as a dev origin. |
+| only `dev` events | You're testing on a dev origin. That's correct; those are never counted. Deploy to production. |
+| `tenant_pending` | Your project is awaiting approval. |
+| `404 unknown_site` | Wrong site key, or the website was archived. |
+| `410 withdrawn` | That tracker version was withdrawn. Copy the current snippet. |
+| `429` | Rate limit or daily quota reached. The tracker retries by itself. |
+
+</Accordion>
+<Accordion title="Counted, but as suspect">
+
+- `domain_unverified`: verify your domain under **Settings → Domains**.
+- `proof_missing`: the page was closed before the proof of work finished. Normal for very short visits.
+- `automation_flag`, `net_datacenter`, `multiplicity_high`: anti-inflation checks: automated browsers, cloud
+  networks, or many visitors from one network.
+
+</Accordion>
+<Accordion title="Wallet events are missing">
+
+Attach the adapter once, after `init()`, with tracker 1.1.0 or later. Signing and submit events only appear as daily
+counts in the **Wallets** funnel, never on a single visit.
+
+</Accordion>
+</Accordions>
+
+## API
+
+| You see | Likely cause | Fix |
+|---|---|---|
+| `401` | Missing, wrong or revoked token, or the header isn't `Authorization=Bearer%20scfa_ing_…` | Create a token; check the `%20` |
+| `403` | The project is awaiting approval or suspended | Wait for approval |
+| `404` on `/v1/logs` | Logs aren't accepted | Set `OTEL_LOGS_EXPORTER=none` |
+| `429` / `503` | Over the rate limit, or a node is restarting | Nothing: SDKs retry with `Retry-After` |
+| Nothing in the dashboard | The 60-second export interval hasn't passed, or the process exited before flushing | Wait a minute; add the shutdown flush from your stack's guide |
+| Routes show as `{unknown}` | Your framework doesn't report the route | Express needs its instrumentation; axum needs the `axum` feature |
+| Counted twice | The service sends both metrics and spans | Send one: set `OTEL_TRACES_EXPORTER=none` |

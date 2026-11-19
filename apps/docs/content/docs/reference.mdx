@@ -1,0 +1,80 @@
+---
+title: Reference
+description: Hosts, keys, limits and tracker versions in one place.
+icon: BookOpen
+---
+
+## Hosts
+
+| Host | Used for |
+|---|---|
+| `https://app.usagemap.dev` | The app, the public stats pages and the metrics document |
+| `https://e1.usagemap.dev`, `https://e2.usagemap.dev` | Tracker files and data ingest (web and OpenTelemetry). Two independent hosts; use either |
+| `https://status.usagemap.dev` | Service status |
+
+## Keys and tokens
+
+| Prefix | What it is | Where to get it | Secret? |
+|---|---|---|---|
+| *(22 characters)* | Site key, identifies a website in the tracker tag | Website → **Snippet** | No, it's public |
+| `scfa_ing_` | Ingest token for OpenTelemetry | Project → **Ingest tokens** | **Yes** |
+| `scfa_pub_` | Share key, reads one metrics document | Project → **Sharing** | Yes |
+| `scfa_reg_` | Footprint registration key, adds contracts as `claimed` from a deploy script | Project → **Footprint** | **Yes** |
+| `scfi_` | Team invitation code | Project → **Team** | Yes, until used |
+
+## Limits
+
+| | Limit |
+|---|---|
+| Tracker batch | 10 events or 8 KiB |
+| Custom event | 10 properties, each value up to 100 characters |
+| OpenTelemetry request | 4 MiB compressed, 16 MiB uncompressed |
+| OpenTelemetry rate | 50 requests per second per project |
+| Data-point age | Up to 48 hours old, up to 5 minutes in the future |
+| Paths | 12 segments, then `{rest}` |
+| New projects (L0) | 2 websites, 1 API service, 50,000 events a day |
+| Dev origins | 10 per website, events kept 24 hours |
+| Ingest tokens | 5 active per project |
+
+## Tracker versions
+
+Each version is published at a fixed URL and never changes:
+`https://e1.usagemap.dev/lib/<version>/<profile>.js`. The list of versions with their hashes is at
+[`/lib/manifest.json`](https://e1.usagemap.dev/lib/manifest.json).
+
+| Version | standard.js | strict.js |
+|---|---|---|
+| **1.2.0** (current) | `sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId` | `sha384-rHaNaUDKDHEKn/EMeep0ZUFHRUfdoOaiKXN0K/A3kseOpGpodZHocaHWi1dh9uVG` |
+| 1.1.0 (previous) | `sha384-AYjFWyBUxxvOL92oDDKxAus7EAPjONT2RDrOiuPh4XUiEJNKkMaZqGVBDw4Lqn0+` | `sha384-ttV+rR22bWKREx01kjl8WFwxw9PYYHc60cbX3fEWCbzlJikl4ERzGJiGEyNDjvhv` |
+
+**1.2.0** adds failed connects (`wallet_connect_failed`) and the wallet context, the WalletConnect funnel, the Privy
+adapter and the browser RPC aggregate. **1.1.0** added the Stellar event schema, the wallet adapters and the debug
+module. To move from 1.1.0, change the version in `src` and the `integrity` hash together; the
+[pin Action](/tools#github-pin-action) can do it for you. Check which versions your host serves in its manifest.
+
+The npm package `@usagemap/tracker` is not on the public npm registry yet. Until it is, use the script tag, or
+install the package file from the release (`npm install ./scf-analytics-tracker-1.2.0.tgz`).
+
+## OpenTelemetry endpoints
+
+| Path | |
+|---|---|
+| `POST /v1/metrics` | Metrics (OTLP/HTTP, protobuf or JSON). OTLP/gRPC is also accepted |
+| `POST /v1/traces` | Server spans, converted to metrics, then discarded |
+| `POST /v1/logs` | Not accepted (`404`) |
+
+## Service levels
+
+| | Commitment |
+|---|---|
+| Ingest availability (web events and OpenTelemetry) | **99.99 %** per calendar month |
+| Dashboard availability (app and metrics API) | **99.90 %** per calendar month |
+| Current single-host deployment, until the high-availability profile runs | **99.5 %** objective |
+
+These are monthly objectives, measured and published every month, with a public
+post-mortem for every miss. Current status: [status.usagemap.dev](https://status.usagemap.dev).
+
+## Security
+
+Report a vulnerability to [security@usagemap.dev](mailto:security@usagemap.dev). Please don't open a public issue for
+it.

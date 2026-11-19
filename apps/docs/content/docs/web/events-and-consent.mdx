@@ -1,0 +1,111 @@
+---
+title: Custom events and consent
+description: Track sign-ups, clicks and other actions, add a consent mode, let visitors opt out, and debug the tracker.
+icon: MousePointerClick
+---
+
+## Custom events
+
+Page views are automatic. For anything else, call `track()` with an event name and up to 10 properties.
+
+```js
+window.scf.track("signup", { plan: "free" });
+window.scf.track("swap_completed", { pair: "XLM-USDC", amount_bucket: "100-1k" });
+```
+
+The script tag exposes the tracker as `window.scf`. If your code might run before the tracker has loaded, queue the
+call; it is replayed in order once the tracker is ready:
+
+```html
+<script>
+  window.scf = window.scf || [];
+  window.scf.push(["track", "signup", { plan: "free" }]);
+</script>
+```
+
+<Accordions>
+<Accordion title="Rules for names and properties">
+
+| | Rule |
+|---|---|
+| Event name | 1–50 characters: letters, digits and `_ . : -`, starting with a letter or digit |
+| Properties | At most 10 per event |
+| Property name | Lowercase, starts with a letter, up to 32 characters: `a-z`, `0-9`, `_` |
+| Property value | A string of up to 100 characters, a number, or `true` / `false` |
+
+`track()` returns `false` and sends nothing if a value looks like personal or secret data: an e-mail address, a phone
+number, an IP address, a token, a Stellar address or key, or a federation address. Send buckets (`"100-1k"`) and
+categories, never identifiers.
+
+</Accordion>
+</Accordions>
+
+Custom events appear under **Breakdowns → Custom events** on the website dashboard, and you can use them as steps in
+funnels and as goals under **Reports**.
+
+## Consent mode
+
+By default the tracker sets no cookies and stores nothing on the visitor's device. If your policy still requires
+consent first, turn on consent mode: the tracker then sends nothing until you call `grantConsent()`.
+
+```html
+<script>
+  window.scf = window.scf || [];
+</script>
+<script
+  src="https://e1.usagemap.dev/lib/1.2.0/standard.js"
+  integrity="sha384-LQ6Yh0GTmU5/SqFMPOIB8GnEv0brlfwn9tNxj8RHKmJtQLsApBuHoZnJ2M+/CyId"
+  crossorigin="anonymous"
+  data-site="YOUR_SITE_KEY"
+  data-consent="required"
+  defer
+></script>
+<script>
+  // Call these from your consent banner.
+  function onAnalyticsConsentGiven() {
+    Array.isArray(window.scf) ? window.scf.push(["grantConsent"]) : window.scf.grantConsent();
+  }
+  function onAnalyticsConsentWithdrawn() {
+    Array.isArray(window.scf) ? window.scf.push(["revokeConsent"]) : window.scf.revokeConsent();
+  }
+</script>
+```
+
+The **Snippet** tab has this ready to copy: choose **HTML with consent mode**.
+
+## Opt-out
+
+Give visitors an opt-out link or toggle:
+
+```js
+window.scf.optOut(); // stops sending, and remembers it in this browser
+window.scf.optIn();  // undoes it
+```
+
+The opt-out flag (`scf_optout`) is the only thing the tracker ever stores in the browser. Visitors with Global Privacy
+Control or Do Not Track turned on are already opted out automatically.
+
+## All tracker methods
+
+| Method | What it does |
+|---|---|
+| `track(name, props?)` | Sends a custom event. Returns `false` if it was refused. |
+| `optOut()` / `optIn()` | The visitor's own choice, remembered in their browser. |
+| `grantConsent()` / `revokeConsent()` | For consent mode, called from your banner. |
+| `destroy()` | Stops the tracker and removes its listeners. |
+
+## Debugging
+
+There are two switches, one for each side:
+
+<Cards>
+  <Card icon={<Monitor />} title="Site debug mode (server side)">
+    In the app: website → **Installation check** → **Debug mode**, for 1 minute up to 24 hours. While it is on, every
+    answer to your site carries an `X-Scf-Debug` header with the verdict, for example
+    `class=suspect; reasons=domain_unverified`. Look for it in the browser's network tab.
+  </Card>
+  <Card icon={<Bug />} title="Tracker debug module (browser side)">
+    With the npm package, call `debug()` from `@usagemap/tracker/debug` before `init()`, in development only. The
+    console then explains what was sent and why something wasn't, for example "Global Privacy Control is on".
+  </Card>
+</Cards>

@@ -1,0 +1,309 @@
+---
+title: Data, privacy and isolation
+description: What UsageMap never stores, what it keeps and for how long, and how one Stellar ecosystem project's data is kept apart from another's.
+icon: Lock
+---
+
+UsageMap measures websites and APIs without identifying the people who use them. The rule is built into the ingest
+path, not added afterwards: identifying fields are used in memory for one request, reduced to coarse values, and
+dropped before anything is written to disk. The same database serves every project, so isolation between projects is
+enforced inside PostgreSQL itself and checked by a test suite on every build.
+
+<Facts>
+  <Fact label="Where it lives">`services/gateway`, `collector` (sanitise step), `packages/pathnorm`, `db/`, `services/jobs` (retention)</Fact>
+  <Fact label="Region">One EU region, data and backups</Fact>
+  <Fact label="Isolation">PostgreSQL row-level security, forced on every table</Fact>
+  <Fact label="Status"><Status kind="live" /></Fact>
+</Facts>
+
+## What is never stored
+
+| Never stored | Where it is dropped | How |
+|---|---|---|
+| IP address | gateway memory, during one request | used once as input to the daily visitor pseudonym and, truncated to /24 (IPv4) or /48 (IPv6), for the country and network-class lookup; never written to the spool, the database or a log |
+| Raw User-Agent string | gateway memory, during one request | used for the pseudonym and the bot list, then reduced to browser family, major version, OS family and device class; storage gets a fixed synthetic string per class |
+| Cookies and device identifiers | never created | the tracker sets no cookie and no storage entry; the only thing it keeps on the device is the visitor's own opt-out flag |
+| Query strings and fragments | tracker, then gateway | the tracker sends `location.pathname` only; `pathnorm` scans anything after `?` or `#` for secrets (counted only) and drops it |
+| Page titles | never collected | there is no field and no setting for them |
+| End-user wallet addresses | tracker, gateway, ledger reader | wallet events carry closed-set values only; any Stellar address in a path, event name or API route becomes a typed placeholder; on-chain invoker addresses are held in memory to count distinct values, then discarded |
+| Secret seeds (`S…`), JWTs, API keys, e-mail addresses | gateway and Collector, before disk | `pathnorm` replaces them with `{redacted}` in paths, event names and API routes; this cannot be switched off |
+| Request headers | gateway and Collector | headers feed the checks in memory; the gateway forwards no header to the Collector except its own `x-scf-*` metadata, and the Collector rebuilds every OTLP record from an allow-list |
+| Tokens and keys in clear | control plane | API keys are stored as HMAC-SHA-256 digests with a server-side pepper; the full key is shown once |
+
+<Flow caption="One web event on its way to storage. Identifying fields exist only in the gateway's memory; what reaches disk is already reduced.">
+  <Node icon={<Globe />} title="Browser" sub="Tracker script" tone="web">
+    - path, no query string
+    - referrer host only
+  </Node>
+  <Arrow label="HTTPS" />
+  <Node icon={<Shield />} title="Gateway memory" sub="One request" tone="ink">
+    - IP → pseudonym, country
+    - raw UA → browser class
+    - path → placeholders
+  </Node>
+  <Arrow label="rebuilt record" />
+  <Node icon={<HardDrive />} title="Local spool" sub="Up to 72 hours" tone="store" />
+  <Arrow label="internal" />
+  <Node icon={<Database />} title="Analytics store" sub="90 days, then rollups" tone="store" />
+</Flow>
+
+The API side follows the same principle. The Collector's sanitise step runs before the persistent queue and builds
+each request again from scratch, copying only allow-listed fields: the server request-duration metric, a normalised
+route, the status code and a few service attributes. Client addresses, user agents, full URLs, headers, bodies,
+`enduser.*` and `session.id` attributes, exception messages and span events never reach the queue. Details are on the
+[API analytics](/technical-architecture/api-analytics) page.
+
+## What is stored, and for how long
+
+Retention is enforced by code, not by policy text: the hourly `retention` job applies the rules in the database
+function `scf.retention_rules()` and prunes the analytics engine's tables; old partitions are dropped by the
+`partitions` job.
+
+| Data | Where | Kept for |
+|---|---|---|
+| Rebuilt web records (pseudonym, browser class, scrubbed path, referrer host, country, verdict) | gateway spool on local disk | until the database acknowledges them; never more than 72 hours |
+| Event-level web data (visits, events, verdict tag) | analytics engine (Umami) database | **90 days** by default; an `operator_admin` can set 30–395 days, a project can choose shorter per site |
+| Daily web totals and top-N breakdowns, verified and raw | `scf` database | indefinitely (they are aggregates) |
+| Hourly web totals | `scf` database | 25 months |
+| Verdict, reason and rejected-event counters per site and day | `scf` database | 25 months |
+| API metrics at 1 minute / 1 hour / 1 day | `scf` database | 35 days / 25 months / indefinitely |
+| API de-duplication ledger | `scf` database | 7 days |
+| Trust scores and API assurance levels | `scf` database | with the aggregates, indefinitely |
+| Developer-mode test events | `scf` database | 24 hours |
+| Sign-in sessions / sign-in challenges | `scf` database | 7 days after they end / 1 day after they expire |
+| Team invitations | `scf` database | 30 days after acceptance, revocation or expiry |
+| Stellar account of an open contract or account claim | `scf` database | at most 30 days; a rejected or removed account is deleted at the next hourly run |
+| Erasure request selector (a path, event name or property key) | `scf` database | until the job has finished plus 56 days, then only its type and length |
+| User account | `scf` database | until the user deletes it; deletion clears the profile fields at once, a tombstone keeps only the ID |
+| Removed project | `scf` and engine databases | hidden at once, purged 30 days after removal |
+| Audit log (hash-chained) | `scf` database | life of the service |
+| Server logs (never IPs, UAs, headers or tokens) | log store on the VM | 30 days |
+| Encrypted backups | VM disk and one storage account | 35-day restore window; erased data leaves all backups within 56 days |
+
+Every row in that table is pseudonymous or aggregate. The pseudonym is per site and per UTC day, so no stored value
+links a visitor across sites, projects or days. For a site with `visitor_id` set to `off` there is no pseudonym at
+all: each event gets a fresh random value and counts towards page views, country and device only.
+
+<Zones cols={4} caption="Where each kind of data lives today. Everything that UsageMap runs is on one VM in an EU region; the backups stay in the same region.">
+  <Zone title="Visitor's device" kind="outside" note="Not ours">
+    <Node icon={<Globe />} title="Browser" tone="web">
+      - opt-out flag, if set
+      - challenge token, one page load
+    </Node>
+  </Zone>
+  <Zone title="Single host" note="EU region">
+    <Node icon={<MemoryStick />} title="Gateway memory" tone="ink">
+      - IP, raw UA: one request
+      - daily and hourly keys
+    </Node>
+    <Node icon={<Database />} title="Disk" tone="store">
+      - spool, 72 h max
+      - analytics and scf databases
+    </Node>
+  </Zone>
+  <Zone title="Backup storage" note="Same EU region">
+    <Node icon={<Archive />} title="Backups" tone="store">
+      - encrypted on the VM
+      - 35 days + 14 days
+    </Node>
+  </Zone>
+  <Zone title="Stellar testnet" kind="stellar" note="Public">
+    <Node icon={<Blocks />} title="Daily seal" tone="chain">
+      - one Merkle root per day
+      - no project data
+    </Node>
+  </Zone>
+</Zones>
+
+## Daily keys and peppers
+
+Two kinds of secrets protect the data: short-lived keys in the gateway that make pseudonyms unlinkable, and long-lived
+peppers in the control plane that make stored API keys useless if the database leaks.
+
+| Secret | Lifetime | Used for |
+|---|---|---|
+| `K_day` | one UTC day, destroyed at 00:00 UTC | the visitor pseudonym: 96 bits of HMAC-SHA-256 over the site, the full IP address and the raw User-Agent, written as an address in the documentation range `2001:db8::/32` |
+| `K_mult` | one UTC day | keying the in-memory multiplicity counters |
+| `K_chal` | one hour, the previous hour still accepted | signing challenge tokens |
+| Peppers `ing`, `op`, `pub` | until rotated; each stored hash records its pepper version | HMAC-SHA-256 of each API key's secret; `reg` keys use their own pepper, derived from the `pub` pepper with HKDF unless set separately |
+
+The three gateway keys live in memory that is locked against swapping and excluded from core dumps, and the process
+disables core dumps for itself. They are never logged or written to disk. Once `K_day` is destroyed, nobody — UsageMap
+included — can recompute a past day's pseudonym from an IP address and a browser, so stored visits cannot be traced
+back to a person. In the multi-node design the gateways share these keys over a mutually authenticated private
+connection; today one gateway holds them.
+
+## Small numbers for SCF operators and public pages
+
+A count of 2 visitors from one country on one page can point to a person. Breakdown rows — country, referrer, device,
+browser, OS, path, event name — are therefore thresholded wherever they leave the project:
+
+- **SCF operators, the operator API and public pages:** rows below 10 are merged into "Other" and displayed counts
+  are rounded to the nearest 10 (settings `op_min_count`, `op_round_to`).
+- **The project's own dashboard:** the same rule, through the per-site setting `anonymous_reports`, which is **on by
+  default**. A project may switch it off for its own view.
+- **Programme cohorts:** no figures for a cohort of fewer than 5 projects; within a shown cohort, a figure below 10 is
+  withheld.
+- **Wallet-event counts:** a per-day count below 10 is omitted everywhere except the project's own view.
+
+The database refuses a minimum count below 5 or a rounding step of 0, so suppression cannot be switched off by a
+settings change. Totals are never rounded: page views, visitors, API metrics, verdict counters and on-chain counts
+are exact for SCF operators, because they describe traffic volume or public ledger data, not individual people.
+
+## Isolation between projects
+
+All projects share one PostgreSQL cluster. Isolation does not depend on the application remembering a `WHERE`
+clause: the database itself refuses rows of another project.
+
+1. **Every table is forced under row-level security**, including for its owner. Every table that holds project data
+   has `tenant_id` as the first primary-key column and two restrictive policies: rows are visible and writable only
+   when `tenant_id` equals the project context of the current transaction.
+2. **The context is set in one place.** Application code calls `scf.set_tenant_ctx()`, which sets it for the current
+   transaction only, so a pooled connection never carries one project's context into the next request. A source lint
+   fails the build if any code sets it another way.
+3. **Each service connects with its own role**, and none of them can bypass row-level security:
+
+| Role | Used by | Can do |
+|---|---|---|
+| `scf_app` | control plane | read and write under one project's context; operator reads only through `op_*` functions |
+| `scf_writer` | metrics writer | insert API metrics under the project's context taken from the sanitised record |
+| `scf_jobs` | jobs service | each table opens only for the named jobs listed for it; writes run under each project's context in turn |
+| `scf_metrics_ro` | operator API | execute `op_*` functions; no direct read of any table |
+
+4. **SCF operators read across projects only through `op_*` functions.** These are an allow-listed set of
+   `SECURITY DEFINER` functions with a fixed search path. Each one applies the small-number rules and writes its audit
+   row in the same transaction, so neither can be skipped.
+5. **The gate tests prove it.** `db/tests` starts a real PostgreSQL and PgBouncer, migrates from zero, seeds two
+   projects and a canary, and runs a cross-tenant matrix over every table found in the catalog, every runtime role and
+   every context, directly and through the pooler: reading, updating, deleting and inserting another project's rows
+   must fail. Twelve catalog gates (G1–G12) check that every table forces row-level security, every project table has
+   both restrictive policies, no role but the backup role can bypass them, every view runs with the caller's rights,
+   and every `SECURITY DEFINER` function is on the reviewed allow-list. The suite also proves that it fails when a
+   hole is introduced on purpose.
+
+The analytics engine's database has no row-level security of its own. Each project therefore gets its own engine
+user and team with its own API key, stored AES-256-GCM-encrypted under a key held outside the database, so the
+engine's own permission checks limit a project's dashboard queries to its own websites. The engine is reached only
+through an internal proxy with a path allow-list, and the erasure and retention jobs look up sites under the
+requesting project's context before they delete anything.
+
+## Keys and what each can do
+
+<Zones cols={4} caption="Four kinds of API key, each with one narrow purpose. A key never grants anything its kind does not list.">
+  <Zone title="scfa_ing_" note="Ingest token">
+    <Node icon={<Upload />} title="Send API telemetry" tone="api">
+      - OTLP to the gateway only
+      - one project, optional service list
+      - reads nothing
+    </Node>
+  </Zone>
+  <Zone title="scfa_pub_" note="Share key">
+    <Node icon={<Share2 />} title="Read one project" tone="web">
+      - its metrics document
+      - thresholded counts only
+    </Node>
+  </Zone>
+  <Zone title="scfa_reg_" note="Footprint key">
+    <Node icon={<FilePlus />} title="Claim a contract" tone="chain">
+      - adds a claimed contract
+      - cannot verify or read
+    </Node>
+  </Zone>
+  <Zone title="scfa_op_" note="Operator key">
+    <Node icon={<Eye />} title="Read across projects" tone="ink">
+      - web, API, registry scopes
+      - only through op_* functions
+      - 600 requests/min default
+    </Node>
+  </Zone>
+</Zones>
+
+| Kind | Created by | Can | Cannot |
+|---|---|---|---|
+| `ing` ingest token | project admin | send OTLP metrics and traces for its project, optionally only for listed service names; at most 5 active per project | read any data |
+| `pub` share key | project admin | read that project's metrics document (the public page data) when public statistics are off | read breakdown rows below the floor, trust scores, or another project |
+| `reg` footprint key | project admin | add a contract as `claimed` from a build tool, for one project and optionally one network | verify, remove or read anything |
+| `op` operator key | SCF `operator_admin` | read through `op_*` functions with scopes `web:read`, `api:read`, `registry:read`, optionally restricted to named projects; 1–6,000 requests per minute | write anything, or read past the small-number rules |
+
+Every key has the form `scfa_<kind>_<id>_<secret><checksum>`. The checksum is verified before any database lookup, a
+key in a URL is never accepted, and keys are compared in constant time. The site key in the tracker snippet is not
+on this list: it is public by design and only names the site an event is for.
+
+## Erasure requests
+
+The design stores nothing that lets anyone find one visitor's rows, so a visitor's request to erase "my data"
+cannot be matched to anything. What can still end up stored is free text a project put into a URL path, an event name
+or a property — a name, for example — which no scrubber can recognise by shape. The erasure workflow removes exactly
+that.
+
+<Sequence actors={["Project admin", "Control plane", "Erasure job", "Databases"]} caption="An erasure request: count first, confirm with a fresh sign-in, delete in batches under the project's own context, then sweep again after the spool's lifetime.">
+  <Msg from="Project admin" to="Control plane" note="time range + path, event or key">create request</Msg>
+  <Msg from="Erasure job" to="Databases" note="nothing deleted">count matches</Msg>
+  <Msg from="Control plane" to="Project admin" note="events, sessions, rows">preview</Msg>
+  <Msg from="Project admin" to="Control plane" note="sign-in under 10 min old">confirm</Msg>
+  <Msg from="Erasure job" to="Databases" note="project context only">delete in batches</Msg>
+  <Msg from="Erasure job" to="Databases" note="72 hours later">spool sweep</Msg>
+  <Msg from="Control plane" to="Project admin" note="with the backup date">completion report</Msg>
+</Sequence>
+
+<Steps>
+<Step>
+**Request.** A project `owner` or `admin` chooses sites (or an API service), a time range and one selector: a path
+pattern, a custom-event name or a property key. Members, viewers and SCF operators cannot start an erasure.
+</Step>
+<Step>
+**Preview.** The job counts matching events, sessions, properties, daily breakdown rows and API route rows. Nothing
+is deleted.
+</Step>
+<Step>
+**Confirm.** The confirmation needs a sign-in no older than 10 minutes; a database trigger refuses it otherwise. The
+audit log records the selector *type* and the counts, never the literal selector.
+</Step>
+<Step>
+**Execute.** Matching events and their properties are deleted from the analytics engine (main and twin website of
+each site), then sessions left without events; in `scf`, matching breakdown rows and API route rows go, while site
+totals stay because they hold no path or event content.
+</Step>
+<Step>
+**Spool sweep.** 72 hours later the same selectors run again, to catch events that were still in the spool.
+</Step>
+<Step>
+**Backups.** Erased data leaves all backups within 56 days: a 35-day restore window, up to 7 days until the next full
+backup, and 14 days as a previous blob version. If a backup is ever restored for service, every completed erasure
+whose selector is still kept is re-applied before the database serves traffic — a manual runbook step today.
+</Step>
+</Steps>
+
+## Data residency
+
+| Item | Location |
+|---|---|
+| VM, databases, spool, logs, monitoring | a single VM in an EU region; the infrastructure code accepts EU/EEA regions only |
+| Backups | repository 1 on the VM's disk; repository 2 and the weekly dump in one storage account in the same region. Encrypted on the VM before upload. No copy outside that region |
+| Country lookup | a local copy of the DB-IP IP-to-Country Lite database; no address leaves the VM for it |
+| DNS | Cloudflare, DNS only and never proxied: TLS ends on the VM, and Cloudflare sees DNS queries, not traffic |
+| Stellar network | only the daily seal: hashes, no project or visitor data |
+
+If the hosting provider is US-owned, access under US law is possible in principle even for EU-hosted data. The
+transfer position (the EU–US Data Privacy Framework, with standard contractual clauses as the fallback) is written up
+for legal review and has not been reviewed by counsel yet.
+
+## Limits
+
+- **The current day.** While `K_day` exists, someone holding it and a visitor's exact IP address and browser string
+  could recompute that day's pseudonym. The key sits only in locked memory and no lookup exists, but it exists until
+  midnight UTC.
+- **Free text.** Names in URL paths or event names cannot be recognised by their shape; the erasure workflow is the
+  remedy, and it depends on the project noticing.
+- **Backups lag.** Erased data stays in encrypted backups for up to 56 days.
+- **One region.** Everything, backups included, is in one EU region on one VM; a regional loss would lose the
+  backups that are not on a second site. Two regions are part of the later design, not of what runs.
+- **Legal review.** The privacy documents (data inventory, DPIA, erasure design) are engineering drafts that have not
+  been reviewed by counsel.
+
+## Related
+
+- [Trust and verification](/technical-architecture/trust-and-verification) — what the stored counters are used for
+- [Security](/technical-architecture/security) — authentication, secrets and the audit log
+- [Hosting and operations](/technical-architecture/hosting-and-operations) — the VM, backups and restore drills
+- [Privacy](/privacy) — the short version for project teams
