@@ -1,0 +1,261 @@
+{
+  "layer": "bot",
+  "name": "simulations",
+  "title": "Bot and inflation simulations against the real gateway",
+  "summary": "Scripted clients (no challenge, invalid/missing/tampered/foreign proofs, token replay and flood, moved context, automation flags, headless and known-bot User-Agents, origin mismatch, impossible fetch metadata, unverified domain, datacenter addresses, multiplicity over threshold on identified and identifier-free sites, forged site key) send traffic through the gateway's public front door; verdicts and reason codes are read back from the control plane's installation-check API.",
+  "checks": [
+    {
+      "name": "challenge layer: missing, invalid, missing proof, tampered, foreign, moved, replayed and flooded tokens",
+      "outcome": "pass",
+      "ids": [
+        "web.frontend-origin-only",
+        "bot.anti-inflation-strategy",
+        "bot.js-execution-proof"
+      ],
+      "detail": "verdicts {\"verified\":302,\"suspect\":4,\"rejected\":18}; reasons [{\"code\":\"token_flood\",\"verdict\":\"rejected\",\"count\":10},{\"code\":\"challenge_invalid\",\"verdict\":\"rejected\",\"count\":4},{\"code\":\"challenge_missing\",\"verdict\":\"rejected\",\"count\":2},{\"code\":\"ctx_moved\",\"verdict\":\"suspect\",\"count\":2},{\"code\":\"proof_invalid\",\"verdict\":\"rejected\",\"count\":2},{\"code\":\"proof_missing\",\"verdict\":\"suspect\",\"count\":2}]"
+    },
+    {
+      "name": "request layer: automation flag, hidden page, headless and known-bot UAs, origin mismatch/missing, impossible fetch; a header-perfect script passes",
+      "outcome": "pass",
+      "ids": [
+        "web.frontend-origin-only",
+        "bot.anti-inflation-strategy",
+        "bot.js-execution-proof",
+        "bot.engine-bot-detection"
+      ],
+      "detail": "verdicts {\"verified\":2,\"suspect\":6,\"rejected\":8}; reasons [{\"code\":\"automation_flag\",\"verdict\":\"suspect\",\"count\":4},{\"code\":\"multiplicity_high\",\"verdict\":\"suspect\",\"count\":4},{\"code\":\"ua_bot\",\"verdict\":\"rejected\",\"count\":4},{\"code\":\"fetch_impossible\",\"verdict\":\"rejected\",\"count\":2},{\"code\":\"hidden_or_prerender\",\"verdict\":\"suspect\",\"count\":2},{\"code\":\"origin_mismatch\",\"verdict\":\"rejected\",\"count\":2},{\"code\":\"origin_missing\",\"verdict\":\"suspect\",\"count\":2}]"
+    },
+    {
+      "name": "domain declared but not verified (L0) → suspect domain_unverified",
+      "outcome": "pass",
+      "ids": [
+        "bot.anti-inflation-strategy"
+      ],
+      "detail": ""
+    },
+    {
+      "name": "multiplicity: 12 distinct visitors from one address in 10 minutes without activation → loads 7–12 suspect",
+      "outcome": "pass",
+      "ids": [
+        "bot.ip-multiplicity"
+      ],
+      "detail": "verdicts {\"verified\":6,\"suspect\":6,\"rejected\":0}"
+    },
+    {
+      "name": "multiplicity on a site without visitor identifier (C-80b): 64 page loads from one address → loads 61–64 suspect",
+      "outcome": "pass",
+      "ids": [
+        "bot.ip-multiplicity"
+      ],
+      "detail": "verdicts {\"verified\":60,\"suspect\":4,\"rejected\":0}"
+    },
+    {
+      "name": "datacenter address (range list class `datacenter`) → suspect net_datacenter",
+      "outcome": "pass",
+      "ids": [
+        "bot.anti-inflation-strategy",
+        "bot.ip-multiplicity"
+      ],
+      "detail": "verdicts {\"verified\":0,\"suspect\":2,\"rejected\":0}"
+    },
+    {
+      "name": "forged site key → 404 on challenge and events, nothing counted for any site",
+      "outcome": "pass",
+      "ids": [
+        "bot.anti-inflation-strategy"
+      ],
+      "detail": ""
+    }
+  ],
+  "data": {
+    "challenge": {
+      "site_id": "9a49d338-0df8-4339-abf9-fa42bfe9b39c",
+      "start": "2026-11-12T00:00:00Z",
+      "end": "2026-11-14T00:00:00Z",
+      "tracker_version_seen": null,
+      "verdicts": {
+        "verified": 302,
+        "suspect": 4,
+        "rejected": 18
+      },
+      "reasons": [
+        {
+          "code": "token_flood",
+          "verdict": "rejected",
+          "count": 10
+        },
+        {
+          "code": "challenge_invalid",
+          "verdict": "rejected",
+          "count": 4
+        },
+        {
+          "code": "challenge_missing",
+          "verdict": "rejected",
+          "count": 2
+        },
+        {
+          "code": "ctx_moved",
+          "verdict": "suspect",
+          "count": 2
+        },
+        {
+          "code": "proof_invalid",
+          "verdict": "rejected",
+          "count": 2
+        },
+        {
+          "code": "proof_missing",
+          "verdict": "suspect",
+          "count": 2
+        }
+      ],
+      "drops": [
+        {
+          "label": "duplicate_event_id",
+          "count": 2
+        }
+      ],
+      "kit_present_pageviews": 0
+    },
+    "headers": {
+      "site_id": "a057c73c-7949-4898-9fd6-200b9c38abc1",
+      "start": "2026-11-12T00:00:00Z",
+      "end": "2026-11-14T00:00:00Z",
+      "tracker_version_seen": null,
+      "verdicts": {
+        "verified": 2,
+        "suspect": 6,
+        "rejected": 8
+      },
+      "reasons": [
+        {
+          "code": "automation_flag",
+          "verdict": "suspect",
+          "count": 4
+        },
+        {
+          "code": "multiplicity_high",
+          "verdict": "suspect",
+          "count": 4
+        },
+        {
+          "code": "ua_bot",
+          "verdict": "rejected",
+          "count": 4
+        },
+        {
+          "code": "fetch_impossible",
+          "verdict": "rejected",
+          "count": 2
+        },
+        {
+          "code": "hidden_or_prerender",
+          "verdict": "suspect",
+          "count": 2
+        },
+        {
+          "code": "origin_mismatch",
+          "verdict": "rejected",
+          "count": 2
+        },
+        {
+          "code": "origin_missing",
+          "verdict": "suspect",
+          "count": 2
+        }
+      ],
+      "drops": [],
+      "kit_present_pageviews": 0
+    },
+    "unverified": {
+      "site_id": "a087c719-c576-4233-930e-e289238840bd",
+      "start": "2026-11-12T00:00:00Z",
+      "end": "2026-11-14T00:00:00Z",
+      "tracker_version_seen": null,
+      "verdicts": {
+        "verified": 0,
+        "suspect": 2,
+        "rejected": 0
+      },
+      "reasons": [
+        {
+          "code": "domain_unverified",
+          "verdict": "suspect",
+          "count": 2
+        }
+      ],
+      "drops": [],
+      "kit_present_pageviews": 0
+    },
+    "multiplicity": {
+      "site_id": "49971f40-f5a1-43d2-95b1-84dd76062f45",
+      "start": "2026-11-12T00:00:00Z",
+      "end": "2026-11-14T00:00:00Z",
+      "tracker_version_seen": null,
+      "verdicts": {
+        "verified": 6,
+        "suspect": 6,
+        "rejected": 0
+      },
+      "reasons": [
+        {
+          "code": "multiplicity_high",
+          "verdict": "suspect",
+          "count": 6
+        }
+      ],
+      "drops": [],
+      "kit_present_pageviews": 0
+    },
+    "multiplicityOff": {
+      "site_id": "87a3a487-7c98-4e50-8ed5-cb9807754679",
+      "start": "2026-11-12T00:00:00Z",
+      "end": "2026-11-14T00:00:00Z",
+      "tracker_version_seen": null,
+      "verdicts": {
+        "verified": 60,
+        "suspect": 4,
+        "rejected": 0
+      },
+      "reasons": [
+        {
+          "code": "multiplicity_high",
+          "verdict": "suspect",
+          "count": 4
+        }
+      ],
+      "drops": [],
+      "kit_present_pageviews": 0
+    },
+    "datacenter": {
+      "site_id": "9942fa45-7b86-4789-860f-5dbdf0b2eaf4",
+      "start": "2026-11-12T00:00:00Z",
+      "end": "2026-11-14T00:00:00Z",
+      "tracker_version_seen": null,
+      "verdicts": {
+        "verified": 0,
+        "suspect": 2,
+        "rejected": 0
+      },
+      "reasons": [
+        {
+          "code": "net_datacenter",
+          "verdict": "suspect",
+          "count": 2
+        }
+      ],
+      "drops": [],
+      "kit_present_pageviews": 0
+    }
+  },
+  "notes": "",
+  "at": "2026-11-13T10:20:25.527Z",
+  "environment": {
+    "commit": "pre-release",
+    "dirty": "yes (uncommitted changes in the tree)",
+    "node": "v24.19.0",
+    "runner": "local Docker host",
+    "os": "linux/x64"
+  }
+}

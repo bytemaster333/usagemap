@@ -1,0 +1,96 @@
+{
+  "layer": "load",
+  "name": "api-116sps-120s",
+  "title": "API ingest load: 116 spans/s for 120 s (10.0 M requests/day equivalent)",
+  "summary": "Open-model OTLP/HTTP (JSON) load against the gateway's OTLP front door of the local single-node Compose stack (gateway → Collector in its network namespace → metrics writer → PostgreSQL). 10 tenants with one service each; every simulated tenant request is a local-root SERVER span, 50 spans per OTLP request (2.32 requests/s). After the run the control-plane API must report exactly the accepted spans as requests. 10× the design target (C-48) is 115.7 requests/s.",
+  "checks": [
+    {
+      "name": "offered span rate achieved (≥ 95 %)",
+      "outcome": "pass",
+      "detail": "116.0 spans/s sent",
+      "ids": [
+        "capacity.1m-requests-day"
+      ]
+    },
+    {
+      "name": "every OTLP request answered 200",
+      "outcome": "pass",
+      "detail": "{\"200\":278}",
+      "ids": [
+        "capacity.1m-requests-day",
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "derived request counts in the API equal the accepted spans",
+      "outcome": "pass",
+      "detail": "accepted 13900, API requests 13900, visible 0 s after the run",
+      "ids": [
+        "capacity.1m-requests-day",
+        "api.postgres-metrics"
+      ]
+    }
+  ],
+  "data": {
+    "spansPerSecond": 116,
+    "batch": 50,
+    "durationS": 120,
+    "services": 10,
+    "result": {
+      "requests": 278,
+      "spans": 13900,
+      "acceptedSpans": {
+        "wsl-load-0": 1400,
+        "wsl-load-1": 1400,
+        "wsl-load-2": 1400,
+        "wsl-load-3": 1400,
+        "wsl-load-4": 1400,
+        "wsl-load-5": 1400,
+        "wsl-load-6": 1400,
+        "wsl-load-7": 1400,
+        "wsl-load-8": 1350,
+        "wsl-load-9": 1350
+      },
+      "statuses": {
+        "200": 278
+      },
+      "latencyMs": {
+        "count": 278,
+        "min": 3.889889999991283,
+        "p50": 8.164499999998952,
+        "p95": 14.324006000002555,
+        "p99": 20.582813999999416,
+        "max": 30.627084000007017,
+        "mean": 8.388810978417169
+      },
+      "achievedSpansPerSecond": 115.99153034708705,
+      "timeline": {
+        "200": 278
+      },
+      "durationS": 119.836335967
+    },
+    "accepted": 13900,
+    "stored": 13900,
+    "perService": {
+      "wsl-load-0": 1400,
+      "wsl-load-1": 1400,
+      "wsl-load-2": 1400,
+      "wsl-load-3": 1400,
+      "wsl-load-4": 1400,
+      "wsl-load-5": 1400,
+      "wsl-load-6": 1400,
+      "wsl-load-7": 1400,
+      "wsl-load-8": 1350,
+      "wsl-load-9": 1350
+    }
+  },
+  "notes": "| Latency (ms) | p50 | p95 | p99 | max |\n|---|---|---|---|---|\n| POST /v1/traces (50 spans) → 200 | 8.2 | 14.3 | 20.6 | 30.6 |\n\nLimits of this run: one host, one edge node (gateway + Collector), one writer; client and stack share the CPU.",
+  "at": "2026-11-13T10:25:04.769Z",
+  "environment": {
+    "commit": "pre-release",
+    "dirty": "yes (uncommitted changes in the tree)",
+    "node": "v24.19.0",
+    "runner": "local Docker host",
+    "os": "linux/x64"
+  }
+}

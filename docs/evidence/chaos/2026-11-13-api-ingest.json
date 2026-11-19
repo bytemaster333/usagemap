@@ -1,0 +1,95 @@
+{
+  "layer": "chaos",
+  "name": "api-ingest",
+  "title": "Chaos: metrics writer and Collector killed under constant OTLP load",
+  "summary": "Constant OTLP/HTTP span load (20 spans/s, 5 per request) against the gateway's OTLP front door of the local single-node stack (project scf-wsl); the metrics writer and then the Collector killed with SIGKILL for 20 s each and started again. Status codes are judged per second of the load timeline; completeness by comparing the API's request counts with the spans answered 200.",
+  "checks": [
+    {
+      "name": "kill the metrics writer: the front door keeps answering 200 (Collector queue buffers)",
+      "outcome": "pass",
+      "detail": "during the outage {\"200\":80}",
+      "ids": [
+        "slo.ingest-availability",
+        "capacity.1m-requests-day"
+      ]
+    },
+    {
+      "name": "kill the Collector: the front door refuses with 503 (never acknowledges unpersisted data), 200 again after restart",
+      "outcome": "pass",
+      "detail": "during the outage {\"200\":2,\"503\":78}; from 15 s after restart {\"200\":84}",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "every span answered 200 is counted exactly once in the API (queue on disk survived, retries de-duplicated)",
+      "outcome": "pass",
+      "detail": "accepted 2045, API requests 2045, statuses {\"200\":409,\"503\":104}",
+      "ids": [
+        "slo.ingest-availability",
+        "api.postgres-metrics"
+      ]
+    },
+    {
+      "name": "writer failover to a second core (C-77)",
+      "outcome": "not_run",
+      "detail": "requires: two writers behind writers.mesh.local (the local stack has one)",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    }
+  ],
+  "data": {
+    "windows": [
+      {
+        "service": "metrics-writer",
+        "from": 10,
+        "downTo": 30,
+        "to": 62
+      },
+      {
+        "service": "collector",
+        "from": 62,
+        "downTo": 82,
+        "to": 118
+      }
+    ],
+    "load": {
+      "requests": 513,
+      "spans": 2565,
+      "acceptedSpans": {
+        "wsl-chaos-0": 1025,
+        "wsl-chaos-1": 1020
+      },
+      "statuses": {
+        "200": 409,
+        "503": 104
+      },
+      "latencyMs": {
+        "count": 513,
+        "min": 0.8045689999999013,
+        "p50": 6.9058379999914905,
+        "p95": 12.160061999995378,
+        "p99": 17.511441000002378,
+        "max": 24.217021000018576,
+        "mean": 6.459330935672364
+      },
+      "achievedSpansPerSecond": 19.984786761914492,
+      "timeline": {
+        "200": 409,
+        "503": 104
+      },
+      "durationS": 128.347629152
+    },
+    "accepted": 2045,
+    "stored": 2045
+  },
+  "at": "2026-11-13T10:29:07.200Z",
+  "environment": {
+    "commit": "pre-release",
+    "dirty": "yes (uncommitted changes in the tree)",
+    "node": "v24.19.0",
+    "runner": "local Docker host",
+    "os": "linux/x64"
+  }
+}

@@ -1,0 +1,25 @@
+corrupt_blobs=4
+drill_corrupt=RESTORE-DRILL FAIL repo=2 target=latest stage=restore reason="2026-11-13 10:01:46.710 P00  ERROR: [029]: raised from local-1 protocol: block map version must be zero" total=15.7s
+drill_latest=RESTORE-DRILL PASS repo=2 target=latest restore=9.7s ready=11.3s amcheck=0.4s gates=11ok(0.3s) counts=3ok(0.1s) restored_point="2026-11-13 09:58:00.804478+00" end_lsn=0/F188420 total=12.1s
+drill_pitr=RESTORE-DRILL PASS repo=2 target=2026-11-13 09:57:08.931124+00 restore=11.2s ready=14.4s amcheck=0.4s gates=11ok(0.3s) counts=1ok(0.0s) restored_point="2026-11-13 09:57:06.841589+00" end_lsn=0/A836000 total=15.2s
+dump=DUMP-RESTORE PASS dump=2026-11-13T100205Z databases=3 tables=56 total=5s
+fo_acked=2443
+fo_archived_wal=000000020000000000000011
+fo_archive_tl=ok in 0.26 s
+fo_checkpoint=yes
+fo_detect_promote=23.81
+fo_failed=3
+fo_kill_to_first_write=30.44
+fo_lost=0
+fo_rejoin=29.87
+fo_rewind_lines=6
+fo_timeline=2
+fo_unknown_committed=1
+fo_write_gap=30.40
+iso_acked=318
+iso_demote=11.77
+iso_lost=0
+iso_promote=24.45
+iso_rejoin=6.70
+iso_write=psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+startup=30.21

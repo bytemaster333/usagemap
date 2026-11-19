@@ -1,0 +1,236 @@
+{
+  "layer": "chaos",
+  "name": "web-ingest",
+  "title": "Chaos: dependencies killed under constant web load",
+  "summary": "Constant open-model web load (8 events/s, one event per request) against the local single-node Compose stack (project scf-wsl); each dependency killed with SIGKILL for 20 s, then started; finally the gateway itself killed with records in its spool. Availability is judged per second of the load timeline over each outage-and-recovery window; durability by comparing Umami's stored events with the accepted (202) events.",
+  "checks": [
+    {
+      "name": "kill postgres (the database (scf + umami)) for 20 s: spool drains afterwards",
+      "outcome": "pass",
+      "detail": "window t=10…36 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill umami (the engine) for 20 s: spool drains afterwards",
+      "outcome": "pass",
+      "detail": "window t=40…81 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill engine-proxy (the core node's engine proxy) for 20 s: spool drains afterwards",
+      "outcome": "pass",
+      "detail": "window t=85…120 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill control-plane (the control plane (snapshot source)) for 20 s: spool drains afterwards",
+      "outcome": "pass",
+      "detail": "window t=124…152 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill metrics-writer (the metrics writer) for 20 s: spool drains afterwards",
+      "outcome": "pass",
+      "detail": "window t=156…180 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill collector (the Collector) for 20 s: spool drains afterwards",
+      "outcome": "pass",
+      "detail": "window t=184…212 s",
+      "ids": [
+        "slo.ingest-availability",
+        "capacity.1m-requests-day"
+      ]
+    },
+    {
+      "name": "kill jobs (the jobs service) for 20 s: spool drains afterwards",
+      "outcome": "pass",
+      "detail": "window t=216…244 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill postgres: ingest answered 2xx throughout the outage and recovery",
+      "outcome": "pass",
+      "detail": "0 failed requests in t=10…36 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill umami: ingest answered 2xx throughout the outage and recovery",
+      "outcome": "pass",
+      "detail": "0 failed requests in t=40…81 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill engine-proxy: ingest answered 2xx throughout the outage and recovery",
+      "outcome": "pass",
+      "detail": "0 failed requests in t=85…120 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill control-plane: ingest answered 2xx throughout the outage and recovery",
+      "outcome": "pass",
+      "detail": "0 failed requests in t=124…152 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill metrics-writer: ingest answered 2xx throughout the outage and recovery",
+      "outcome": "pass",
+      "detail": "0 failed requests in t=156…180 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill collector: ingest answered 2xx throughout the outage and recovery",
+      "outcome": "pass",
+      "detail": "0 failed requests in t=184…212 s",
+      "ids": [
+        "slo.ingest-availability",
+        "capacity.1m-requests-day"
+      ]
+    },
+    {
+      "name": "kill jobs: ingest answered 2xx throughout the outage and recovery",
+      "outcome": "pass",
+      "detail": "0 failed requests in t=216…244 s",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "kill -9 the gateway with records in the spool: they survive the restart and drain",
+      "outcome": "pass",
+      "detail": "marker page views acknowledged before the kill: 20; spool queued before the kill 51 (fsynced counter 3286); after restart, engine still down: queued gauge 0; after the engine returned: acked_stored 216 vs fsynced since restart 165 (the difference was recovered from disk); marker page views stored in Umami: 20",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "gateway outage with a second edge node (tracker fails over to the other host)",
+      "outcome": "not_run",
+      "detail": "requires: multi-node stack (two edge nodes on two host names); the local stack has one gateway",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "no accepted event lost over the whole run (Umami count ≥ 202 count; any surplus ≤ requests whose answer was lost)",
+      "outcome": "pass",
+      "detail": "accepted 2303, stored 2325 (surplus 22), transport errors 62 (connections cut by the gateway kill: a request may be fsync'd and forwarded while its 202 never reached the client; event ids are not forwarded to Umami, C-37, so such a surplus cannot be told from a duplicate at this level), statuses {\"202\":2303,\"error\":62,\"no_proof_ready\":72}",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "API path under chaos (Collector queue, writer failover)",
+      "outcome": "not_run",
+      "detail": "requires: otlp (gateway OTLP front door, day 3) and two writers for the failover case (C-77)",
+      "ids": [
+        "slo.ingest-availability",
+        "capacity.1m-requests-day"
+      ]
+    }
+  ],
+  "data": {
+    "rate": 8,
+    "outageS": 20,
+    "windows": [
+      {
+        "service": "postgres",
+        "from": 10,
+        "to": 36
+      },
+      {
+        "service": "umami",
+        "from": 40,
+        "to": 81
+      },
+      {
+        "service": "engine-proxy",
+        "from": 85,
+        "to": 120
+      },
+      {
+        "service": "control-plane",
+        "from": 124,
+        "to": 152
+      },
+      {
+        "service": "metrics-writer",
+        "from": 156,
+        "to": 180
+      },
+      {
+        "service": "collector",
+        "from": 184,
+        "to": 212
+      },
+      {
+        "service": "jobs",
+        "from": 216,
+        "to": 244
+      },
+      {
+        "service": "gateway",
+        "from": 257,
+        "to": 295
+      }
+    ],
+    "load": {
+      "offered": 2437,
+      "sent": 2365,
+      "statuses": {
+        "202": 2303,
+        "error": 62,
+        "no_proof_ready": 72
+      },
+      "latencyMs": {
+        "count": 2303,
+        "min": 5.681108999997377,
+        "p50": 10.076591999997618,
+        "p95": 18.665512000006856,
+        "p99": 27.519637000004877,
+        "max": 75.69822299999942,
+        "mean": 11.168243401650114
+      },
+      "achievedRps": 7.763297861418195,
+      "timeline": {
+        "202": 2303,
+        "error": 62,
+        "no_proof_ready": 72
+      },
+      "accepted": 2303,
+      "durationS": 304.638575283
+    },
+    "stored": 2325
+  },
+  "at": "2026-11-13T10:34:49.208Z",
+  "environment": {
+    "commit": "pre-release",
+    "dirty": "yes (uncommitted changes in the tree)",
+    "node": "v24.19.0",
+    "runner": "local Docker host",
+    "os": "linux/x64"
+  }
+}

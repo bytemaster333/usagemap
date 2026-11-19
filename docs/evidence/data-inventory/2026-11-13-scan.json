@@ -1,0 +1,238 @@
+{
+  "layer": "data-inventory",
+  "name": "scan",
+  "title": "Data-inventory scan of every store and log of a running stack",
+  "summary": "Canary values were sent through the public front doors; afterwards both PostgreSQL databases (full pg_dump), the gateway's spool and state volume, the Collector queue volume (when present) and the logs of every container of the project were searched for the canaries and for generic personal-data shapes.",
+  "checks": [
+    {
+      "name": "sends canaries through the web front door (browser and scripted)",
+      "outcome": "pass",
+      "ids": [
+        "privacy.gdpr-no-consent",
+        "privacy.minimal-erasure-scope"
+      ],
+      "detail": "spool segments read while the engine was stopped: 3"
+    },
+    {
+      "name": "no canary and no unexplained personal-data shape in any store or log",
+      "outcome": "pass",
+      "ids": [
+        "privacy.gdpr-no-consent",
+        "privacy.minimal-erasure-scope",
+        "api.attribute-allowlist",
+        "isolation.tenant-rls"
+      ],
+      "detail": "25 sources, 7030351 bytes, 108 canaries, 0 findings, 581 allowed hits"
+    }
+  ],
+  "data": {
+    "spoolFiles": [
+      {
+        "path": "./snapshot.json",
+        "bytes": 30122
+      },
+      {
+        "path": "./spool/edge-a1/0000000000000023.seg",
+        "bytes": 3757
+      },
+      {
+        "path": "./spool/edge-a1/0000000000000023.seg.ack",
+        "bytes": 1
+      }
+    ],
+    "syntheticUaTemplates": 24,
+    "sources": {
+      "volume:gwstate/snapshot.json (engine stopped)": 30122,
+      "volume:gwstate/spool/edge-a1/0000000000000023.seg (engine stopped)": 3757,
+      "volume:gwstate/spool/edge-a1/0000000000000023.seg.ack (engine stopped)": 1,
+      "pg_dump:scf": 5374617,
+      "pg_dump:umami": 665660,
+      "volume:gwstate/snapshot.json": 30122,
+      "volume:gwstate/spool/edge-a1/0000000000000023.seg": 5896,
+      "volume:gwstate/spool/edge-a1/0000000000000023.seg.ack": 1,
+      "volume:colqueue/exporter_otlp_http_writer_metrics": 65536,
+      "log:collector": 6276,
+      "log:control-plane": 327576,
+      "log:db-migrate": 2988,
+      "log:engine-proxy": 422810,
+      "log:fake-horizon": 0,
+      "log:gateway": 3300,
+      "log:jobs": 21339,
+      "log:metrics-writer": 221,
+      "log:pgbouncer": 55024,
+      "log:portal": 1511,
+      "log:postgres": 5435,
+      "log:umami": 423,
+      "log:umami-bootstrap": 666,
+      "log:umami-migrate": 3621,
+      "log:umami-views": 2025,
+      "log:umami-views-drop": 1424
+    },
+    "allowedHits": [
+      [
+        "surrogate in volume:gwstate/spool/edge-a1/0000000000000023.seg (engine stopped): spool record field `surrogate` (wire-formats §d.2/§c.3): keyed daily HMAC; the segment is deleted once fully acknowledged or expired (§d.1)",
+        3
+      ],
+      [
+        "user_agent in volume:gwstate/spool/edge-a1/0000000000000023.seg (engine stopped): spool record field `ua`: one of the gateway's fixed synthetic templates (§c.3), not the client's",
+        3
+      ],
+      [
+        "g_address in pg_dump:scf: tenant users' own Stellar sign-in accounts (scf.user_identities / sessions) — account holders of the platform, not end users of a tenant site",
+        63
+      ],
+      [
+        "surrogate in volume:gwstate/spool/edge-a1/0000000000000023.seg: spool record field `surrogate` (wire-formats §d.2/§c.3): keyed daily HMAC; the segment is deleted once fully acknowledged or expired (§d.1)",
+        3
+      ],
+      [
+        "user_agent in volume:gwstate/spool/edge-a1/0000000000000023.seg: spool record field `ua`: one of the gateway's fixed synthetic templates (§c.3), not the client's",
+        3
+      ],
+      [
+        "ipv4 in volume:colqueue/exporter_otlp_http_writer_metrics: loopback listen/health address of the service itself",
+        3
+      ],
+      [
+        "user_agent in volume:colqueue/exporter_otlp_http_writer_metrics: the gateway's own Go HTTP client User-Agent on its loopback hop to the Collector, written by the queue with the request metadata (C-107) — a constant, not the tenant's; to be suppressed in the gateway",
+        3
+      ],
+      [
+        "ipv4 in logs: loopback listen/health address of the service itself",
+        462
+      ],
+      [
+        "ipv4 in logs: a container's own address in its startup log (server side, not a client)",
+        24
+      ],
+      [
+        "ipv4 in logs: unspecified listen address",
+        5
+      ],
+      [
+        "ipv4 in logs: Docker's embedded DNS resolver (resolver messages in service logs)",
+        9
+      ]
+    ],
+    "findings": [],
+    "canaryLabels": [
+      "user_agent (canary token) Canary…4d(20)",
+      "query_string cqed2e…be(26)",
+      "page_title Canary…39(24)",
+      "seed SAAIFO…EG(56)",
+      "end_user_g_address GALLHE…QO(56)",
+      "referrer_path refpat…ea(19)",
+      "jwt eyJhbG…c9(77)",
+      "email canary…rg(31)",
+      "user_agent (canary token) Canary…89(20)",
+      "query_string cq5efb…f7(26)",
+      "page_title Canary…43(24)",
+      "seed SC7VGN…2H(56)",
+      "end_user_g_address GD7MPM…YE(56)",
+      "referrer_path refpat…11(19)",
+      "jwt eyJhbG…0d(77)",
+      "email canary…rg(31)",
+      "user_agent (canary token) Canary…95(20)",
+      "query_string cq605a…13(26)",
+      "page_title Canary…87(24)",
+      "seed SDM7JK…7K(56)",
+      "end_user_g_address GDTIXV…YY(56)",
+      "referrer_path refpat…3c(19)",
+      "jwt eyJhbG…0f(77)",
+      "email canary…rg(31)",
+      "user_agent (canary token) Canary…83(20)",
+      "query_string cqed5e…c9(26)",
+      "page_title Canary…be(24)",
+      "seed SACK5I…6U(56)",
+      "end_user_g_address GD2FQH…SH(56)",
+      "referrer_path refpat…b3(19)",
+      "jwt eyJhbG…21(77)",
+      "email canary…rg(31)",
+      "user_agent (canary token) Canary…e8(20)",
+      "query_string cq2952…38(26)",
+      "page_title Canary…0d(24)",
+      "seed SDPKNA…LT(56)",
+      "end_user_g_address GDIH3K…2X(56)",
+      "referrer_path refpat…ea(19)",
+      "jwt eyJhbG…32(77)",
+      "email canary…rg(31)",
+      "user_agent (canary token) Canary…6f(20)",
+      "query_string cq5275…06(26)",
+      "page_title Canary…a5(24)",
+      "seed SAF7QC…4Q(56)",
+      "end_user_g_address GBPHI4…G6(56)",
+      "referrer_path refpat…e2(19)",
+      "jwt eyJhbG…64(77)",
+      "email canary…rg(31)",
+      "user_agent (canary token) Canary…8c(20)",
+      "query_string cq26f8…bb(26)",
+      "page_title Canary…32(24)",
+      "seed SB7XR3…IQ(56)",
+      "end_user_g_address GBF7BS…C3(56)",
+      "referrer_path refpat…d4(19)",
+      "jwt eyJhbG…83(77)",
+      "email canary…rg(31)",
+      "user_agent (canary token) Canary…86(20)",
+      "query_string cq4c24…c5(26)",
+      "page_title Canary…b7(24)",
+      "seed SCFFQJ…T7(56)",
+      "end_user_g_address GCLAVH…RV(56)",
+      "referrer_path refpat…84(19)",
+      "jwt eyJhbG…75(77)",
+      "email canary…rg(31)",
+      "user_agent (canary token) Canary…9f(20)",
+      "query_string cqe3c6…5f(26)",
+      "page_title Canary…01(24)",
+      "seed SCDBH4…6A(56)",
+      "end_user_g_address GCNHNR…ZX(56)",
+      "referrer_path refpat…36(19)",
+      "jwt eyJhbG…33(77)",
+      "email canary…rg(31)",
+      "otlp user_agent.original Canary…ef(23)",
+      "otlp url.query cq0f68…76(14)",
+      "otlp seed in url.path SD5MRP…YI(56)",
+      "otlp enduser.id GB6SD3…FJ(56)",
+      "otlp custom attribute custom…89(30)",
+      "otlp user_agent.original Canary…05(23)",
+      "otlp url.query cqa1c3…66(14)",
+      "otlp seed in url.path SAE3GI…JW(56)",
+      "otlp enduser.id GBSAWT…T5(56)",
+      "otlp custom attribute custom…1b(30)",
+      "otlp user_agent.original Canary…a3(23)",
+      "otlp url.query cq9603…7b(14)",
+      "otlp seed in url.path SCO34N…MC(56)",
+      "otlp enduser.id GDD3OV…XP(56)",
+      "otlp custom attribute custom…fe(30)",
+      "user_agent (canary token) Canary…55(20)",
+      "query_string cq6dda…4a(26)",
+      "page_title Canary…aa(24)",
+      "seed SAA2XY…TS(56)",
+      "end_user_g_address GASMSG…62(56)",
+      "referrer_path refpat…a0(19)",
+      "jwt eyJhbG…8a(77)",
+      "email canary…rg(31)",
+      "otlp user_agent.original Canary…c0(23)",
+      "otlp url.query cq8bfd…36(14)",
+      "otlp seed in url.path SDGZUY…BJ(56)",
+      "otlp enduser.id GAPEZ5…Y2(56)",
+      "otlp custom attribute custom…52(30)",
+      "user_agent (canary token) Canary…4d(20)",
+      "query_string cqed2e…be(26)",
+      "page_title Canary…39(24)",
+      "seed SAAIFO…EG(56)",
+      "end_user_g_address GALLHE…QO(56)",
+      "referrer_path refpat…ea(19)",
+      "jwt eyJhbG…c9(77)",
+      "email canary…rg(31)"
+    ]
+  },
+  "notes": "### Sources scanned\n\n| Source | Bytes |\n|---|---|\n| volume:gwstate/snapshot.json (engine stopped) | 30122 |\n| volume:gwstate/spool/edge-a1/0000000000000023.seg (engine stopped) | 3757 |\n| volume:gwstate/spool/edge-a1/0000000000000023.seg.ack (engine stopped) | 1 |\n| pg_dump:scf | 5374617 |\n| pg_dump:umami | 665660 |\n| volume:gwstate/snapshot.json | 30122 |\n| volume:gwstate/spool/edge-a1/0000000000000023.seg | 5896 |\n| volume:gwstate/spool/edge-a1/0000000000000023.seg.ack | 1 |\n| volume:colqueue/exporter_otlp_http_writer_metrics | 65536 |\n| log:collector | 6276 |\n| log:control-plane | 327576 |\n| log:db-migrate | 2988 |\n| log:engine-proxy | 422810 |\n| log:fake-horizon | 0 |\n| log:gateway | 3300 |\n| log:jobs | 21339 |\n| log:metrics-writer | 221 |\n| log:pgbouncer | 55024 |\n| log:portal | 1511 |\n| log:postgres | 5435 |\n| log:umami | 423 |\n| log:umami-bootstrap | 666 |\n| log:umami-migrate | 3621 |\n| log:umami-views | 2025 |\n| log:umami-views-drop | 1424 |\n\n### Allowed shape hits (with reason)\n\n- 3 × surrogate in volume:gwstate/spool/edge-a1/0000000000000023.seg (engine stopped): spool record field `surrogate` (wire-formats §d.2/§c.3): keyed daily HMAC; the segment is deleted once fully acknowledged or expired (§d.1)\n- 3 × user_agent in volume:gwstate/spool/edge-a1/0000000000000023.seg (engine stopped): spool record field `ua`: one of the gateway's fixed synthetic templates (§c.3), not the client's\n- 63 × g_address in pg_dump:scf: tenant users' own Stellar sign-in accounts (scf.user_identities / sessions) — account holders of the platform, not end users of a tenant site\n- 3 × surrogate in volume:gwstate/spool/edge-a1/0000000000000023.seg: spool record field `surrogate` (wire-formats §d.2/§c.3): keyed daily HMAC; the segment is deleted once fully acknowledged or expired (§d.1)\n- 3 × user_agent in volume:gwstate/spool/edge-a1/0000000000000023.seg: spool record field `ua`: one of the gateway's fixed synthetic templates (§c.3), not the client's\n- 3 × ipv4 in volume:colqueue/exporter_otlp_http_writer_metrics: loopback listen/health address of the service itself\n- 3 × user_agent in volume:colqueue/exporter_otlp_http_writer_metrics: the gateway's own Go HTTP client User-Agent on its loopback hop to the Collector, written by the queue with the request metadata (C-107) — a constant, not the tenant's; to be suppressed in the gateway\n- 462 × ipv4 in logs: loopback listen/health address of the service itself\n- 24 × ipv4 in logs: a container's own address in its startup log (server side, not a client)\n- 5 × ipv4 in logs: unspecified listen address\n- 9 × ipv4 in logs: Docker's embedded DNS resolver (resolver messages in service logs)\n\n### Findings: 0\n",
+  "at": "2026-11-13T10:22:32.122Z",
+  "environment": {
+    "commit": "pre-release",
+    "dirty": "yes (uncommitted changes in the tree)",
+    "node": "v24.19.0",
+    "runner": "local Docker host",
+    "os": "linux/x64"
+  }
+}

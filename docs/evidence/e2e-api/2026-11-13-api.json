@@ -1,0 +1,376 @@
+{
+  "layer": "e2e-api",
+  "name": "api",
+  "title": "E2E API suite (gate G3): SDK dual export → OTLP front door → Collector → writer → PostgreSQL → API",
+  "summary": "Four sample services (Node, Python, Go, Rust) built from the S-06 recipes dual-export to a tenant APM sink and to the UsageMap OTLP endpoint; a fixed request mix is compared with the control-plane API's volume, status codes and percentiles; logs are refused; a canary trace leaves only derived metrics.",
+  "checks": [
+    {
+      "name": "logs are refused at the front door (404)",
+      "outcome": "pass",
+      "ids": [
+        "api.drop-logs"
+      ],
+      "detail": ""
+    },
+    {
+      "name": "a wrong or foreign credential is answered 401",
+      "outcome": "pass",
+      "ids": [
+        "api.dual-export"
+      ],
+      "detail": ""
+    },
+    {
+      "name": "node-express: dual export lands; volume, status codes and percentiles equal the request mix",
+      "outcome": "pass",
+      "ids": [
+        "api.dual-export",
+        "api.drop-traces",
+        "api.attribute-allowlist",
+        "api.postgres-metrics"
+      ],
+      "detail": "requests 38, status {\"s2xx\":30,\"s3xx\":0,\"s4xx\":5,\"s5xx\":3,\"unknown\":0}, latency {\"p50_ms\":5,\"p95_ms\":5,\"p99_ms\":19.3,\"mean_ms\":1.473,\"accuracy_class\":\"explicit15\"}, APM sink {\"/v1/metrics\":4,\"/v1/traces\":2}"
+    },
+    {
+      "name": "python-fastapi: dual export lands; volume, status codes and percentiles equal the request mix",
+      "outcome": "pass",
+      "ids": [
+        "api.dual-export",
+        "api.drop-traces",
+        "api.attribute-allowlist",
+        "api.postgres-metrics"
+      ],
+      "detail": "requests 38, status {\"s2xx\":30,\"s3xx\":0,\"s4xx\":5,\"s5xx\":3,\"unknown\":0}, latency {\"p50_ms\":5,\"p95_ms\":8.1,\"p99_ms\":9.62,\"mean_ms\":2.731,\"accuracy_class\":\"explicit15\"}, APM sink {\"/v1/metrics\":4,\"/v1/traces\":2}"
+    },
+    {
+      "name": "go-nethttp: dual export lands; volume, status codes and percentiles equal the request mix",
+      "outcome": "pass",
+      "ids": [
+        "api.dual-export",
+        "api.drop-traces",
+        "api.attribute-allowlist",
+        "api.postgres-metrics"
+      ],
+      "detail": "requests 38, status {\"s2xx\":30,\"s3xx\":0,\"s4xx\":5,\"s5xx\":3,\"unknown\":0}, latency {\"p50_ms\":5,\"p95_ms\":5,\"p99_ms\":5,\"mean_ms\":0.089,\"accuracy_class\":\"explicit15\"}, APM sink {\"/v1/metrics\":3,\"/v1/traces\":2}"
+    },
+    {
+      "name": "rust-axum: dual export lands; volume, status codes and percentiles equal the request mix",
+      "outcome": "pass",
+      "ids": [
+        "api.dual-export",
+        "api.drop-traces",
+        "api.attribute-allowlist",
+        "api.postgres-metrics"
+      ],
+      "detail": "requests 38, status {\"s2xx\":30,\"s3xx\":0,\"s4xx\":5,\"s5xx\":3,\"unknown\":0}, latency {\"p50_ms\":5,\"p95_ms\":5,\"p99_ms\":5,\"mean_ms\":0.028,\"accuracy_class\":\"explicit15\"}, APM sink {\"/v1/metrics\":3,\"/v1/traces\":2}"
+    },
+    {
+      "name": "a canary trace leaves only derived metrics; its attributes are never stored",
+      "outcome": "pass",
+      "ids": [
+        "api.drop-traces",
+        "api.attribute-allowlist"
+      ],
+      "detail": "derived requests 1"
+    }
+  ],
+  "data": {
+    "node-express": {
+      "summary": {
+        "range": {
+          "start": "2026-11-12T10:00:00Z",
+          "end": "2026-11-13T11:00:00Z",
+          "resolution": "1h",
+          "label": "self-attested telemetry",
+          "stream_group": {
+            "kind": "sdk_stable",
+            "warning": null
+          },
+          "sampled_lower_bound": false
+        },
+        "requests": 38,
+        "error_rate_5xx": 0.0789,
+        "error_rate_4xx": 0.1316,
+        "status": {
+          "s2xx": 30,
+          "s3xx": 0,
+          "s4xx": 5,
+          "s5xx": 3,
+          "unknown": 0
+        },
+        "latency": {
+          "p50_ms": 5,
+          "p95_ms": 5,
+          "p99_ms": 19.3,
+          "mean_ms": 1.473,
+          "accuracy_class": "explicit15"
+        },
+        "assurance_level": null,
+        "onchain_badge": null
+      },
+      "codes": {
+        "range": {
+          "start": "2026-11-12T10:00:00Z",
+          "end": "2026-11-13T11:00:00Z",
+          "resolution": "1h",
+          "label": "self-attested telemetry",
+          "stream_group": {
+            "kind": "sdk_stable",
+            "warning": null
+          },
+          "sampled_lower_bound": false
+        },
+        "classes": {
+          "s2xx": 30,
+          "s3xx": 0,
+          "s4xx": 5,
+          "s5xx": 3,
+          "unknown": 0
+        },
+        "codes": [
+          {
+            "status_code": 200,
+            "requests": 30
+          },
+          {
+            "status_code": 404,
+            "requests": 5
+          },
+          {
+            "status_code": 500,
+            "requests": 3
+          }
+        ]
+      },
+      "apm": {
+        "/v1/metrics": 4,
+        "/v1/traces": 2
+      }
+    },
+    "python-fastapi": {
+      "summary": {
+        "range": {
+          "start": "2026-11-12T10:00:00Z",
+          "end": "2026-11-13T11:00:00Z",
+          "resolution": "1h",
+          "label": "self-attested telemetry",
+          "stream_group": {
+            "kind": "sdk_stable",
+            "warning": null
+          },
+          "sampled_lower_bound": false
+        },
+        "requests": 38,
+        "error_rate_5xx": 0.0789,
+        "error_rate_4xx": 0.1316,
+        "status": {
+          "s2xx": 30,
+          "s3xx": 0,
+          "s4xx": 5,
+          "s5xx": 3,
+          "unknown": 0
+        },
+        "latency": {
+          "p50_ms": 5,
+          "p95_ms": 8.1,
+          "p99_ms": 9.62,
+          "mean_ms": 2.731,
+          "accuracy_class": "explicit15"
+        },
+        "assurance_level": null,
+        "onchain_badge": null
+      },
+      "codes": {
+        "range": {
+          "start": "2026-11-12T10:00:00Z",
+          "end": "2026-11-13T11:00:00Z",
+          "resolution": "1h",
+          "label": "self-attested telemetry",
+          "stream_group": {
+            "kind": "sdk_stable",
+            "warning": null
+          },
+          "sampled_lower_bound": false
+        },
+        "classes": {
+          "s2xx": 30,
+          "s3xx": 0,
+          "s4xx": 5,
+          "s5xx": 3,
+          "unknown": 0
+        },
+        "codes": [
+          {
+            "status_code": 200,
+            "requests": 30
+          },
+          {
+            "status_code": 404,
+            "requests": 5
+          },
+          {
+            "status_code": 500,
+            "requests": 3
+          }
+        ]
+      },
+      "apm": {
+        "/v1/metrics": 4,
+        "/v1/traces": 2
+      }
+    },
+    "go-nethttp": {
+      "summary": {
+        "range": {
+          "start": "2026-11-12T10:00:00Z",
+          "end": "2026-11-13T11:00:00Z",
+          "resolution": "1h",
+          "label": "self-attested telemetry",
+          "stream_group": {
+            "kind": "sdk_stable",
+            "warning": null
+          },
+          "sampled_lower_bound": false
+        },
+        "requests": 38,
+        "error_rate_5xx": 0.0789,
+        "error_rate_4xx": 0.1316,
+        "status": {
+          "s2xx": 30,
+          "s3xx": 0,
+          "s4xx": 5,
+          "s5xx": 3,
+          "unknown": 0
+        },
+        "latency": {
+          "p50_ms": 5,
+          "p95_ms": 5,
+          "p99_ms": 5,
+          "mean_ms": 0.089,
+          "accuracy_class": "explicit15"
+        },
+        "assurance_level": null,
+        "onchain_badge": null
+      },
+      "codes": {
+        "range": {
+          "start": "2026-11-12T10:00:00Z",
+          "end": "2026-11-13T11:00:00Z",
+          "resolution": "1h",
+          "label": "self-attested telemetry",
+          "stream_group": {
+            "kind": "sdk_stable",
+            "warning": null
+          },
+          "sampled_lower_bound": false
+        },
+        "classes": {
+          "s2xx": 30,
+          "s3xx": 0,
+          "s4xx": 5,
+          "s5xx": 3,
+          "unknown": 0
+        },
+        "codes": [
+          {
+            "status_code": 200,
+            "requests": 30
+          },
+          {
+            "status_code": 404,
+            "requests": 5
+          },
+          {
+            "status_code": 500,
+            "requests": 3
+          }
+        ]
+      },
+      "apm": {
+        "/v1/metrics": 3,
+        "/v1/traces": 2
+      }
+    },
+    "rust-axum": {
+      "summary": {
+        "range": {
+          "start": "2026-11-12T10:00:00Z",
+          "end": "2026-11-13T11:00:00Z",
+          "resolution": "1h",
+          "label": "self-attested telemetry",
+          "stream_group": {
+            "kind": "sdk_stable",
+            "warning": null
+          },
+          "sampled_lower_bound": false
+        },
+        "requests": 38,
+        "error_rate_5xx": 0.0789,
+        "error_rate_4xx": 0.1316,
+        "status": {
+          "s2xx": 30,
+          "s3xx": 0,
+          "s4xx": 5,
+          "s5xx": 3,
+          "unknown": 0
+        },
+        "latency": {
+          "p50_ms": 5,
+          "p95_ms": 5,
+          "p99_ms": 5,
+          "mean_ms": 0.028,
+          "accuracy_class": "explicit15"
+        },
+        "assurance_level": null,
+        "onchain_badge": null
+      },
+      "codes": {
+        "range": {
+          "start": "2026-11-12T10:00:00Z",
+          "end": "2026-11-13T11:00:00Z",
+          "resolution": "1h",
+          "label": "self-attested telemetry",
+          "stream_group": {
+            "kind": "sdk_stable",
+            "warning": null
+          },
+          "sampled_lower_bound": false
+        },
+        "classes": {
+          "s2xx": 30,
+          "s3xx": 0,
+          "s4xx": 5,
+          "s5xx": 3,
+          "unknown": 0
+        },
+        "codes": [
+          {
+            "status_code": 200,
+            "requests": 30
+          },
+          {
+            "status_code": 404,
+            "requests": 5
+          },
+          {
+            "status_code": 500,
+            "requests": 3
+          }
+        ]
+      },
+      "apm": {
+        "/v1/metrics": 3,
+        "/v1/traces": 2
+      }
+    }
+  },
+  "notes": "",
+  "at": "2026-11-13T10:22:11.620Z",
+  "environment": {
+    "commit": "pre-release",
+    "dirty": "yes (uncommitted changes in the tree)",
+    "node": "v24.19.0",
+    "runner": "local Docker host",
+    "os": "linux/x64"
+  }
+}

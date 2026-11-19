@@ -1,0 +1,82 @@
+{
+  "layer": "load",
+  "name": "web-116rps-120s",
+  "title": "Web ingest load: 116 events/s for 120 s (10.0 M/day equivalent)",
+  "summary": "Open-model load against the gateway of a local single-node Compose stack (one gateway, one engine proxy, one Umami, one PostgreSQL on one 8-core host shared with other workloads). 4 sites; one event per request; one challenge + proof per 30 page views (SPA token reuse). After the run the spool must drain and Umami must hold exactly the accepted events. 10× the design target (C-48) is 115.7 events/s sustained; this run offered 116/s.",
+  "checks": [
+    {
+      "name": "offered rate achieved (≥ 95 %)",
+      "outcome": "pass",
+      "detail": "116.0 req/s sent of 116 offered",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "every request answered 202",
+      "outcome": "pass",
+      "detail": "{\"202\":13920}",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "no accepted event lost or duplicated (Umami count = 202 count)",
+      "outcome": "pass",
+      "detail": "accepted 13920, stored 13920, spool drained 1.0 s after the run",
+      "ids": [
+        "slo.ingest-availability"
+      ]
+    },
+    {
+      "name": "API (OTLP) load profile",
+      "outcome": "not_run",
+      "detail": "requires: otlp (gateway OTLP front door, day 3). Profile: 115.7 SERVER spans/s in batches of 50 (2.3 req/s) + 300 services × 1 metrics export/60 s (5 req/s)",
+      "ids": []
+    }
+  ],
+  "data": {
+    "rate": 116,
+    "durationS": 120,
+    "sites": 4,
+    "result": {
+      "offered": 13920,
+      "sent": 13920,
+      "statuses": {
+        "202": 13920
+      },
+      "latencyMs": {
+        "count": 13920,
+        "min": 5.477037000004202,
+        "p50": 25.26744399999734,
+        "p95": 63.32536699999764,
+        "p99": 95.75830800000404,
+        "max": 182.38381700000173,
+        "mean": 29.42774505761497
+      },
+      "achievedRps": 115.9925729191942,
+      "timeline": {
+        "202": 13920
+      },
+      "accepted": 13920,
+      "durationS": 120.00768367900001
+    },
+    "stored": 13920,
+    "drainS": 1.005,
+    "settingsDuringRun": {
+      "web_requests_per_min_subnet": 1000000,
+      "l0_web_requests_per_min_site": 1000000,
+      "l0_events_per_day": 100000000
+    }
+  },
+  "notes": "| Latency (ms) | p50 | p95 | p99 | max |\n|---|---|---|---|---|\n| POST /v1/e → 202 (fsync before answer) | 25.3 | 63.3 | 95.8 | 182.4 |\n\nLimits of this run: one host, one edge node, one core; the client and the stack share the CPU. It shows the single-node path sustains the rate with durable acknowledgement and no loss; production capacity (four edges, two cores) is sized in docs/deployment-topology.md.",
+  "at": "2026-11-13T10:40:09.334Z",
+  "environment": {
+    "commit": "pre-release",
+    "dirty": "yes (uncommitted changes in the tree)",
+    "node": "v24.19.0",
+    "runner": "local Docker host",
+    "os": "linux/x64"
+  },
+  "correction": "2026-11-13: IDs corrected — capacity.1m-requests-day removed (API target, evidenced by load/*-api-* runs only); web design target is C-48. No measured figure changed."
+}

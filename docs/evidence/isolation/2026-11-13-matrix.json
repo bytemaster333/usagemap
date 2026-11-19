@@ -1,0 +1,52 @@
+{
+  "layer": "isolation",
+  "name": "matrix",
+  "title": "Isolation matrix (gate G4): database and HTTP",
+  "summary": "One report over the two isolation suites: the database gate suite (RLS ENABLE + FORCE and the restrictive backstop on every table and partition, no partition grants, security_invoker views, the SECURITY DEFINER allow-list, the cross-tenant read/write matrix, op_* functions, transaction-local tenant context) and the HTTP matrix (every operation × role × own/foreign/unknown/malformed identifier, generated from the OpenAPI document). Each part says whether it ran here or was read from a CI artefact.",
+  "checks": [
+    {
+      "name": "Database isolation matrix and gates (db/tests)",
+      "outcome": "pass",
+      "detail": "go test -json in db/tests (run here); 247 passed, 0 failed, 0 skipped",
+      "ids": [
+        "isolation.tenant-rls"
+      ]
+    },
+    {
+      "name": "HTTP isolation matrix (control plane, generated from the OpenAPI document)",
+      "outcome": "pass",
+      "detail": "vitest --reporter=json on services/control-plane isolation.test.ts (run here, project scf-wsl-iso); 8 passed, 0 failed, 0 skipped",
+      "ids": [
+        "isolation.tenant-rls"
+      ]
+    }
+  ],
+  "data": {
+    "db": {
+      "source": "go test -json in db/tests (run here)",
+      "totals": {
+        "pass": 247,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    "http": {
+      "source": "vitest --reporter=json on services/control-plane isolation.test.ts (run here, project scf-wsl-iso)",
+      "totals": {
+        "pass": 8,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    "failing": []
+  },
+  "notes": "### Database part — top-level tests\n\n- PASS `TestSetTenantCtxTransactionLocal` (0 subtests)\n- PASS `TestSetTenantCtxRollback` (0 subtests)\n- PASS `TestSetTenantCtxValidation` (0 subtests)\n- PASS `TestTenantContextReadsOwnRows` (0 subtests)\n- PASS `TestOpRowLabels` (9 subtests)\n- PASS `TestOpTenantDetailVerifiedEventsToday` (0 subtests)\n- PASS `TestOpKeyUrlExposed` (6 subtests)\n- PASS `TestGatesClean` (12 subtests)\n- PASS `TestGatesCatchBreakage` (67 subtests)\n- PASS `TestGateG6AllowsPlainReplicator` (0 subtests)\n- PASS `TestGateG11GlobalTables` (0 subtests)\n- PASS `TestGateG8Runtime` (4 subtests)\n- PASS `TestOpFunctionsAuthoriseFirst` (5 subtests)\n- PASS `TestOpErasureRequests0058` (0 subtests)\n- PASS `TestOpResolveDomainDispute0059` (0 subtests)\n- PASS `TestCrossTenantMatrix` (104 subtests)\n- PASS `TestPartitionsUnreachable` (0 subtests)\n- PASS `TestCrossTenantMatrixCatchesHoles` (4 subtests)\n- PASS `TestOpReadFunctions` (13 subtests)\n- PASS `TestOpMachineKeys` (0 subtests)\n- PASS `TestOpWriteFunctions` (0 subtests)\n- PASS `TestOpRemoveRestore` (0 subtests)\n- PASS `TestOpNoOtherWayIn` (0 subtests)\n\n### HTTP part\n\n- PASS isolation matrix anonymous callers get 401 on every non-public operation\n- PASS isolation matrix a foreign, unknown or malformed tenant id is the same 404 for every tenant-scoped operation and caller\n- PASS isolation matrix each tenant role gets 403 below the operation's minimum role and passes authorisation at or above it\n- PASS isolation matrix built operations answer the same 404 for another tenant's, an unknown and a malformed identifier\n- PASS isolation matrix SCF-operator operations: 403 for tenant members, operator_admin ones 403 for an operator\n- PASS isolation matrix operator tenant operations answer 404 for an unknown or malformed tenant id\n- PASS isolation matrix identities and passkeys of another user are 404\n- PASS isolation matrix operator metrics API: bearer operator keys only, every operation's scope as documented\n\n### Failing cases: 0\n",
+  "at": "2026-11-13T10:41:16.870Z",
+  "environment": {
+    "commit": "pre-release",
+    "dirty": "yes (uncommitted changes in the tree)",
+    "node": "v24.19.0",
+    "runner": "local Docker host",
+    "os": "linux/x64"
+  }
+}

@@ -1,0 +1,17 @@
+{
+ "result": "PASS",
+ "repo": "2",
+ "target": "latest",
+ "finished_at": "2026-11-13T09:58:57Z",
+ "restore_seconds": "9.7",
+ "ready_seconds": "11.3",
+ "amcheck_seconds": "0.4",
+ "gates": "11ok",
+ "expectations": "3ok",
+ "restored_point": "2026-11-13 09:58:00.804478+00",
+ "end_lsn": "0/F188420",
+ "total_seconds": "12.1",
+ "failed_stage": "",
+ "reason": "",
+ "line": "RESTORE-DRILL PASS repo=2 target=latest restore=9.7s ready=11.3s amcheck=0.4s gates=11ok(0.3s) counts=3ok(0.1s) restored_point=\"2026-11-13 09:58:00.804478+00\" end_lsn=0/F188420 total=12.1s"
+}

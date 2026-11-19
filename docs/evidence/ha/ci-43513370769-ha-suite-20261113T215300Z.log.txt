@@ -1,0 +1,1333 @@
+21:46:50 preflight: secrets, image, clean project scf-wsj2 (work dir /tmp/scf-ha-test.LhYhTL)
+Unable to find image 'postgres:18.6-alpine@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b' locally
+docker.io/library/postgres@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b: Pulling from library/postgres
+881fc932939e: Pulling fs layer
+f9a5f8f89c06: Pulling fs layer
+63677b2e422d: Pulling fs layer
+ef1860e97cef: Pulling fs layer
+269f116f693d: Pulling fs layer
+84314b29d421: Pulling fs layer
+08007d924193: Pulling fs layer
+8f865016089d: Pulling fs layer
+21a876ea75ef: Pulling fs layer
+ef1860e97cef: Waiting
+269f116f693d: Waiting
+84314b29d421: Waiting
+08007d924193: Waiting
+8f865016089d: Waiting
+21a876ea75ef: Waiting
+f9a5f8f89c06: Verifying Checksum
+f9a5f8f89c06: Download complete
+63677b2e422d: Verifying Checksum
+63677b2e422d: Download complete
+881fc932939e: Verifying Checksum
+881fc932939e: Download complete
+ef1860e97cef: Verifying Checksum
+ef1860e97cef: Download complete
+881fc932939e: Pull complete
+84314b29d421: Verifying Checksum
+84314b29d421: Download complete
+08007d924193: Verifying Checksum
+08007d924193: Download complete
+f9a5f8f89c06: Pull complete
+8f865016089d: Verifying Checksum
+8f865016089d: Download complete
+21a876ea75ef: Verifying Checksum
+21a876ea75ef: Download complete
+269f116f693d: Verifying Checksum
+269f116f693d: Download complete
+63677b2e422d: Pull complete
+ef1860e97cef: Pull complete
+269f116f693d: Pull complete
+84314b29d421: Pull complete
+08007d924193: Pull complete
+8f865016089d: Pull complete
+21a876ea75ef: Pull complete
+Digest: sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
+Status: Downloaded newer image for postgres@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
+$ node scripts/build.ts
+ha-init: created pg_replication_password
+ha-init: created pg_rewind_password
+ha-init: created patroni_restapi_password
+ha-init: created pgbackrest_repo1_cipher_pass
+ha-init: created pgbackrest_repo2_cipher_pass
+ha-init: created scf_hatest_password
+ha-init: created azurite_a_key
+ha-init: created azurite_b_key
+ha-init: created Azurite CA and certificate
+ha-init: issued pgbackrest_repo1_key
+ha-init: issued pgbackrest_repo2_key
+ha-init: issued pgbackrest_repo2_drill_sas
+ha-init: issued azurite_a_init_sas
+ha-init: issued azurite_b_init_sas
+ha-init: building usagemap/postgres-ha:18.6-pgbr2.60.0-patroni4.1.5 (needed for age-keygen)
+ha-init: created dump_age_identity
+ha-init: created DCS CA
+ha-init: issued dcs/etcd-a
+ha-init: issued dcs/etcd-b
+ha-init: issued dcs/etcd-c
+ha-init: issued dcs/patroni-etcd-client
+ha-init: issued dcs/pg-a-rest
+ha-init: issued dcs/pg-b-rest
+ha-init: issued engine-proxy-b
+ha-init: issued core-b-engine-proxy
+#1 [internal] load local bake definitions
+#1 reading from stdin 893B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 3.70kB done
+#2 DONE 0.0s
+
+#3 resolve image config for docker-image://docker.io/docker/dockerfile:1.20@sha256:26147acbda4f14c5add9946e2fd2ed543fc402884fd75146bd342a7f6271dc1d
+#3 DONE 0.0s
+
+#4 docker-image://docker.io/docker/dockerfile:1.20@sha256:26147acbda4f14c5add9946e2fd2ed543fc402884fd75146bd342a7f6271dc1d
+#4 resolve docker.io/docker/dockerfile:1.20@sha256:26147acbda4f14c5add9946e2fd2ed543fc402884fd75146bd342a7f6271dc1d done
+#4 CACHED
+
+#5 [internal] load metadata for docker.io/library/postgres:18@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
+#5 DONE 0.0s
+
+#6 [internal] load metadata for docker.io/library/golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf
+#6 DONE 0.0s
+
+#7 [internal] load .dockerignore
+#7 transferring context: 2B done
+#7 DONE 0.0s
+
+#8 [internal] load build context
+#8 transferring context: 455B done
+#8 DONE 0.0s
+
+#9 [age-build 1/2] FROM docker.io/library/golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf
+#9 resolve docker.io/library/golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf done
+#9 DONE 0.0s
+
+#10 [stage-1 1/9] FROM docker.io/library/postgres:18@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
+#10 resolve docker.io/library/postgres:18@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42 done
+#10 DONE 0.0s
+
+#11 [stage-1 5/9] COPY --chmod=0755 postgres/callback.sh /usr/local/bin/scf-pg-callback
+#11 CACHED
+
+#12 [stage-1 8/9] COPY --chmod=0644 postgres/patroni.yml /etc/scf/patroni.yml
+#12 CACHED
+
+#13 [age-build 2/2] RUN go install -ldflags="-s -w" filippo.io/age/cmd/age@v1.3.2 filippo.io/age/cmd/age-keygen@v1.3.2  && /out/age --version | grep -qx 'v1.3.2'
+#13 CACHED
+
+#14 [stage-1 6/9] COPY --chmod=0755 postgres/post-bootstrap.sh /usr/local/bin/scf-post-bootstrap
+#14 CACHED
+
+#15 [stage-1 7/9] COPY --chmod=0755 postgres/healthcheck.sh /usr/local/bin/scf-pg-healthcheck
+#15 CACHED
+
+#16 [stage-1 2/9] RUN set -eux;     apt-get update;     apt-get upgrade -y --no-install-recommends;     apt-get install -y --no-install-recommends       "pgbackrest=2.60.0-1.pgdg13+1" "patroni=4.1.5-2.pgdg13+1" python3-etcd python3-psycopg2       curl ca-certificates openssl;     apt-get purge -y --auto-remove gnupg dirmngr gpg gpg-agent gpgsm gpgconf gnupg-l10n gnupg-utils gpg-wks-client || true;     rm -f /usr/local/bin/gosu;     rm -rf /var/lib/apt/lists/*;     pgbackrest version | grep -qx 'pgBackRest 2.60.0';     patroni --version | grep -q '4.1.5';     install -d -o postgres -g postgres -m 0750 /var/spool/pgbackrest /var/log/pgbackrest /var/lib/pgbackrest       /var/lib/scf-metrics;     install -d -o postgres -g postgres -m 0700 /var/lib/postgresql/18;     install -d -m 0755 /etc/scf
+#16 CACHED
+
+#17 [stage-1 3/9] COPY --from=age-build /out/age /out/age-keygen /usr/local/bin/
+#17 CACHED
+
+#18 [stage-1 4/9] COPY --chmod=0755 postgres/entrypoint.sh /usr/local/bin/scf-pg-entrypoint
+#18 CACHED
+
+#19 [stage-1 9/9] COPY --chmod=0755 bin/ /usr/local/bin/
+#19 CACHED
+
+#20 exporting to docker image format
+#20 exporting layers done
+#20 exporting manifest sha256:1eb2e826d20dc1d96559071059222efafbc5be88e5f03a3f8331a50ffd16c393 done
+#20 exporting config sha256:4e80402906d4a55e24d5ea7c787193712e3da30128c921d6b5f3a3c1f959a26e done
+#20 sending tarball
+#20 sending tarball 1.2s done
+#20 DONE 1.2s
+
+#21 importing to docker
+#21 DONE 0.0s
+
+#22 resolving provenance for metadata file
+#22 DONE 0.0s
+ pg-a  Built
+ etcd-a Pulling 
+ db-migrate Pulling 
+ azurite-a Pulling 
+ etcd-b Pulling 
+ postgres Pulling 
+ pgbouncer Pulling 
+ etcd-c Pulling 
+ azurite-b Pulling 
+ e6f31ffc071e Pulling fs layer 
+ 0a677b611880 Pulling fs layer 
+ 7f668503d887 Pulling fs layer 
+ d983d2844deb Pulling fs layer 
+ 944f1b656c91 Pulling fs layer 
+ a6eee6a69bb3 Pulling fs layer 
+ 430113713fa9 Pulling fs layer 
+ 6ed849575913 Pulling fs layer 
+ d6d6f66299ce Pulling fs layer 
+ a34d4f0e431b Pulling fs layer 
+ a6eee6a69bb3 Waiting 
+ 430113713fa9 Waiting 
+ 6ed849575913 Waiting 
+ d6d6f66299ce Waiting 
+ d983d2844deb Waiting 
+ a34d4f0e431b Waiting 
+ 944f1b656c91 Waiting 
+ e6f31ffc071e Pulling fs layer 
+ 0a677b611880 Pulling fs layer 
+ 7f668503d887 Pulling fs layer 
+ d983d2844deb Pulling fs layer 
+ 944f1b656c91 Pulling fs layer 
+ a6eee6a69bb3 Pulling fs layer 
+ 430113713fa9 Pulling fs layer 
+ 6ed849575913 Pulling fs layer 
+ d6d6f66299ce Pulling fs layer 
+ a34d4f0e431b Pulling fs layer 
+ a34d4f0e431b Waiting 
+ d983d2844deb Waiting 
+ 944f1b656c91 Waiting 
+ a6eee6a69bb3 Waiting 
+ 430113713fa9 Waiting 
+ 6ed849575913 Waiting 
+ d6d6f66299ce Waiting 
+ e6f31ffc071e Downloading [>                                                  ]  48.35kB/3.844MB
+ e6f31ffc071e Downloading [>                                                  ]  48.35kB/3.844MB
+ 7f668503d887 Downloading [>                                                  ]  15.58kB/1.262MB
+ 7f668503d887 Downloading [>                                                  ]  15.58kB/1.262MB
+ 0a677b611880 Downloading [>                                                  ]  538.7kB/52.63MB
+ 0a677b611880 Downloading [>                                                  ]  538.7kB/52.63MB
+ e6f31ffc071e Verifying Checksum 
+ e6f31ffc071e Verifying Checksum 
+ e6f31ffc071e Download complete 
+ e6f31ffc071e Download complete 
+ e6f31ffc071e Extracting [>                                                  ]  65.54kB/3.844MB
+ e6f31ffc071e Extracting [>                                                  ]  65.54kB/3.844MB
+ 7f668503d887 Verifying Checksum 
+ 7f668503d887 Verifying Checksum 
+ 7f668503d887 Download complete 
+ 7f668503d887 Download complete 
+ d983d2844deb Downloading [==================================================>]     447B/447B
+ d983d2844deb Downloading [==================================================>]     447B/447B
+ d983d2844deb Verifying Checksum 
+ d983d2844deb Verifying Checksum 
+ d983d2844deb Download complete 
+ d983d2844deb Download complete 
+ 944f1b656c91 Downloading [==================================================>]     117B/117B
+ 944f1b656c91 Downloading [==================================================>]     117B/117B
+ 944f1b656c91 Verifying Checksum 
+ 944f1b656c91 Download complete 
+ 944f1b656c91 Verifying Checksum 
+ 944f1b656c91 Download complete 
+ a6eee6a69bb3 Downloading [==>                                                ]  15.58kB/348.6kB
+ a6eee6a69bb3 Downloading [==>                                                ]  15.58kB/348.6kB
+ 0a677b611880 Downloading [=================>                                 ]  18.91MB/52.63MB
+ 0a677b611880 Downloading [=================>                                 ]  18.91MB/52.63MB
+ a6eee6a69bb3 Downloading [==================================================>]  348.6kB/348.6kB
+ a6eee6a69bb3 Verifying Checksum 
+ a6eee6a69bb3 Download complete 
+ a6eee6a69bb3 Download complete 
+ 430113713fa9 Downloading [>                                                  ]  15.58kB/898.9kB
+ 430113713fa9 Downloading [>                                                  ]  15.58kB/898.9kB
+ e6f31ffc071e Extracting [====================================>              ]  2.818MB/3.844MB
+ e6f31ffc071e Extracting [====================================>              ]  2.818MB/3.844MB
+ 430113713fa9 Downloading [==================================================>]  898.9kB/898.9kB
+ 430113713fa9 Downloading [==================================================>]  898.9kB/898.9kB
+ 430113713fa9 Verifying Checksum 
+ 430113713fa9 Verifying Checksum 
+ 430113713fa9 Download complete 
+ 430113713fa9 Download complete 
+ e6f31ffc071e Extracting [==================================================>]  3.844MB/3.844MB
+ e6f31ffc071e Extracting [==================================================>]  3.844MB/3.844MB
+ e6f31ffc071e Extracting [==================================================>]  3.844MB/3.844MB
+ e6f31ffc071e Extracting [==================================================>]  3.844MB/3.844MB
+ 6ed849575913 Downloading [=>                                                 ]  15.58kB/401.1kB
+ 6ed849575913 Downloading [=>                                                 ]  15.58kB/401.1kB
+ e6f31ffc071e Pull complete 
+ e6f31ffc071e Pull complete 
+ 6ed849575913 Downloading [==================================================>]  401.1kB/401.1kB
+ 6ed849575913 Downloading [==================================================>]  401.1kB/401.1kB
+ d6d6f66299ce Downloading [>                                                  ]  538.7kB/54.39MB
+ 6ed849575913 Verifying Checksum 
+ 6ed849575913 Verifying Checksum 
+ 6ed849575913 Download complete 
+ d6d6f66299ce Downloading [>                                                  ]  538.7kB/54.39MB
+ 6ed849575913 Download complete 
+ 0a677b611880 Downloading [======================================>            ]  40.53MB/52.63MB
+ 0a677b611880 Downloading [======================================>            ]  40.53MB/52.63MB
+ a34d4f0e431b Downloading [==================================================>]   2.86kB/2.86kB
+ a34d4f0e431b Verifying Checksum 
+ a34d4f0e431b Download complete 
+ a34d4f0e431b Downloading [==================================================>]   2.86kB/2.86kB
+ a34d4f0e431b Verifying Checksum 
+ a34d4f0e431b Download complete 
+ 0a677b611880 Verifying Checksum 
+ 0a677b611880 Download complete 
+ 0a677b611880 Verifying Checksum 
+ 0a677b611880 Download complete 
+ 0a677b611880 Extracting [>                                                  ]  557.1kB/52.63MB
+ 0a677b611880 Extracting [>                                                  ]  557.1kB/52.63MB
+ d6d6f66299ce Downloading [======================>                            ]  24.31MB/54.39MB
+ d6d6f66299ce Downloading [======================>                            ]  24.31MB/54.39MB
+ a5789fc40e82 Pulling fs layer 
+ bfb59b82a9b6 Pulling fs layer 
+ 39dc083afc39 Pulling fs layer 
+ bf7a4185f015 Pulling fs layer 
+ b6824ed73363 Pulling fs layer 
+ 7c12895b777b Pulling fs layer 
+ 3214acf345c0 Pulling fs layer 
+ 52630fc75a18 Pulling fs layer 
+ dd64bf2dd177 Pulling fs layer 
+ b839dfae01f6 Pulling fs layer 
+ dcaa5a89b0cc Pulling fs layer 
+ 2e620a304b10 Pulling fs layer 
+ 2ff934cbec26 Pulling fs layer 
+ ff7e8b387b66 Pulling fs layer 
+ 9ba40c786558 Pulling fs layer 
+ df858486bb79 Pulling fs layer 
+ d086f8ff3238 Pulling fs layer 
+ 39dc083afc39 Waiting 
+ bf7a4185f015 Waiting 
+ b6824ed73363 Waiting 
+ 7c12895b777b Waiting 
+ 3214acf345c0 Waiting 
+ 52630fc75a18 Waiting 
+ dd64bf2dd177 Waiting 
+ b839dfae01f6 Waiting 
+ dcaa5a89b0cc Waiting 
+ 2e620a304b10 Waiting 
+ 2ff934cbec26 Waiting 
+ ff7e8b387b66 Waiting 
+ 9ba40c786558 Waiting 
+ df858486bb79 Waiting 
+ d086f8ff3238 Waiting 
+ db-migrate Warning pull access denied for scf/db-migrate, repository does not exist or may require 'docker login': denied: requested access to the resource is denied
+ a5789fc40e82 Pulling fs layer 
+ bfb59b82a9b6 Pulling fs layer 
+ 39dc083afc39 Pulling fs layer 
+ bf7a4185f015 Pulling fs layer 
+ b6824ed73363 Pulling fs layer 
+ 7c12895b777b Pulling fs layer 
+ 3214acf345c0 Pulling fs layer 
+ 52630fc75a18 Pulling fs layer 
+ dd64bf2dd177 Pulling fs layer 
+ b839dfae01f6 Pulling fs layer 
+ dcaa5a89b0cc Pulling fs layer 
+ 2e620a304b10 Pulling fs layer 
+ 2ff934cbec26 Pulling fs layer 
+ ff7e8b387b66 Pulling fs layer 
+ 9ba40c786558 Pulling fs layer 
+ df858486bb79 Pulling fs layer 
+ d086f8ff3238 Pulling fs layer 
+ d086f8ff3238 Waiting 
+ 39dc083afc39 Waiting 
+ bf7a4185f015 Waiting 
+ b6824ed73363 Waiting 
+ 7c12895b777b Waiting 
+ 3214acf345c0 Waiting 
+ 52630fc75a18 Waiting 
+ dd64bf2dd177 Waiting 
+ b839dfae01f6 Waiting 
+ dcaa5a89b0cc Waiting 
+ 2e620a304b10 Waiting 
+ 2ff934cbec26 Waiting 
+ ff7e8b387b66 Waiting 
+ 9ba40c786558 Waiting 
+ df858486bb79 Waiting 
+ a5789fc40e82 Pulling fs layer 
+ bfb59b82a9b6 Pulling fs layer 
+ 39dc083afc39 Pulling fs layer 
+ bf7a4185f015 Pulling fs layer 
+ b6824ed73363 Pulling fs layer 
+ 7c12895b777b Pulling fs layer 
+ 3214acf345c0 Pulling fs layer 
+ 52630fc75a18 Pulling fs layer 
+ dd64bf2dd177 Pulling fs layer 
+ b839dfae01f6 Pulling fs layer 
+ dcaa5a89b0cc Pulling fs layer 
+ 2e620a304b10 Pulling fs layer 
+ 2ff934cbec26 Pulling fs layer 
+ ff7e8b387b66 Pulling fs layer 
+ 9ba40c786558 Pulling fs layer 
+ df858486bb79 Pulling fs layer 
+ d086f8ff3238 Pulling fs layer 
+ d086f8ff3238 Waiting 
+ 39dc083afc39 Waiting 
+ bf7a4185f015 Waiting 
+ b6824ed73363 Waiting 
+ 7c12895b777b Waiting 
+ 3214acf345c0 Waiting 
+ 52630fc75a18 Waiting 
+ dd64bf2dd177 Waiting 
+ b839dfae01f6 Waiting 
+ dcaa5a89b0cc Waiting 
+ 2e620a304b10 Waiting 
+ 2ff934cbec26 Waiting 
+ ff7e8b387b66 Waiting 
+ 9ba40c786558 Waiting 
+ df858486bb79 Waiting 
+ d6d6f66299ce Downloading [============================================>      ]  48.64MB/54.39MB
+ d6d6f66299ce Downloading [============================================>      ]  48.64MB/54.39MB
+ 0a677b611880 Extracting [=====>                                             ]  5.571MB/52.63MB
+ 0a677b611880 Extracting [=====>                                             ]  5.571MB/52.63MB
+ d6d6f66299ce Verifying Checksum 
+ d6d6f66299ce Download complete 
+ d6d6f66299ce Verifying Checksum 
+ d6d6f66299ce Download complete 
+ 881fc932939e Already exists 
+ c79525835372 Pulling fs layer 
+ ef88543a41e2 Pulling fs layer 
+ 0c065f49883c Pulling fs layer 
+ 8f75401514b3 Pulling fs layer 
+ 4f4fb700ef54 Pulling fs layer 
+ c79525835372 Waiting 
+ ef88543a41e2 Waiting 
+ 0c065f49883c Waiting 
+ 8f75401514b3 Waiting 
+ 4f4fb700ef54 Waiting 
+ e2de96513ba9 Pulling fs layer 
+ 7ce63688a3ae Pulling fs layer 
+ f2d20bcca466 Pulling fs layer 
+ 017bcccc3453 Pulling fs layer 
+ 7db9fdcc78cd Pulling fs layer 
+ 4bee6b9f5155 Pulling fs layer 
+ e2de96513ba9 Waiting 
+ 7ce63688a3ae Waiting 
+ f2d20bcca466 Waiting 
+ 017bcccc3453 Waiting 
+ 7db9fdcc78cd Waiting 
+ 4bee6b9f5155 Waiting 
+ 0a677b611880 Extracting [=============>                                     ]  13.93MB/52.63MB
+ 0a677b611880 Extracting [=============>                                     ]  13.93MB/52.63MB
+ bfb59b82a9b6 Downloading [===>                                               ]     946B/13.36kB
+ bfb59b82a9b6 Downloading [===>                                               ]     946B/13.36kB
+ bfb59b82a9b6 Downloading [===>                                               ]     946B/13.36kB
+ bfb59b82a9b6 Downloading [==================================================>]  13.36kB/13.36kB
+ bfb59b82a9b6 Downloading [==================================================>]  13.36kB/13.36kB
+ bfb59b82a9b6 Downloading [==================================================>]  13.36kB/13.36kB
+ bfb59b82a9b6 Verifying Checksum 
+ bfb59b82a9b6 Verifying Checksum 
+ bfb59b82a9b6 Verifying Checksum 
+ bfb59b82a9b6 Download complete 
+ bfb59b82a9b6 Download complete 
+ bfb59b82a9b6 Download complete 
+ a5789fc40e82 Downloading [>                                                  ]     938B/83.9kB
+ a5789fc40e82 Downloading [>                                                  ]     938B/83.9kB
+ a5789fc40e82 Downloading [>                                                  ]     938B/83.9kB
+ 0a677b611880 Extracting [=====================>                             ]  22.84MB/52.63MB
+ 0a677b611880 Extracting [=====================>                             ]  22.84MB/52.63MB
+ a5789fc40e82 Downloading [==================================================>]   83.9kB/83.9kB
+ a5789fc40e82 Verifying Checksum 
+ a5789fc40e82 Downloading [==================================================>]   83.9kB/83.9kB
+ a5789fc40e82 Verifying Checksum 
+ a5789fc40e82 Downloading [==================================================>]   83.9kB/83.9kB
+ a5789fc40e82 Verifying Checksum 
+ a5789fc40e82 Download complete 
+ a5789fc40e82 Download complete 
+ a5789fc40e82 Download complete 
+ a5789fc40e82 Extracting [===================>                               ]  32.77kB/83.9kB
+ a5789fc40e82 Extracting [===================>                               ]  32.77kB/83.9kB
+ a5789fc40e82 Extracting [===================>                               ]  32.77kB/83.9kB
+ a5789fc40e82 Extracting [==================================================>]   83.9kB/83.9kB
+ a5789fc40e82 Extracting [==================================================>]   83.9kB/83.9kB
+ a5789fc40e82 Extracting [==================================================>]   83.9kB/83.9kB
+ a5789fc40e82 Extracting [==================================================>]   83.9kB/83.9kB
+ a5789fc40e82 Extracting [==================================================>]   83.9kB/83.9kB
+ a5789fc40e82 Extracting [==================================================>]   83.9kB/83.9kB
+ a5789fc40e82 Pull complete 
+ a5789fc40e82 Pull complete 
+ a5789fc40e82 Pull complete 
+ bfb59b82a9b6 Extracting [==================================================>]  13.36kB/13.36kB
+ bfb59b82a9b6 Extracting [==================================================>]  13.36kB/13.36kB
+ bfb59b82a9b6 Extracting [==================================================>]  13.36kB/13.36kB
+ bfb59b82a9b6 Extracting [==================================================>]  13.36kB/13.36kB
+ bfb59b82a9b6 Extracting [==================================================>]  13.36kB/13.36kB
+ bfb59b82a9b6 Extracting [==================================================>]  13.36kB/13.36kB
+ 39dc083afc39 Downloading [>                                                  ]  5.071kB/445.7kB
+ 39dc083afc39 Downloading [>                                                  ]  5.071kB/445.7kB
+ 39dc083afc39 Downloading [>                                                  ]  5.071kB/445.7kB
+ 0a677b611880 Extracting [========================>                          ]  26.18MB/52.63MB
+ 0a677b611880 Extracting [========================>                          ]  26.18MB/52.63MB
+ bf7a4185f015 Downloading [=>                                                 ]     938B/29kB
+ b6824ed73363 Downloading [==================================================>]      67B/67B
+ bf7a4185f015 Downloading [==================================================>]     29kB/29kB
+ b6824ed73363 Verifying Checksum 
+ b6824ed73363 Download complete 
+ bf7a4185f015 Verifying Checksum 
+ bf7a4185f015 Download complete 
+ bf7a4185f015 Downloading [=>                                                 ]     938B/29kB
+ b6824ed73363 Downloading [==================================================>]      67B/67B
+ b6824ed73363 Verifying Checksum 
+ bf7a4185f015 Downloading [==================================================>]     29kB/29kB
+ b6824ed73363 Download complete 
+ bf7a4185f015 Verifying Checksum 
+ bf7a4185f015 Download complete 
+ bf7a4185f015 Downloading [=>                                                 ]     938B/29kB
+ b6824ed73363 Downloading [==================================================>]      67B/67B
+ b6824ed73363 Verifying Checksum 
+ bf7a4185f015 Downloading [==================================================>]     29kB/29kB
+ b6824ed73363 Download complete 
+ bf7a4185f015 Verifying Checksum 
+ bf7a4185f015 Download complete 
+ 39dc083afc39 Downloading [==========>                                        ]  97.53kB/445.7kB
+ 39dc083afc39 Downloading [==========>                                        ]  97.53kB/445.7kB
+ 39dc083afc39 Downloading [==========>                                        ]  97.53kB/445.7kB
+ 0a677b611880 Extracting [============================>                      ]  30.08MB/52.63MB
+ 0a677b611880 Extracting [============================>                      ]  30.08MB/52.63MB
+ 39dc083afc39 Verifying Checksum 
+ 39dc083afc39 Verifying Checksum 
+ 39dc083afc39 Download complete 
+ 39dc083afc39 Verifying Checksum 
+ 39dc083afc39 Download complete 
+ 39dc083afc39 Download complete 
+ 0a677b611880 Extracting [======================================>            ]  40.67MB/52.63MB
+ 0a677b611880 Extracting [======================================>            ]  40.67MB/52.63MB
+ 7c12895b777b Downloading [==================================================>]     188B/188B
+ 7c12895b777b Downloading [==================================================>]     188B/188B
+ 7c12895b777b Downloading [==================================================>]     188B/188B
+ 7c12895b777b Verifying Checksum 
+ 7c12895b777b Verifying Checksum 
+ 7c12895b777b Verifying Checksum 
+ 7c12895b777b Download complete 
+ 7c12895b777b Download complete 
+ 7c12895b777b Download complete 
+ 3214acf345c0 Downloading [==================================================>]     123B/123B
+ 3214acf345c0 Downloading [==================================================>]     123B/123B
+ 3214acf345c0 Downloading [==================================================>]     123B/123B
+ 3214acf345c0 Verifying Checksum 
+ 3214acf345c0 Verifying Checksum 
+ 3214acf345c0 Download complete 
+ 3214acf345c0 Download complete 
+ 3214acf345c0 Verifying Checksum 
+ 3214acf345c0 Download complete 
+ 52630fc75a18 Download complete 
+ 52630fc75a18 Download complete 
+ 52630fc75a18 Download complete 
+ 0a677b611880 Extracting [==============================================>    ]  48.46MB/52.63MB
+ 0a677b611880 Extracting [==============================================>    ]  48.46MB/52.63MB
+ dd64bf2dd177 Downloading [==================================================>]      80B/80B
+ b839dfae01f6 Downloading [==================================================>]     351B/351B
+ dcaa5a89b0cc Downloading [==================================================>]     314B/314B
+ dd64bf2dd177 Downloading [==================================================>]      80B/80B
+ b839dfae01f6 Downloading [==================================================>]     351B/351B
+ dcaa5a89b0cc Downloading [==================================================>]     314B/314B
+ dd64bf2dd177 Downloading [==================================================>]      80B/80B
+ b839dfae01f6 Downloading [==================================================>]     351B/351B
+ dcaa5a89b0cc Downloading [==================================================>]     314B/314B
+ b839dfae01f6 Verifying Checksum 
+ b839dfae01f6 Download complete 
+ dcaa5a89b0cc Verifying Checksum 
+ b839dfae01f6 Verifying Checksum 
+ b839dfae01f6 Download complete 
+ dcaa5a89b0cc Verifying Checksum 
+ dcaa5a89b0cc Download complete 
+ dcaa5a89b0cc Download complete 
+ b839dfae01f6 Verifying Checksum 
+ b839dfae01f6 Download complete 
+ dcaa5a89b0cc Verifying Checksum 
+ dcaa5a89b0cc Download complete 
+ dd64bf2dd177 Verifying Checksum 
+ dd64bf2dd177 Verifying Checksum 
+ dd64bf2dd177 Verifying Checksum 
+ dd64bf2dd177 Download complete 
+ dd64bf2dd177 Download complete 
+ dd64bf2dd177 Download complete 
+ 0a677b611880 Extracting [===============================================>   ]  49.58MB/52.63MB
+ 0a677b611880 Extracting [===============================================>   ]  49.58MB/52.63MB
+ bfb59b82a9b6 Pull complete 
+ bfb59b82a9b6 Pull complete 
+ bfb59b82a9b6 Pull complete 
+ 0a677b611880 Extracting [================================================>  ]  50.69MB/52.63MB
+ 0a677b611880 Extracting [================================================>  ]  50.69MB/52.63MB
+ 2e620a304b10 Downloading [>                                                  ]  2.315kB/143.3kB
+ 2e620a304b10 Downloading [>                                                  ]  2.315kB/143.3kB
+ 2e620a304b10 Downloading [>                                                  ]  2.315kB/143.3kB
+ 2e620a304b10 Downloading [==========>                                        ]  29.41kB/143.3kB
+ 2e620a304b10 Downloading [==========>                                        ]  29.41kB/143.3kB
+ 2e620a304b10 Downloading [==========>                                        ]  29.41kB/143.3kB
+ 2ff934cbec26 Downloading [>                                                  ]    103kB/10.2MB
+ 2ff934cbec26 Downloading [>                                                  ]    103kB/10.2MB
+ 2ff934cbec26 Downloading [>                                                  ]    103kB/10.2MB
+ ff7e8b387b66 Downloading [>                                                  ]  67.52kB/6.699MB
+ ff7e8b387b66 Downloading [>                                                  ]  67.52kB/6.699MB
+ ff7e8b387b66 Downloading [>                                                  ]  67.52kB/6.699MB
+ 2e620a304b10 Downloading [==================================================>]  143.3kB/143.3kB
+ 2e620a304b10 Downloading [==================================================>]  143.3kB/143.3kB
+ 2e620a304b10 Downloading [==================================================>]  143.3kB/143.3kB
+ 2e620a304b10 Verifying Checksum 
+ 2e620a304b10 Download complete 
+ 2e620a304b10 Verifying Checksum 
+ 2e620a304b10 Download complete 
+ 2e620a304b10 Verifying Checksum 
+ 2e620a304b10 Download complete 
+ 0a677b611880 Extracting [================================================>  ]  51.25MB/52.63MB
+ 0a677b611880 Extracting [================================================>  ]  51.25MB/52.63MB
+ 2ff934cbec26 Downloading [====>                                              ]  820.3kB/10.2MB
+ 2ff934cbec26 Downloading [====>                                              ]  820.3kB/10.2MB
+ 2ff934cbec26 Downloading [====>                                              ]  820.3kB/10.2MB
+ ff7e8b387b66 Downloading [=============>                                     ]  1.826MB/6.699MB
+ ff7e8b387b66 Downloading [=============>                                     ]  1.826MB/6.699MB
+ ff7e8b387b66 Downloading [=============>                                     ]  1.826MB/6.699MB
+ ff7e8b387b66 Verifying Checksum 
+ ff7e8b387b66 Verifying Checksum 
+ ff7e8b387b66 Download complete 
+ ff7e8b387b66 Verifying Checksum 
+ ff7e8b387b66 Download complete 
+ ff7e8b387b66 Download complete 
+ 2ff934cbec26 Downloading [==================================================>]   10.2MB/10.2MB
+ 0a677b611880 Extracting [=================================================> ]  52.36MB/52.63MB
+ 2ff934cbec26 Downloading [==================================================>]   10.2MB/10.2MB
+ 2ff934cbec26 Verifying Checksum 
+ 2ff934cbec26 Download complete 
+ 0a677b611880 Extracting [=================================================> ]  52.36MB/52.63MB
+ 2ff934cbec26 Downloading [==================================================>]   10.2MB/10.2MB
+ 2ff934cbec26 Verifying Checksum 
+ 2ff934cbec26 Download complete 
+ 2ff934cbec26 Verifying Checksum 
+ 2ff934cbec26 Download complete 
+ 0a677b611880 Extracting [==================================================>]  52.63MB/52.63MB
+ 0a677b611880 Extracting [==================================================>]  52.63MB/52.63MB
+ df858486bb79 Verifying Checksum 
+ df858486bb79 Download complete 
+ df858486bb79 Verifying Checksum 
+ df858486bb79 Download complete 
+ df858486bb79 Downloading [==================================================>]     112B/112B
+ df858486bb79 Verifying Checksum 
+ df858486bb79 Download complete 
+ 9ba40c786558 Downloading [>                                                  ]  67.52kB/6.711MB
+ 9ba40c786558 Downloading [>                                                  ]  67.52kB/6.711MB
+ 9ba40c786558 Downloading [>                                                  ]  67.52kB/6.711MB
+ d086f8ff3238 Downloading [==================================================>]     126B/126B
+ d086f8ff3238 Downloading [==================================================>]     126B/126B
+ d086f8ff3238 Downloading [==================================================>]     126B/126B
+ d086f8ff3238 Downloading [==================================================>]     126B/126B
+ d086f8ff3238 Downloading [==================================================>]     126B/126B
+ d086f8ff3238 Downloading [==================================================>]     126B/126B
+ d086f8ff3238 Download complete 
+ d086f8ff3238 Download complete 
+ d086f8ff3238 Download complete 
+ 9ba40c786558 Downloading [=>                                                 ]  135.8kB/6.711MB
+ 39dc083afc39 Extracting [===>                                               ]  32.77kB/445.7kB
+ 9ba40c786558 Downloading [=>                                                 ]  135.8kB/6.711MB
+ 39dc083afc39 Extracting [===>                                               ]  32.77kB/445.7kB
+ c79525835372 Downloading [=>                                                 ]  15.79kB/785.4kB
+ 9ba40c786558 Downloading [=>                                                 ]  135.8kB/6.711MB
+ 39dc083afc39 Extracting [===>                                               ]  32.77kB/445.7kB
+ c79525835372 Downloading [==================================================>]  785.4kB/785.4kB
+ c79525835372 Verifying Checksum 
+ c79525835372 Download complete 
+ c79525835372 Extracting [==>                                                ]  32.77kB/785.4kB
+ 9ba40c786558 Downloading [========>                                          ]  1.182MB/6.711MB
+ 9ba40c786558 Downloading [========>                                          ]  1.182MB/6.711MB
+ 9ba40c786558 Downloading [========>                                          ]  1.182MB/6.711MB
+ ef88543a41e2 Downloading [==================================================>]     960B/960B
+ ef88543a41e2 Verifying Checksum 
+ ef88543a41e2 Download complete 
+ 9ba40c786558 Downloading [==================================================>]  6.711MB/6.711MB
+ 9ba40c786558 Downloading [==================================================>]  6.711MB/6.711MB
+ 9ba40c786558 Downloading [==================================================>]  6.711MB/6.711MB
+ 9ba40c786558 Verifying Checksum 
+ 9ba40c786558 Verifying Checksum 
+ 9ba40c786558 Download complete 
+ 9ba40c786558 Download complete 
+ 9ba40c786558 Download complete 
+ 0c065f49883c Downloading [>                                                  ]  146.9kB/13.36MB
+ 8f75401514b3 Downloading [==================================================>]     442B/442B
+ 4f4fb700ef54 Downloading [==================================================>]      32B/32B
+ 8f75401514b3 Verifying Checksum 
+ 4f4fb700ef54 Verifying Checksum 
+ 4f4fb700ef54 Download complete 
+ 8f75401514b3 Download complete 
+ 0c065f49883c Downloading [======================================>            ]  10.32MB/13.36MB
+ 0c065f49883c Verifying Checksum 
+ 0c065f49883c Download complete 
+ 39dc083afc39 Extracting [=================================>                 ]  294.9kB/445.7kB
+ 39dc083afc39 Extracting [=================================>                 ]  294.9kB/445.7kB
+ 39dc083afc39 Extracting [=================================>                 ]  294.9kB/445.7kB
+ 39dc083afc39 Extracting [==================================================>]  445.7kB/445.7kB
+ 39dc083afc39 Extracting [==================================================>]  445.7kB/445.7kB
+ 39dc083afc39 Extracting [==================================================>]  445.7kB/445.7kB
+ 39dc083afc39 Extracting [==================================================>]  445.7kB/445.7kB
+ 39dc083afc39 Extracting [==================================================>]  445.7kB/445.7kB
+ 39dc083afc39 Extracting [==================================================>]  445.7kB/445.7kB
+ e2de96513ba9 Downloading [>                                                  ]  48.51kB/3.85MB
+ 7ce63688a3ae Downloading [>                                                  ]  64.89kB/5.764MB
+ f2d20bcca466 Downloading [==================================================>]  3.123kB/3.123kB
+ f2d20bcca466 Verifying Checksum 
+ f2d20bcca466 Download complete 
+ e2de96513ba9 Downloading [==========>                                        ]  834.9kB/3.85MB
+ 017bcccc3453 Downloading [>                                                  ]  3.456kB/228.4kB
+ 7ce63688a3ae Downloading [===========>                                       ]   1.31MB/5.764MB
+ e2de96513ba9 Downloading [==============================>                    ]  2.359MB/3.85MB
+ e2de96513ba9 Verifying Checksum 
+ e2de96513ba9 Download complete 
+ 7ce63688a3ae Downloading [==================================================>]  5.764MB/5.764MB
+ 7ce63688a3ae Verifying Checksum 
+ 7ce63688a3ae Download complete 
+ e2de96513ba9 Extracting [>                                                  ]  65.54kB/3.85MB
+ c79525835372 Extracting [==============>                                    ]  229.4kB/785.4kB
+ 017bcccc3453 Downloading [==================================================>]  228.4kB/228.4kB
+ 017bcccc3453 Verifying Checksum 
+ 017bcccc3453 Download complete 
+ c79525835372 Extracting [==================================================>]  785.4kB/785.4kB
+ e2de96513ba9 Extracting [===>                                               ]  262.1kB/3.85MB
+ 7db9fdcc78cd Downloading [======================================>            ]    3.5kB/4.496kB
+ 7db9fdcc78cd Downloading [==================================================>]  4.496kB/4.496kB
+ 7db9fdcc78cd Verifying Checksum 
+ 7db9fdcc78cd Download complete 
+ 4bee6b9f5155 Downloading [==================================================>]     215B/215B
+ 4bee6b9f5155 Verifying Checksum 
+ 4bee6b9f5155 Download complete 
+ c79525835372 Pull complete 
+ ef88543a41e2 Extracting [==================================================>]     960B/960B
+ ef88543a41e2 Extracting [==================================================>]     960B/960B
+ e2de96513ba9 Extracting [=============================================>     ]  3.539MB/3.85MB
+ e2de96513ba9 Extracting [==================================================>]   3.85MB/3.85MB
+ e2de96513ba9 Extracting [==================================================>]   3.85MB/3.85MB
+ e2de96513ba9 Pull complete 
+ 7ce63688a3ae Extracting [>                                                  ]  65.54kB/5.764MB
+ 7ce63688a3ae Extracting [==================================================>]  5.764MB/5.764MB
+ ef88543a41e2 Pull complete 
+ 0a677b611880 Pull complete 
+ 7ce63688a3ae Pull complete 
+ 0a677b611880 Pull complete 
+ 39dc083afc39 Pull complete 
+ 39dc083afc39 Pull complete 
+ 39dc083afc39 Pull complete 
+ f2d20bcca466 Extracting [==================================================>]  3.123kB/3.123kB
+ f2d20bcca466 Extracting [==================================================>]  3.123kB/3.123kB
+ 7f668503d887 Extracting [=>                                                 ]  32.77kB/1.262MB
+ f2d20bcca466 Pull complete 
+ 017bcccc3453 Extracting [=======>                                           ]  32.77kB/228.4kB
+ 7f668503d887 Extracting [=>                                                 ]  32.77kB/1.262MB
+ bf7a4185f015 Extracting [==================================================>]     29kB/29kB
+ bf7a4185f015 Extracting [==================================================>]     29kB/29kB
+ bf7a4185f015 Extracting [==================================================>]     29kB/29kB
+ bf7a4185f015 Extracting [==================================================>]     29kB/29kB
+ 017bcccc3453 Extracting [==================================================>]  228.4kB/228.4kB
+ 0c065f49883c Extracting [>                                                  ]  163.8kB/13.36MB
+ 017bcccc3453 Extracting [==================================================>]  228.4kB/228.4kB
+ bf7a4185f015 Pull complete 
+ bf7a4185f015 Pull complete 
+ bf7a4185f015 Pull complete 
+ 017bcccc3453 Pull complete 
+ b6824ed73363 Extracting [==================================================>]      67B/67B
+ b6824ed73363 Extracting [==================================================>]      67B/67B
+ b6824ed73363 Extracting [==================================================>]      67B/67B
+ b6824ed73363 Extracting [==================================================>]      67B/67B
+ 7db9fdcc78cd Extracting [==================================================>]  4.496kB/4.496kB
+ 7db9fdcc78cd Extracting [==================================================>]  4.496kB/4.496kB
+ 7f668503d887 Extracting [====================================>              ]  917.5kB/1.262MB
+ 7f668503d887 Extracting [====================================>              ]  917.5kB/1.262MB
+ 7db9fdcc78cd Pull complete 
+ b6824ed73363 Pull complete 
+ b6824ed73363 Pull complete 
+ b6824ed73363 Pull complete 
+ 0c065f49883c Extracting [====>                                              ]  1.311MB/13.36MB
+ 7c12895b777b Extracting [==================================================>]     188B/188B
+ 7c12895b777b Extracting [==================================================>]     188B/188B
+ 7c12895b777b Extracting [==================================================>]     188B/188B
+ 7c12895b777b Extracting [==================================================>]     188B/188B
+ 4bee6b9f5155 Extracting [==================================================>]     215B/215B
+ 4bee6b9f5155 Extracting [==================================================>]     215B/215B
+ 7f668503d887 Extracting [==================================================>]  1.262MB/1.262MB
+ 7f668503d887 Extracting [==================================================>]  1.262MB/1.262MB
+ 4bee6b9f5155 Pull complete 
+ 7c12895b777b Pull complete 
+ 7c12895b777b Pull complete 
+ 7c12895b777b Pull complete 
+ 3214acf345c0 Extracting [==================================================>]     123B/123B
+ 3214acf345c0 Extracting [==================================================>]     123B/123B
+ 3214acf345c0 Extracting [==================================================>]     123B/123B
+ 3214acf345c0 Extracting [==================================================>]     123B/123B
+ 3214acf345c0 Extracting [==================================================>]     123B/123B
+ 3214acf345c0 Extracting [==================================================>]     123B/123B
+ pgbouncer Pulled 
+ 7f668503d887 Pull complete 
+ d983d2844deb Extracting [==================================================>]     447B/447B
+ 7f668503d887 Pull complete 
+ d983d2844deb Extracting [==================================================>]     447B/447B
+ d983d2844deb Extracting [==================================================>]     447B/447B
+ d983d2844deb Extracting [==================================================>]     447B/447B
+ 3214acf345c0 Pull complete 
+ 3214acf345c0 Pull complete 
+ 3214acf345c0 Pull complete 
+ d983d2844deb Pull complete 
+ d983d2844deb Pull complete 
+ 52630fc75a18 Extracting [==================================================>]     162B/162B
+ 52630fc75a18 Extracting [==================================================>]     162B/162B
+ 52630fc75a18 Extracting [==================================================>]     162B/162B
+ 52630fc75a18 Extracting [==================================================>]     162B/162B
+ 944f1b656c91 Extracting [==================================================>]     117B/117B
+ 944f1b656c91 Extracting [==================================================>]     117B/117B
+ 944f1b656c91 Extracting [==================================================>]     117B/117B
+ 52630fc75a18 Pull complete 
+ 52630fc75a18 Pull complete 
+ 52630fc75a18 Pull complete 
+ 944f1b656c91 Pull complete 
+ 944f1b656c91 Pull complete 
+ a6eee6a69bb3 Extracting [====>                                              ]  32.77kB/348.6kB
+ dd64bf2dd177 Extracting [==================================================>]      80B/80B
+ dd64bf2dd177 Extracting [==================================================>]      80B/80B
+ dd64bf2dd177 Extracting [==================================================>]      80B/80B
+ dd64bf2dd177 Extracting [==================================================>]      80B/80B
+ 0c065f49883c Extracting [===========>                                       ]  2.949MB/13.36MB
+ dd64bf2dd177 Pull complete 
+ dd64bf2dd177 Pull complete 
+ dd64bf2dd177 Pull complete 
+ b839dfae01f6 Extracting [==================================================>]     351B/351B
+ b839dfae01f6 Extracting [==================================================>]     351B/351B
+ b839dfae01f6 Extracting [==================================================>]     351B/351B
+ b839dfae01f6 Extracting [==================================================>]     351B/351B
+ a6eee6a69bb3 Extracting [====>                                              ]  32.77kB/348.6kB
+ a6eee6a69bb3 Extracting [==================================================>]  348.6kB/348.6kB
+ a6eee6a69bb3 Extracting [==================================================>]  348.6kB/348.6kB
+ b839dfae01f6 Pull complete 
+ b839dfae01f6 Pull complete 
+ b839dfae01f6 Pull complete 
+ a6eee6a69bb3 Extracting [==================================================>]  348.6kB/348.6kB
+ a6eee6a69bb3 Extracting [==================================================>]  348.6kB/348.6kB
+ dcaa5a89b0cc Extracting [==================================================>]     314B/314B
+ dcaa5a89b0cc Extracting [==================================================>]     314B/314B
+ dcaa5a89b0cc Extracting [==================================================>]     314B/314B
+ dcaa5a89b0cc Extracting [==================================================>]     314B/314B
+ a6eee6a69bb3 Pull complete 
+ a6eee6a69bb3 Pull complete 
+ 430113713fa9 Extracting [=>                                                 ]  32.77kB/898.9kB
+ dcaa5a89b0cc Pull complete 
+ dcaa5a89b0cc Pull complete 
+ dcaa5a89b0cc Pull complete 
+ 430113713fa9 Extracting [=>                                                 ]  32.77kB/898.9kB
+ 2e620a304b10 Extracting [===========>                                       ]  32.77kB/143.3kB
+ 2e620a304b10 Extracting [===========>                                       ]  32.77kB/143.3kB
+ 2e620a304b10 Extracting [===========>                                       ]  32.77kB/143.3kB
+ 2e620a304b10 Extracting [==================================================>]  143.3kB/143.3kB
+ 2e620a304b10 Extracting [==================================================>]  143.3kB/143.3kB
+ 2e620a304b10 Extracting [==================================================>]  143.3kB/143.3kB
+ 2e620a304b10 Extracting [==================================================>]  143.3kB/143.3kB
+ 2e620a304b10 Extracting [==================================================>]  143.3kB/143.3kB
+ 2e620a304b10 Extracting [==================================================>]  143.3kB/143.3kB
+ 2e620a304b10 Pull complete 
+ 2e620a304b10 Pull complete 
+ 2e620a304b10 Pull complete 
+ 2ff934cbec26 Extracting [>                                                  ]  131.1kB/10.2MB
+ 2ff934cbec26 Extracting [>                                                  ]  131.1kB/10.2MB
+ 2ff934cbec26 Extracting [>                                                  ]  131.1kB/10.2MB
+ 0c065f49883c Extracting [======================>                            ]  5.898MB/13.36MB
+ 430113713fa9 Extracting [=======================>                           ]    426kB/898.9kB
+ 430113713fa9 Extracting [=======================>                           ]    426kB/898.9kB
+ 2ff934cbec26 Extracting [=====================>                             ]  4.456MB/10.2MB
+ 2ff934cbec26 Extracting [=====================>                             ]  4.456MB/10.2MB
+ 2ff934cbec26 Extracting [=====================>                             ]  4.456MB/10.2MB
+ 0c065f49883c Extracting [=====================================>             ]  9.994MB/13.36MB
+ 430113713fa9 Extracting [==================================>                ]  622.6kB/898.9kB
+ 430113713fa9 Extracting [==================================>                ]  622.6kB/898.9kB
+ 2ff934cbec26 Extracting [===========================================>       ]  8.913MB/10.2MB
+ 2ff934cbec26 Extracting [===========================================>       ]  8.913MB/10.2MB
+ 2ff934cbec26 Extracting [===========================================>       ]  8.913MB/10.2MB
+ 0c065f49883c Extracting [==================================================>]  13.36MB/13.36MB
+ 2ff934cbec26 Extracting [==================================================>]   10.2MB/10.2MB
+ 2ff934cbec26 Extracting [==================================================>]   10.2MB/10.2MB
+ 2ff934cbec26 Extracting [==================================================>]   10.2MB/10.2MB
+ 430113713fa9 Extracting [==================================================>]  898.9kB/898.9kB
+ 430113713fa9 Extracting [==================================================>]  898.9kB/898.9kB
+ 2ff934cbec26 Pull complete 
+ 2ff934cbec26 Pull complete 
+ 2ff934cbec26 Pull complete 
+ ff7e8b387b66 Extracting [>                                                  ]   98.3kB/6.699MB
+ ff7e8b387b66 Extracting [>                                                  ]   98.3kB/6.699MB
+ ff7e8b387b66 Extracting [>                                                  ]   98.3kB/6.699MB
+ 0c065f49883c Pull complete 
+ 430113713fa9 Pull complete 
+ 430113713fa9 Pull complete 
+ 8f75401514b3 Extracting [==================================================>]     442B/442B
+ 8f75401514b3 Extracting [==================================================>]     442B/442B
+ 6ed849575913 Extracting [====>                                              ]  32.77kB/401.1kB
+ 6ed849575913 Extracting [====>                                              ]  32.77kB/401.1kB
+ 8f75401514b3 Pull complete 
+ 4f4fb700ef54 Extracting [==================================================>]      32B/32B
+ 4f4fb700ef54 Extracting [==================================================>]      32B/32B
+ 4f4fb700ef54 Pull complete 
+ postgres Pulled 
+ ff7e8b387b66 Extracting [===================>                               ]  2.556MB/6.699MB
+ ff7e8b387b66 Extracting [===================>                               ]  2.556MB/6.699MB
+ ff7e8b387b66 Extracting [===================>                               ]  2.556MB/6.699MB
+ 6ed849575913 Extracting [=================================================> ]  393.2kB/401.1kB
+ 6ed849575913 Extracting [=================================================> ]  393.2kB/401.1kB
+ 6ed849575913 Extracting [==================================================>]  401.1kB/401.1kB
+ 6ed849575913 Extracting [==================================================>]  401.1kB/401.1kB
+ 6ed849575913 Extracting [==================================================>]  401.1kB/401.1kB
+ 6ed849575913 Extracting [==================================================>]  401.1kB/401.1kB
+ ff7e8b387b66 Extracting [==================================================>]  6.699MB/6.699MB
+ ff7e8b387b66 Extracting [==================================================>]  6.699MB/6.699MB
+ ff7e8b387b66 Extracting [==================================================>]  6.699MB/6.699MB
+ 6ed849575913 Pull complete 
+ 6ed849575913 Pull complete 
+ ff7e8b387b66 Pull complete 
+ ff7e8b387b66 Pull complete 
+ ff7e8b387b66 Pull complete 
+ 9ba40c786558 Extracting [>                                                  ]   98.3kB/6.711MB
+ 9ba40c786558 Extracting [>                                                  ]   98.3kB/6.711MB
+ 9ba40c786558 Extracting [>                                                  ]   98.3kB/6.711MB
+ 9ba40c786558 Extracting [==============================================>    ]  6.193MB/6.711MB
+ 9ba40c786558 Extracting [==============================================>    ]  6.193MB/6.711MB
+ 9ba40c786558 Extracting [==============================================>    ]  6.193MB/6.711MB
+ 9ba40c786558 Extracting [==================================================>]  6.711MB/6.711MB
+ 9ba40c786558 Extracting [==================================================>]  6.711MB/6.711MB
+ 9ba40c786558 Extracting [==================================================>]  6.711MB/6.711MB
+ d6d6f66299ce Extracting [>                                                  ]  557.1kB/54.39MB
+ d6d6f66299ce Extracting [>                                                  ]  557.1kB/54.39MB
+ d6d6f66299ce Extracting [=>                                                 ]  1.114MB/54.39MB
+ d6d6f66299ce Extracting [=>                                                 ]  1.114MB/54.39MB
+ 9ba40c786558 Pull complete 
+ 9ba40c786558 Pull complete 
+ 9ba40c786558 Pull complete 
+ df858486bb79 Extracting [==================================================>]     112B/112B
+ df858486bb79 Extracting [==================================================>]     112B/112B
+ df858486bb79 Extracting [==================================================>]     112B/112B
+ df858486bb79 Extracting [==================================================>]     112B/112B
+ df858486bb79 Pull complete 
+ df858486bb79 Pull complete 
+ df858486bb79 Pull complete 
+ d086f8ff3238 Extracting [==================================================>]     126B/126B
+ d086f8ff3238 Extracting [==================================================>]     126B/126B
+ d086f8ff3238 Extracting [==================================================>]     126B/126B
+ d086f8ff3238 Extracting [==================================================>]     126B/126B
+ d086f8ff3238 Pull complete 
+ d086f8ff3238 Pull complete 
+ d086f8ff3238 Pull complete 
+ etcd-a Pulled 
+ etcd-c Pulled 
+ etcd-b Pulled 
+ d6d6f66299ce Extracting [=>                                                 ]  1.671MB/54.39MB
+ d6d6f66299ce Extracting [=>                                                 ]  1.671MB/54.39MB
+ d6d6f66299ce Extracting [==>                                                ]  2.228MB/54.39MB
+ d6d6f66299ce Extracting [==>                                                ]  2.228MB/54.39MB
+ d6d6f66299ce Extracting [==>                                                ]  2.785MB/54.39MB
+ d6d6f66299ce Extracting [==>                                                ]  2.785MB/54.39MB
+ d6d6f66299ce Extracting [===>                                               ]  3.342MB/54.39MB
+ d6d6f66299ce Extracting [===>                                               ]  3.342MB/54.39MB
+ d6d6f66299ce Extracting [===>                                               ]  3.899MB/54.39MB
+ d6d6f66299ce Extracting [===>                                               ]  3.899MB/54.39MB
+ d6d6f66299ce Extracting [=====>                                             ]  5.571MB/54.39MB
+ d6d6f66299ce Extracting [=====>                                             ]  5.571MB/54.39MB
+ d6d6f66299ce Extracting [=====>                                             ]  6.128MB/54.39MB
+ d6d6f66299ce Extracting [=====>                                             ]  6.128MB/54.39MB
+ d6d6f66299ce Extracting [======>                                            ]  7.242MB/54.39MB
+ d6d6f66299ce Extracting [======>                                            ]  7.242MB/54.39MB
+ d6d6f66299ce Extracting [=======>                                           ]  7.799MB/54.39MB
+ d6d6f66299ce Extracting [=======>                                           ]  7.799MB/54.39MB
+ d6d6f66299ce Extracting [=========>                                         ]  10.03MB/54.39MB
+ d6d6f66299ce Extracting [=========>                                         ]  10.03MB/54.39MB
+ d6d6f66299ce Extracting [=========>                                         ]  10.58MB/54.39MB
+ d6d6f66299ce Extracting [=========>                                         ]  10.58MB/54.39MB
+ d6d6f66299ce Extracting [==========>                                        ]  11.14MB/54.39MB
+ d6d6f66299ce Extracting [==========>                                        ]  11.14MB/54.39MB
+ d6d6f66299ce Extracting [==========>                                        ]   11.7MB/54.39MB
+ d6d6f66299ce Extracting [==========>                                        ]   11.7MB/54.39MB
+ d6d6f66299ce Extracting [===========>                                       ]  12.26MB/54.39MB
+ d6d6f66299ce Extracting [===========>                                       ]  12.26MB/54.39MB
+ d6d6f66299ce Extracting [===========>                                       ]  12.81MB/54.39MB
+ d6d6f66299ce Extracting [===========>                                       ]  12.81MB/54.39MB
+ d6d6f66299ce Extracting [============>                                      ]  13.37MB/54.39MB
+ d6d6f66299ce Extracting [============>                                      ]  13.37MB/54.39MB
+ d6d6f66299ce Extracting [============>                                      ]  13.93MB/54.39MB
+ d6d6f66299ce Extracting [============>                                      ]  13.93MB/54.39MB
+ d6d6f66299ce Extracting [=============>                                     ]  14.48MB/54.39MB
+ d6d6f66299ce Extracting [=============>                                     ]  14.48MB/54.39MB
+ d6d6f66299ce Extracting [=============>                                     ]  15.04MB/54.39MB
+ d6d6f66299ce Extracting [=============>                                     ]  15.04MB/54.39MB
+ d6d6f66299ce Extracting [==============>                                    ]   15.6MB/54.39MB
+ d6d6f66299ce Extracting [==============>                                    ]   15.6MB/54.39MB
+ d6d6f66299ce Extracting [==============>                                    ]  16.15MB/54.39MB
+ d6d6f66299ce Extracting [==============>                                    ]  16.15MB/54.39MB
+ d6d6f66299ce Extracting [===============>                                   ]  16.71MB/54.39MB
+ d6d6f66299ce Extracting [===============>                                   ]  16.71MB/54.39MB
+ d6d6f66299ce Extracting [===============>                                   ]  17.27MB/54.39MB
+ d6d6f66299ce Extracting [===============>                                   ]  17.27MB/54.39MB
+ d6d6f66299ce Extracting [=================>                                 ]   19.5MB/54.39MB
+ d6d6f66299ce Extracting [=================>                                 ]   19.5MB/54.39MB
+ d6d6f66299ce Extracting [===================>                               ]  21.17MB/54.39MB
+ d6d6f66299ce Extracting [===================>                               ]  21.17MB/54.39MB
+ d6d6f66299ce Extracting [====================>                              ]  22.28MB/54.39MB
+ d6d6f66299ce Extracting [====================>                              ]  22.28MB/54.39MB
+ d6d6f66299ce Extracting [=======================>                           ]  25.62MB/54.39MB
+ d6d6f66299ce Extracting [=======================>                           ]  25.62MB/54.39MB
+ d6d6f66299ce Extracting [========================>                          ]  26.74MB/54.39MB
+ d6d6f66299ce Extracting [========================>                          ]  26.74MB/54.39MB
+ d6d6f66299ce Extracting [==========================>                        ]  28.41MB/54.39MB
+ d6d6f66299ce Extracting [==========================>                        ]  28.41MB/54.39MB
+ d6d6f66299ce Extracting [===========================>                       ]  29.52MB/54.39MB
+ d6d6f66299ce Extracting [===========================>                       ]  29.52MB/54.39MB
+ d6d6f66299ce Extracting [=============================>                     ]  31.75MB/54.39MB
+ d6d6f66299ce Extracting [=============================>                     ]  31.75MB/54.39MB
+ d6d6f66299ce Extracting [===========================================>       ]  46.79MB/54.39MB
+ d6d6f66299ce Extracting [===========================================>       ]  46.79MB/54.39MB
+ d6d6f66299ce Extracting [==================================================>]  54.39MB/54.39MB
+ d6d6f66299ce Extracting [==================================================>]  54.39MB/54.39MB
+ d6d6f66299ce Pull complete 
+ d6d6f66299ce Pull complete 
+ a34d4f0e431b Extracting [==================================================>]   2.86kB/2.86kB
+ a34d4f0e431b Extracting [==================================================>]   2.86kB/2.86kB
+ a34d4f0e431b Extracting [==================================================>]   2.86kB/2.86kB
+ a34d4f0e431b Extracting [==================================================>]   2.86kB/2.86kB
+ a34d4f0e431b Pull complete 
+ a34d4f0e431b Pull complete 
+ azurite-b Pulled 
+ azurite-a Pulled 
+#1 [internal] load local bake definitions
+#1 reading from stdin 2.08kB done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 3.09kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/postgres:18.6-alpine@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
+#3 DONE 0.4s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 82B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 282.14kB 0.0s done
+#5 DONE 0.0s
+
+#6 [server 1/2] FROM docker.io/library/postgres:18.6-alpine@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
+#6 resolve docker.io/library/postgres:18.6-alpine@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b done
+#6 sha256:21a876ea75ef6fffb419194907dd5da653247e227e11adf311fd5ca16a6f809c 185B / 185B 0.1s done
+#6 sha256:8f865016089d0863f5ba57d56464ceb62252c972611983404670f22cd012f98a 6.10kB / 6.10kB 0.1s done
+#6 sha256:08007d924193a5e83793bf258918e8f93dc4b73bf5f1e81bcecbb2b6ec7018dc 127B / 127B 0.1s done
+#6 sha256:84314b29d42166e310db70993819c128034677b2aa21b691669c40b4936db591 19.00kB / 19.00kB 0.1s done
+#6 sha256:ef1860e97cefa5caf816631e64a1803a9f1a5c30aa4c77d05d9d83195fe6ecf8 116B / 116B 0.0s done
+#6 sha256:f9a5f8f89c069fdaa449d6191dce8751a40ff81e750a73a010d2b60fa5d9c320 968B / 968B 0.0s done
+#6 sha256:63677b2e422dcc313c982a9f276c5344201e017d48035fb320d0fda846ece913 900.01kB / 900.01kB 0.1s done
+#6 extracting sha256:f9a5f8f89c069fdaa449d6191dce8751a40ff81e750a73a010d2b60fa5d9c320
+#6 extracting sha256:f9a5f8f89c069fdaa449d6191dce8751a40ff81e750a73a010d2b60fa5d9c320 0.0s done
+#6 sha256:269f116f693d41b319c0fd5c804aa076dc3c3996a17c0f49a4c0aa8bd2920b40 91.23MB / 115.29MB 0.3s
+#6 extracting sha256:63677b2e422dcc313c982a9f276c5344201e017d48035fb320d0fda846ece913 0.0s done
+#6 extracting sha256:ef1860e97cefa5caf816631e64a1803a9f1a5c30aa4c77d05d9d83195fe6ecf8 done
+#6 sha256:269f116f693d41b319c0fd5c804aa076dc3c3996a17c0f49a4c0aa8bd2920b40 115.29MB / 115.29MB 0.5s
+#6 sha256:269f116f693d41b319c0fd5c804aa076dc3c3996a17c0f49a4c0aa8bd2920b40 115.29MB / 115.29MB 1.2s done
+#6 extracting sha256:269f116f693d41b319c0fd5c804aa076dc3c3996a17c0f49a4c0aa8bd2920b40
+#6 extracting sha256:269f116f693d41b319c0fd5c804aa076dc3c3996a17c0f49a4c0aa8bd2920b40 1.4s done
+#6 DONE 2.7s
+
+#6 [server 1/2] FROM docker.io/library/postgres:18.6-alpine@sha256:9ba53c7d41ea093baf5c1ba635ba5434c4f979880527d49bb7d9237d3193085b
+#6 extracting sha256:84314b29d42166e310db70993819c128034677b2aa21b691669c40b4936db591 done
+#6 extracting sha256:08007d924193a5e83793bf258918e8f93dc4b73bf5f1e81bcecbb2b6ec7018dc done
+#6 extracting sha256:8f865016089d0863f5ba57d56464ceb62252c972611983404670f22cd012f98a done
+#6 extracting sha256:21a876ea75ef6fffb419194907dd5da653247e227e11adf311fd5ca16a6f809c done
+#6 DONE 2.7s
+
+#7 [server 2/2] RUN apk add --no-cache --upgrade         'krb5-libs=1.22.3-r0'         'libxslt=1.1.43-r4'         'zlib=1.4-r0'  && rm -f /usr/local/bin/gosu  && rm -rf /var/cache/apk/*
+#7 0.330 (1/3) Upgrading zlib (1.3.2-r1 -> 1.4-r0)
+#7 0.341 (2/3) Upgrading krb5-libs (1.22.2-r1 -> 1.22.3-r0)
+#7 0.362 (3/3) Upgrading libxslt (1.1.43-r3 -> 1.1.43-r4)
+#7 0.374 Executing busybox-1.37.0-r31.trigger
+#7 0.381 OK: 229.4 MiB in 53 packages
+#7 DONE 3.1s
+
+#8 [migrate 1/8] COPY --chown=root:root --chmod=0444 migrations/ /db/migrations/
+#8 DONE 0.0s
+
+#9 [migrate 2/8] COPY --chown=root:root --chmod=0444 bootstrap/ /db/bootstrap/
+#9 DONE 0.0s
+
+#10 [migrate 3/8] COPY --chown=root:root --chmod=0444 gates/ /db/gates/
+#10 DONE 0.0s
+
+#11 [migrate 4/8] COPY --chown=root:root --chmod=0444 umami/ /db/umami/
+#11 DONE 0.0s
+
+#12 [migrate 5/8] COPY --chown=root:root --chmod=0444 definer-allowlist.txt rls-allowlist.txt /db/
+#12 DONE 0.0s
+
+#13 [migrate 6/8] COPY --chown=root:root --chmod=0555 migrate.sh /db/migrate.sh
+#13 DONE 0.0s
+
+#14 [migrate 7/8] RUN chmod 0555 /db /db/migrations /db/bootstrap /db/gates /db/umami
+#14 DONE 0.0s
+
+#15 [migrate 8/8] WORKDIR /tmp
+#15 DONE 0.0s
+
+#16 exporting to docker image format
+#16 exporting layers 0.1s done
+#16 exporting manifest sha256:de7039f75c794d7b9542f445c4e2828eb6812bb1949875991290728ec0797801 done
+#16 exporting config sha256:94cf02382cc920d643e1024e975f358c5fdbcf3280ca00203fcdb025ee1d6118 done
+#16 sending tarball
+#16 sending tarball 2.0s done
+#16 DONE 2.2s
+
+#17 importing to docker
+#17 loading layer 821bd35fe7bc 1.03MB / 1.03MB 1.3s done
+#17 loading layer c7dcb4922458 54.73kB / 54.73kB 0.1s done
+#17 loading layer 9b7270b62775 1.89kB / 1.89kB 0.1s done
+#17 loading layer 1c62e83db2f6 5.39kB / 5.39kB 0.1s done
+#17 loading layer ad41caf3fcc3 2.23kB / 2.23kB 0.0s done
+#17 loading layer 956d86c19734 1.25kB / 1.25kB 0.0s done
+#17 loading layer 761646a92422 4.79kB / 4.79kB 0.0s done
+#17 loading layer 31f89e67af53 171B / 171B 0.0s done
+#17 loading layer 5f70bf18a086 32B / 32B 0.0s done
+#17 DONE 1.3s
+
+#18 resolving provenance for metadata file
+#18 DONE 0.0s
+ db-migrate  Built
+ Network scf-wsj2_engine  Creating
+ Network scf-wsj2_engine  Created
+ Network scf-wsj2_data  Creating
+ Network scf-wsj2_data  Created
+ Network scf-wsj2_backup  Creating
+ Network scf-wsj2_backup  Created
+ Network scf-wsj2_dcs  Creating
+ Network scf-wsj2_dcs  Created
+ Network scf-wsj2_db  Creating
+ Network scf-wsj2_db  Created
+ Volume "scf-wsj2_pgbr-a"  Creating
+ Volume "scf-wsj2_pgbr-a"  Created
+ Volume "scf-wsj2_azurite-b"  Creating
+ Volume "scf-wsj2_azurite-b"  Created
+ Volume "scf-wsj2_etcd-c"  Creating
+ Volume "scf-wsj2_etcd-c"  Created
+ Volume "scf-wsj2_azurite-a"  Creating
+ Volume "scf-wsj2_azurite-a"  Created
+ Volume "scf-wsj2_metrics-b"  Creating
+ Volume "scf-wsj2_metrics-b"  Created
+ Volume "scf-wsj2_etcd-a"  Creating
+ Volume "scf-wsj2_etcd-a"  Created
+ Volume "scf-wsj2_metrics-a"  Creating
+ Volume "scf-wsj2_metrics-a"  Created
+ Volume "scf-wsj2_etcd-b"  Creating
+ Volume "scf-wsj2_etcd-b"  Created
+ Volume "scf-wsj2_pgdata-a"  Creating
+ Volume "scf-wsj2_pgdata-a"  Created
+ Volume "scf-wsj2_pgdata-b"  Creating
+ Volume "scf-wsj2_pgdata-b"  Created
+ Volume "scf-wsj2_pgbr-b"  Creating
+ Volume "scf-wsj2_pgbr-b"  Created
+ Container scf-wsj2-etcd-c-1  Creating
+ Container scf-wsj2-etcd-b-1  Creating
+ Container scf-wsj2-etcd-a-1  Creating
+ Container scf-wsj2-azurite-b-1  Creating
+ Container scf-wsj2-azurite-a-1  Creating
+ Container scf-wsj2-etcd-c-1  Created
+ Container scf-wsj2-azurite-b-1  Created
+ Container scf-wsj2-azurite-a-1  Created
+ Container scf-wsj2-azurite-init-1  Creating
+ Container scf-wsj2-etcd-a-1  Created
+ Container scf-wsj2-etcd-b-1  Created
+ Container scf-wsj2-azurite-init-1  Created
+ Container scf-wsj2-pg-b-1  Creating
+ Container scf-wsj2-pg-a-1  Creating
+ Container scf-wsj2-pg-a-1  Created
+ Container scf-wsj2-pg-b-1  Created
+ Container scf-wsj2-postgres-1  Creating
+ Container scf-wsj2-postgres-1  Created
+ Container scf-wsj2-db-migrate-1  Creating
+ Container scf-wsj2-db-migrate-1  Created
+ Container scf-wsj2-pgbouncer-1  Creating
+ Container scf-wsj2-pgbouncer-1  Created
+ Container scf-wsj2-etcd-a-1  Starting
+ Container scf-wsj2-azurite-a-1  Starting
+ Container scf-wsj2-etcd-c-1  Starting
+ Container scf-wsj2-azurite-b-1  Starting
+ Container scf-wsj2-etcd-b-1  Starting
+ Container scf-wsj2-azurite-a-1  Started
+ Container scf-wsj2-etcd-a-1  Started
+ Container scf-wsj2-etcd-c-1  Started
+ Container scf-wsj2-etcd-b-1  Started
+ Container scf-wsj2-azurite-b-1  Started
+ Container scf-wsj2-azurite-a-1  Waiting
+ Container scf-wsj2-azurite-b-1  Waiting
+ Container scf-wsj2-azurite-a-1  Healthy
+ Container scf-wsj2-azurite-b-1  Healthy
+ Container scf-wsj2-azurite-init-1  Starting
+ Container scf-wsj2-azurite-init-1  Started
+ Container scf-wsj2-etcd-a-1  Waiting
+ Container scf-wsj2-etcd-b-1  Waiting
+ Container scf-wsj2-etcd-c-1  Waiting
+ Container scf-wsj2-azurite-init-1  Waiting
+ Container scf-wsj2-etcd-c-1  Waiting
+ Container scf-wsj2-azurite-init-1  Waiting
+ Container scf-wsj2-etcd-a-1  Waiting
+ Container scf-wsj2-etcd-b-1  Waiting
+ Container scf-wsj2-etcd-a-1  Healthy
+ Container scf-wsj2-azurite-init-1  Exited
+ Container scf-wsj2-etcd-c-1  Healthy
+ Container scf-wsj2-etcd-b-1  Healthy
+ Container scf-wsj2-pg-b-1  Starting
+ Container scf-wsj2-etcd-b-1  Healthy
+ Container scf-wsj2-azurite-init-1  Exited
+ Container scf-wsj2-etcd-a-1  Healthy
+ Container scf-wsj2-etcd-c-1  Healthy
+ Container scf-wsj2-pg-a-1  Starting
+ Container scf-wsj2-pg-a-1  Started
+ Container scf-wsj2-pg-b-1  Started
+ Container scf-wsj2-postgres-1  Starting
+ Container scf-wsj2-postgres-1  Started
+ Container scf-wsj2-postgres-1  Waiting
+ Container scf-wsj2-postgres-1  Healthy
+ Container scf-wsj2-db-migrate-1  Starting
+ Container scf-wsj2-db-migrate-1  Started
+ Container scf-wsj2-db-migrate-1  Waiting
+ Container scf-wsj2-db-migrate-1  Exited
+ Container scf-wsj2-pgbouncer-1  Starting
+ Container scf-wsj2-pgbouncer-1  Started
+ Container scf-wsj2-azurite-init-1  Waiting
+ Container scf-wsj2-db-migrate-1  Waiting
+ Container scf-wsj2-azurite-a-1  Waiting
+ Container scf-wsj2-etcd-b-1  Waiting
+ Container scf-wsj2-postgres-1  Waiting
+ Container scf-wsj2-pgbouncer-1  Waiting
+ Container scf-wsj2-etcd-c-1  Waiting
+ Container scf-wsj2-pg-a-1  Waiting
+ Container scf-wsj2-azurite-b-1  Waiting
+ Container scf-wsj2-pg-b-1  Waiting
+ Container scf-wsj2-etcd-a-1  Waiting
+ Container scf-wsj2-etcd-b-1  Healthy
+ Container scf-wsj2-pg-b-1  Healthy
+ Container scf-wsj2-azurite-a-1  Healthy
+ Container scf-wsj2-db-migrate-1  Exited
+ Container scf-wsj2-azurite-init-1  Exited
+ Container scf-wsj2-postgres-1  Healthy
+ Container scf-wsj2-etcd-a-1  Healthy
+ Container scf-wsj2-azurite-b-1  Healthy
+ Container scf-wsj2-etcd-c-1  Healthy
+ Container scf-wsj2-pg-a-1  Healthy
+ Container scf-wsj2-pgbouncer-1  Healthy
+21:48:44 PASS T01 cluster up in 43.64 s: pg-a Leader running 1;pg-b Sync_Standby streaming 1;
+21:48:44 PASS T02 umami_app owns umami, SCRAM verifier, no superuser/createdb
+21:48:44 PASS T03 CHECKPOINT after start on pg-a
+2026-11-13 21:48:45.165 P00   INFO: check command begin 2.60.0: --exec-id=649-b28f76f2 --log-level-console=info --log-level-file=off --pg1-path=/var/lib/postgresql/18/main --pg1-socket-path=/var/run/postgresql --repo1-azure-account=<redacted> --repo2-azure-account=<redacted> --repo1-azure-container=pgbackrest --repo2-azure-container=pgbackrest --repo1-azure-key=<redacted> --repo2-azure-key=<redacted> --repo1-azure-key-type=sas --repo2-azure-key-type=sas --repo1-azure-uri-style=path --repo2-azure-uri-style=path --repo1-cipher-pass=<redacted> --repo2-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo2-cipher-type=aes-256-cbc --repo1-path=/scf --repo2-path=/scf --repo1-storage-ca-file=/run/secrets/azurite_ca --repo2-storage-ca-file=/run/secrets/azurite_ca --repo1-storage-host=azurite-a --repo2-storage-host=azurite-b --repo1-storage-port=10000 --repo2-storage-port=10000 --repo1-type=azure --repo2-type=azure --stanza=scf
+2026-11-13 21:48:45.178 P00   INFO: check repo1 configuration (primary)
+2026-11-13 21:48:45.203 P00   INFO: check repo2 configuration (primary)
+2026-11-13 21:48:45.401 P00   INFO: check repo1 archive for WAL (primary)
+2026-11-13 21:48:45.507 P00   INFO: WAL segment 000000010000000000000009 successfully archived to '/scf/archive/scf/18-1/0000000100000000/000000010000000000000009-3c2b912038929334b7c923829f070eab45cbb3fa.zst' on repo1
+2026-11-13 21:48:45.507 P00   INFO: check repo2 archive for WAL (primary)
+2026-11-13 21:48:45.610 P00   INFO: WAL segment 000000010000000000000009 successfully archived to '/scf/archive/scf/18-1/0000000100000000/000000010000000000000009-3c2b912038929334b7c923829f070eab45cbb3fa.zst' on repo2
+2026-11-13 21:48:45.610 P00   INFO: check command end: completed successfully (446ms)
+21:48:45 PASS T04 full backups + WAL archive in both repositories:  status: ok  full backup: 20261113-214832F | status: ok  full backup: 20261113-214833F |
+2026-11-13T21:48:51Z scf-backup: backup diff to repo1: start
+2026-11-13 21:48:51.377 P00   INFO: backup command begin 2.60.0: --compress-type=zst --exec-id=859-92b14185 --log-level-console=info --log-level-file=off --pg1-path=/var/lib/postgresql/18/main --pg1-socket-path=/var/run/postgresql --process-max=2 --repo=1 --repo1-azure-account=<redacted> --repo2-azure-account=<redacted> --repo1-azure-container=pgbackrest --repo2-azure-container=pgbackrest --repo1-azure-key=<redacted> --repo2-azure-key=<redacted> --repo1-azure-key-type=sas --repo2-azure-key-type=sas --repo1-azure-uri-style=path --repo2-azure-uri-style=path --repo1-block --repo2-block --repo1-bundle --repo2-bundle --repo1-cipher-pass=<redacted> --repo2-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo2-cipher-type=aes-256-cbc --repo1-path=/scf --repo2-path=/scf --repo1-retention-full=35 --repo2-retention-full=35 --repo1-retention-full-type=time --repo2-retention-full-type=time --repo1-storage-ca-file=/run/secrets/azurite_ca --repo2-storage-ca-file=/run/secrets/azurite_ca --repo1-storage-host=azurite-a --repo2-storage-host=azurite-b --repo1-storage-port=10000 --repo2-storage-port=10000 --repo1-type=azure --repo2-type=azure --stanza=scf --start-fast --type=diff
+2026-11-13 21:48:51.422 P00   INFO: last backup label = 20261113-214832F, version = 2.60.0
+2026-11-13 21:48:51.422 P00   INFO: execute backup start: backup begins after the requested immediate checkpoint completes
+2026-11-13 21:48:52.039 P00   INFO: backup start archive = 00000001000000000000000B, lsn = 0/B000028
+2026-11-13 21:48:52.039 P00   INFO: check archive for prior segment 00000001000000000000000A
+2026-11-13 21:48:53.297 P00   INFO: execute backup stop and wait for all WAL segments to archive
+2026-11-13 21:48:53.421 P00   INFO: backup stop archive = 00000001000000000000000B, lsn = 0/B000120
+2026-11-13 21:48:53.464 P00   INFO: check archive for segment(s) 00000001000000000000000B:00000001000000000000000B
+2026-11-13 21:48:53.558 P00   INFO: new backup label = 20261113-214832F_20261113-214851D
+2026-11-13 21:48:53.620 P00   INFO: diff backup size = 20.8MB, file total = 2205
+2026-11-13 21:48:53.621 P00   INFO: backup command end: completed successfully (2246ms)
+2026-11-13 21:48:53.621 P00   INFO: expire command begin 2.60.0: --exec-id=859-92b14185 --log-level-console=info --log-level-file=off --repo=1 --repo1-azure-account=<redacted> --repo2-azure-account=<redacted> --repo1-azure-container=pgbackrest --repo2-azure-container=pgbackrest --repo1-azure-key=<redacted> --repo2-azure-key=<redacted> --repo1-azure-key-type=sas --repo2-azure-key-type=sas --repo1-azure-uri-style=path --repo2-azure-uri-style=path --repo1-cipher-pass=<redacted> --repo2-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo2-cipher-type=aes-256-cbc --repo1-path=/scf --repo2-path=/scf --repo1-retention-full=35 --repo2-retention-full=35 --repo1-retention-full-type=time --repo2-retention-full-type=time --repo1-storage-ca-file=/run/secrets/azurite_ca --repo2-storage-ca-file=/run/secrets/azurite_ca --repo1-storage-host=azurite-a --repo2-storage-host=azurite-b --repo1-storage-port=10000 --repo2-storage-port=10000 --repo1-type=azure --repo2-type=azure --stanza=scf
+2026-11-13 21:48:53.629 P00   INFO: repo1: time-based archive retention not met - archive logs will not be expired
+2026-11-13 21:48:53.630 P00   INFO: expire command end: completed successfully (9ms)
+2026-11-13T21:48:53Z scf-backup: backup diff to repo1: done in 2 s
+2026-11-13T21:48:53Z scf-backup: backup diff to repo2: start
+2026-11-13 21:48:53.891 P00   INFO: backup command begin 2.60.0: --compress-type=zst --exec-id=923-a1726126 --log-level-console=info --log-level-file=off --pg1-path=/var/lib/postgresql/18/main --pg1-socket-path=/var/run/postgresql --process-max=2 --repo=2 --repo1-azure-account=<redacted> --repo2-azure-account=<redacted> --repo1-azure-container=pgbackrest --repo2-azure-container=pgbackrest --repo1-azure-key=<redacted> --repo2-azure-key=<redacted> --repo1-azure-key-type=sas --repo2-azure-key-type=sas --repo1-azure-uri-style=path --repo2-azure-uri-style=path --repo1-block --repo2-block --repo1-bundle --repo2-bundle --repo1-cipher-pass=<redacted> --repo2-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo2-cipher-type=aes-256-cbc --repo1-path=/scf --repo2-path=/scf --repo1-retention-full=35 --repo2-retention-full=35 --repo1-retention-full-type=time --repo2-retention-full-type=time --repo1-storage-ca-file=/run/secrets/azurite_ca --repo2-storage-ca-file=/run/secrets/azurite_ca --repo1-storage-host=azurite-a --repo2-storage-host=azurite-b --repo1-storage-port=10000 --repo2-storage-port=10000 --repo1-type=azure --repo2-type=azure --stanza=scf --start-fast --type=diff
+2026-11-13 21:48:53.929 P00   INFO: last backup label = 20261113-214833F, version = 2.60.0
+2026-11-13 21:48:53.929 P00   INFO: execute backup start: backup begins after the requested immediate checkpoint completes
+2026-11-13 21:48:54.212 P00   INFO: backup start archive = 00000001000000000000000C, lsn = 0/C000028
+2026-11-13 21:48:54.212 P00   INFO: check archive for segment 00000001000000000000000C
+2026-11-13 21:48:55.311 P00   INFO: execute backup stop and wait for all WAL segments to archive
+2026-11-13 21:48:55.415 P00   INFO: backup stop archive = 00000001000000000000000D, lsn = 0/D20F5F8
+2026-11-13 21:48:55.439 P00   INFO: check archive for segment(s) 00000001000000000000000C:00000001000000000000000D
+2026-11-13 21:48:55.648 P00   INFO: new backup label = 20261113-214833F_20261113-214853D
+2026-11-13 21:48:55.737 P00   INFO: diff backup size = 20.8MB, file total = 2206
+2026-11-13 21:48:55.737 P00   INFO: backup command end: completed successfully (1848ms)
+2026-11-13 21:48:55.738 P00   INFO: expire command begin 2.60.0: --exec-id=923-a1726126 --log-level-console=info --log-level-file=off --repo=2 --repo1-azure-account=<redacted> --repo2-azure-account=<redacted> --repo1-azure-container=pgbackrest --repo2-azure-container=pgbackrest --repo1-azure-key=<redacted> --repo2-azure-key=<redacted> --repo1-azure-key-type=sas --repo2-azure-key-type=sas --repo1-azure-uri-style=path --repo2-azure-uri-style=path --repo1-cipher-pass=<redacted> --repo2-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo2-cipher-type=aes-256-cbc --repo1-path=/scf --repo2-path=/scf --repo1-retention-full=35 --repo2-retention-full=35 --repo1-retention-full-type=time --repo2-retention-full-type=time --repo1-storage-ca-file=/run/secrets/azurite_ca --repo2-storage-ca-file=/run/secrets/azurite_ca --repo1-storage-host=azurite-a --repo2-storage-host=azurite-b --repo1-storage-port=10000 --repo2-storage-port=10000 --repo1-type=azure --repo2-type=azure --stanza=scf
+2026-11-13 21:48:55.751 P00   INFO: repo2: time-based archive retention not met - archive logs will not be expired
+2026-11-13 21:48:55.755 P00   INFO: expire command end: completed successfully (18ms)
+2026-11-13T21:48:55Z scf-backup: backup diff to repo2: done in 2 s
+21:48:55 PASS T05 differential backups to both repositories
+21:50:04 PASS T06 RESTORE-DRILL PASS repo=2 target=latest restore=2.9s ready=4.8s amcheck=0.4s gates=11ok(0.5s) counts=3ok(0.1s) restored_point="2026-11-13 21:49:54.457825+00" end_lsn=0/F17FE38 total=5.9s
+21:50:11 PASS T07 PITR to 2026-11-13 21:48:49.145076+00: RESTORE-DRILL PASS repo=2 target=2026-11-13 21:48:49.145076+00 restore=1.4s ready=4.3s amcheck=0.4s gates=11ok(0.4s) counts=1ok(0.0s) restored_point="2026-11-13 21:48:47.025142+00" end_lsn=0/A83C000 total=5.2s
+ Volume "scf-wsj2_hatest-out"  Creating
+ Volume "scf-wsj2_hatest-out"  Created
+21:50:15 T08: killing primary pg-a under write load (standby pg-b)
+2026-11-13 21:51:03.342 P00   INFO: check command begin 2.60.0: --exec-id=1151-75d0d1f6 --log-level-console=info --log-level-file=off --pg1-path=/var/lib/postgresql/18/main --pg1-socket-path=/var/run/postgresql --repo1-azure-account=<redacted> --repo2-azure-account=<redacted> --repo1-azure-container=pgbackrest --repo2-azure-container=pgbackrest --repo1-azure-key=<redacted> --repo2-azure-key=<redacted> --repo1-azure-key-type=sas --repo2-azure-key-type=sas --repo1-azure-uri-style=path --repo2-azure-uri-style=path --repo1-cipher-pass=<redacted> --repo2-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo2-cipher-type=aes-256-cbc --repo1-path=/scf --repo2-path=/scf --repo1-storage-ca-file=/run/secrets/azurite_ca --repo2-storage-ca-file=/run/secrets/azurite_ca --repo1-storage-host=azurite-a --repo2-storage-host=azurite-b --repo1-storage-port=10000 --repo2-storage-port=10000 --repo1-type=azure --repo2-type=azure --stanza=scf
+2026-11-13 21:51:03.350 P00   INFO: check repo1 configuration (primary)
+2026-11-13 21:51:03.357 P00   INFO: check repo2 configuration (primary)
+2026-11-13 21:51:03.481 P00   INFO: check repo1 archive for WAL (primary)
+2026-11-13 21:51:03.585 P00   INFO: WAL segment 000000020000000000000011 successfully archived to '/scf/archive/scf/18-1/0000000200000000/000000020000000000000011-347067855ce36d93ccc12f74022abae8e848d587.zst' on repo1
+2026-11-13 21:51:03.585 P00   INFO: check repo2 archive for WAL (primary)
+2026-11-13 21:51:03.586 P00   INFO: WAL segment 000000020000000000000011 successfully archived to '/scf/archive/scf/18-1/0000000200000000/000000020000000000000011-347067855ce36d93ccc12f74022abae8e848d587.zst' on repo2
+2026-11-13 21:51:03.586 P00   INFO: check command end: completed successfully (246ms)
+21:51:03 T08 measures: promote=25.35s write-gap=30.34s kill→first write=30.36s acked=889 failed=0 lost=0 TL=2 checkpoint=yes archive=ok in 0.39 s wal=000000020000000000000010
+21:51:03 PASS T08 failover: pg-b promoted 25.35 s after the kill, longest write gap 30.34 s, 0 of 889 acknowledged writes lost
+ Container scf-wsj2-azurite-a-1  Waiting
+ Container scf-wsj2-azurite-b-1  Waiting
+ Container scf-wsj2-azurite-a-1  Healthy
+ Container scf-wsj2-azurite-b-1  Healthy
+ Container scf-wsj2-azurite-init-1  Starting
+ Container scf-wsj2-azurite-init-1  Started
+ Container scf-wsj2-etcd-a-1  Waiting
+ Container scf-wsj2-etcd-b-1  Waiting
+ Container scf-wsj2-etcd-c-1  Waiting
+ Container scf-wsj2-azurite-init-1  Waiting
+ Container scf-wsj2-etcd-a-1  Healthy
+ Container scf-wsj2-etcd-c-1  Healthy
+ Container scf-wsj2-azurite-init-1  Exited
+ Container scf-wsj2-etcd-b-1  Healthy
+ Container scf-wsj2-pg-a-1  Starting
+ Container scf-wsj2-pg-a-1  Started
+21:51:34 PASS T09 old primary pg-a rejoined as synchronous standby in 30.54 s (rewind log lines: 6), read-only, data identical
+21:51:38 T10: isolating primary pg-b from etcd, its standby and the proxy
+psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+21:52:26 T10 measures: demote=10.45s promote=23.52s write-on-isolated='psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down' acked=114 lost=0 rejoin=10.65
+21:52:26 PASS T10 isolated primary pg-b demoted at 10.45 s, before pg-a was promoted at 23.52 s; 0 of 114 acknowledged writes lost; rejoined in 10.65 s
+21:52:27 PASS T11 scf_app through PgBouncer reaches a writable primary (pg-a) after two failovers
+21:52:44 PASS T12a corrupted backup (4 bundle blobs overwritten in repo2) → RESTORE-DRILL FAIL repo=2 target=latest stage=restore reason="2026-11-13 21:52:44.098 P00  ERROR: [095]: raised from local-1 protocol: unable to flush" total=15.7s
+21:52:45 PASS T12b drill metric reports the failure (scf_restore_drill_success{repo="2"} 0)
+2026-11-13T21:52:45Z scf-backup: backup full to repo2: start
+2026-11-13 21:52:45.143 P00   INFO: backup command begin 2.60.0: --compress-type=zst --exec-id=1344-54d5dfb3 --log-level-console=info --log-level-file=off --pg1-path=/var/lib/postgresql/18/main --pg1-socket-path=/var/run/postgresql --process-max=2 --repo=2 --repo1-azure-account=<redacted> --repo2-azure-account=<redacted> --repo1-azure-container=pgbackrest --repo2-azure-container=pgbackrest --repo1-azure-key=<redacted> --repo2-azure-key=<redacted> --repo1-azure-key-type=sas --repo2-azure-key-type=sas --repo1-azure-uri-style=path --repo2-azure-uri-style=path --repo1-block --repo2-block --repo1-bundle --repo2-bundle --repo1-cipher-pass=<redacted> --repo2-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo2-cipher-type=aes-256-cbc --repo1-path=/scf --repo2-path=/scf --repo1-retention-full=35 --repo2-retention-full=35 --repo1-retention-full-type=time --repo2-retention-full-type=time --repo1-storage-ca-file=/run/secrets/azurite_ca --repo2-storage-ca-file=/run/secrets/azurite_ca --repo1-storage-host=azurite-a --repo2-storage-host=azurite-b --repo1-storage-port=10000 --repo2-storage-port=10000 --repo1-type=azure --repo2-type=azure --stanza=scf --start-fast --type=full
+2026-11-13 21:52:45.161 P00   INFO: execute backup start: backup begins after the requested immediate checkpoint completes
+2026-11-13 21:52:45.321 P00   INFO: backup start archive = 000000030000000000000014, lsn = 0/14000028
+2026-11-13 21:52:45.322 P00   INFO: check archive for prior segment 000000030000000000000013
+2026-11-13 21:52:46.527 P00   INFO: execute backup stop and wait for all WAL segments to archive
+2026-11-13 21:52:46.656 P00   INFO: backup stop archive = 000000030000000000000014, lsn = 0/14000120
+2026-11-13 21:52:46.697 P00   INFO: check archive for segment(s) 000000030000000000000014:000000030000000000000014
+2026-11-13 21:52:46.798 P00   INFO: new backup label = 20261113-215245F
+2026-11-13 21:52:46.846 P00   INFO: full backup size = 51.1MB, file total = 2209
+2026-11-13 21:52:46.846 P00   INFO: backup command end: completed successfully (1704ms)
+2026-11-13 21:52:46.846 P00   INFO: expire command begin 2.60.0: --exec-id=1344-54d5dfb3 --log-level-console=info --log-level-file=off --repo=2 --repo1-azure-account=<redacted> --repo2-azure-account=<redacted> --repo1-azure-container=pgbackrest --repo2-azure-container=pgbackrest --repo1-azure-key=<redacted> --repo2-azure-key=<redacted> --repo1-azure-key-type=sas --repo2-azure-key-type=sas --repo1-azure-uri-style=path --repo2-azure-uri-style=path --repo1-cipher-pass=<redacted> --repo2-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo2-cipher-type=aes-256-cbc --repo1-path=/scf --repo2-path=/scf --repo1-retention-full=35 --repo2-retention-full=35 --repo1-retention-full-type=time --repo2-retention-full-type=time --repo1-storage-ca-file=/run/secrets/azurite_ca --repo2-storage-ca-file=/run/secrets/azurite_ca --repo1-storage-host=azurite-a --repo2-storage-host=azurite-b --repo1-storage-port=10000 --repo2-storage-port=10000 --repo1-type=azure --repo2-type=azure --stanza=scf
+2026-11-13 21:52:46.852 P00   INFO: repo2: time-based archive retention not met - archive logs will not be expired
+2026-11-13 21:52:46.853 P00   INFO: expire command end: completed successfully (7ms)
+2026-11-13T21:52:46Z scf-backup: backup full to repo2: done in 1 s
+21:52:52 PASS T12c after a new full backup: RESTORE-DRILL PASS repo=2 target=latest restore=1.9s ready=3.3s amcheck=0.4s gates=11ok(0.3s) counts=0ok(0.0s) restored_point="-" end_lsn=0/15144000 total=4.1s
+2026-11-13T21:52:52Z scf-backup: dump 2026-11-13T215252Z: start
+2026-11-13T21:52:54Z scf-backup: dump 2026-11-13T215252Z: uploaded (706920 bytes, 2 s)
+ Volume "scf-wsj2_dump-verify"  Creating
+ Volume "scf-wsj2_dump-verify"  Created
+21:52:58 PASS T13 DUMP-RESTORE PASS dump=2026-11-13T215252Z databases=3 tables=57 total=3s
+21:52:59 PASS T14 no secret value in 2012 log lines
+21:53:00 PASS T15 etcd: TLS + client certificates on client and peer ports; Patroni REST API HTTPS only
+21:53:00 RESULT: 17 passed, 0 failed (log: /tmp/scf-ha-test.LhYhTL/run.log)
+corrupt_blobs=4
+drill_corrupt=RESTORE-DRILL FAIL repo=2 target=latest stage=restore reason="2026-11-13 21:52:44.098 P00  ERROR: [095]: raised from local-1 protocol: unable to flush" total=15.7s
+drill_latest=RESTORE-DRILL PASS repo=2 target=latest restore=2.9s ready=4.8s amcheck=0.4s gates=11ok(0.5s) counts=3ok(0.1s) restored_point="2026-11-13 21:49:54.457825+00" end_lsn=0/F17FE38 total=5.9s
+drill_pitr=RESTORE-DRILL PASS repo=2 target=2026-11-13 21:48:49.145076+00 restore=1.4s ready=4.3s amcheck=0.4s gates=11ok(0.4s) counts=1ok(0.0s) restored_point="2026-11-13 21:48:47.025142+00" end_lsn=0/A83C000 total=5.2s
+dump=DUMP-RESTORE PASS dump=2026-11-13T215252Z databases=3 tables=57 total=3s
+fo_acked=889
+fo_archive_tl=ok in 0.39 s
+fo_archived_wal=000000020000000000000010
+fo_checkpoint=yes
+fo_detect_promote=25.35
+fo_failed=0
+fo_kill_to_first_write=30.36
+fo_lost=0
+fo_rejoin=30.54
+fo_rewind_lines=6
+fo_timeline=2
+fo_unknown_committed=0
+fo_write_gap=30.34
+iso_acked=114
+iso_demote=10.45
+iso_lost=0
+iso_promote=23.52
+iso_rejoin=10.65
+iso_write=psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+startup=43.64
