@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+# Override for the portal's end-to-end run against the real control plane (project `scf-wsh`, host ports 56220–56239):
+#   - the portal fronts the API on http://localhost:56220 (SCF_PORTAL_SCHEME=http: no HSTS/upgrade on localhost);
+#   - a stand-in Horizon answers 404 for every account (an unfunded account: master key weight 1, thresholds 0), so
+#     Stellar sign-in needs no internet access and no real account.
+# Used by e2e/real/run.sh; never part of the shared stack.
+services:
+  control-plane:
+    environment:
+      SCF_PORTAL_ORIGIN: http://localhost:56220
+      SCF_HORIZON_URL: http://fake-horizon:8000
+      # The built tracker release (tracker/dist, built by run.sh) so the snippet has a real SRI value.
+      SCF_TRACKER_MANIFEST_DIR: /tracker
+      SCF_TRACKER_RELEASES_FILE: /tracker-releases.json
+    volumes:
+      - ../../tracker/dist:/tracker:ro # relative to infra/compose, the project directory
+      - ../../apps/portal/e2e/real/tracker-releases.json:/tracker-releases.json:ro
+    ports: !override ["127.0.0.1:56221:8080"]
+    depends_on:
+      fake-horizon: { condition: service_started }
+
+  portal:
+    environment:
+      SCF_PORTAL_SCHEME: http
+    ports: !override ["127.0.0.1:56220:8080"]
+
+  fake-horizon:
+    image: node:24.19.0-alpine3.23@sha256:244cc2b53f46f9e876304391d17682b0ddae9ac33491f4857e25e35a36ba7995
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    user: "1000:1000"
+    networks: [public]
+    command:
+      - node
+      - -e
+      - 'require(''node:http'').createServer((q,s)=>{s.writeHead(404,{''content-type'':''application/json''});s.end(''{"status":404}'')}).listen(8000)'
