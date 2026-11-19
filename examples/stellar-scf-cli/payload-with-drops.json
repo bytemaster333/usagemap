@@ -1,0 +1,182 @@
+{
+  "resourceMetrics": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "my-api"
+            }
+          },
+          {
+            "key": "service.instance.id",
+            "value": {
+              "stringValue": "api-1"
+            }
+          },
+          {
+            "key": "host.name",
+            "value": {
+              "stringValue": "build-host-7"
+            }
+          }
+        ]
+      },
+      "scopeMetrics": [
+        {
+          "scope": {
+            "name": "@opentelemetry/instrumentation-http"
+          },
+          "metrics": [
+            {
+              "name": "http.server.request.duration",
+              "unit": "s",
+              "histogram": {
+                "aggregationTemporality": 2,
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "http.request.method",
+                        "value": {
+                          "stringValue": "GET"
+                        }
+                      },
+                      {
+                        "key": "http.route",
+                        "value": {
+                          "stringValue": "/accounts/:id"
+                        }
+                      },
+                      {
+                        "key": "http.response.status_code",
+                        "value": {
+                          "intValue": "200"
+                        }
+                      },
+                      {
+                        "key": "url.path",
+                        "value": {
+                          "stringValue": "/accounts/GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H"
+                        }
+                      },
+                      {
+                        "key": "url.query",
+                        "value": {
+                          "stringValue": "cursor=1&email=me@example.com"
+                        }
+                      },
+                      {
+                        "key": "client.address",
+                        "value": {
+                          "stringValue": "198.51.100.7"
+                        }
+                      },
+                      {
+                        "key": "user_agent.original",
+                        "value": {
+                          "stringValue": "Mozilla/5.0"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1795082400000000000",
+                    "timeUnixNano": "1795082460000000000",
+                    "count": "12",
+                    "sum": 0.21,
+                    "bucketCounts": ["0", "12", "0"],
+                    "explicitBounds": [0.005, 0.025]
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "http.request.method",
+                        "value": {
+                          "stringValue": "GET"
+                        }
+                      },
+                      {
+                        "key": "http.route",
+                        "value": {
+                          "stringValue": "/accounts/:id"
+                        }
+                      },
+                      {
+                        "key": "http.response.status_code",
+                        "value": {
+                          "intValue": "404"
+                        }
+                      },
+                      {
+                        "key": "url.path",
+                        "value": {
+                          "stringValue": "/accounts/GMISSING"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1795082400000000000",
+                    "timeUnixNano": "1795082460000000000",
+                    "count": "3",
+                    "sum": 0.02,
+                    "bucketCounts": ["0", "3", "0"],
+                    "explicitBounds": [0.005, 0.025]
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "http.request.method",
+                        "value": {
+                          "stringValue": "GET"
+                        }
+                      },
+                      {
+                        "key": "http.response.status_code",
+                        "value": {
+                          "intValue": "200"
+                        }
+                      },
+                      {
+                        "key": "url.path",
+                        "value": {
+                          "stringValue": "/accounts/GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H?cursor=1"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1795082400000000000",
+                    "timeUnixNano": "1795082460000000000",
+                    "count": "5",
+                    "sum": 0.05,
+                    "bucketCounts": ["0", "5", "0"],
+                    "explicitBounds": [0.005, 0.025]
+                  }
+                ]
+              }
+            },
+            {
+              "name": "http.server.active_requests",
+              "unit": "{request}",
+              "sum": {
+                "aggregationTemporality": 2,
+                "isMonotonic": false,
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "http.request.method",
+                        "value": {
+                          "stringValue": "GET"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795082460000000000",
+                    "asInt": "2"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

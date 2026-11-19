@@ -1,0 +1,18 @@
+{
+  "name": "example-telegram-mini-app",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@usagemap/tracker": "file:../../tracker"
+  },
+  "devDependencies": {
+    "vite": "8.3.8"
+  }
+}

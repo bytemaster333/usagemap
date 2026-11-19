@@ -1,0 +1,16 @@
+# UsageMap (USAGEMAP.md). The extension is tools/stellar-scaffold-usagemap,
+# linked into node_modules/.bin by npm install, so it is found whenever
+# Scaffold runs from an npm script (npm start). It only reads what Scaffold
+# passes after each deploy (network, contract name and id, wasm hash) and
+# records the project's OWN contracts in .usagemap/contracts.json. It never
+# reads accounts or identities, and sends nothing unless `register: true` and
+# SCF_FOOTPRINT_KEY (a scfa_reg_ registration key) + USAGEMAP_TENANT_ID are set.
+extensions:
+  usagemap:
+    # Networks whose deployments are recorded (local deployments are throwaway).
+    networks: [testnet, mainnet]
+    # Where the list is written, relative to the project root.
+    out: .usagemap/contracts.json
+    # true: also register each deployed contract with UsageMap as "claimed"
+    # (you then prove ownership on the portal). Default: dry run.
+    register: false

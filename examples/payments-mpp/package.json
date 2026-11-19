@@ -1,0 +1,19 @@
+{
+  "name": "example-payments-mpp",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "pay": "node pay.mjs"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "1.10.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.301.2",
+    "@opentelemetry/resources": "3.1.1",
+    "@opentelemetry/sdk-metrics": "3.1.1",
+    "@usagemap/payments-otel": "link:../../packages/payments-otel",
+    "mppx": "0.19.0"
+  }
+}

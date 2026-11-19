@@ -1,0 +1,1 @@
+{"type":"transaction_created","id":"evt-sample-1","sep":"24","transaction":{"id":"tx-sample-1","sep":"24","kind":"deposit","status":"incomplete","amount_in":{"amount":"25","asset":"iso4217:USD"},"started_at":"2026-11-19T10:00:00Z","updated_at":"2026-11-19T10:00:00Z","client_domain":"wallet.example.org"}}

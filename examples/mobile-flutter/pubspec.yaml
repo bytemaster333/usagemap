@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+name: usagemap_example
+description: A one-screen Flutter app that sends UsageMap app events.
+publish_to: none
+version: 1.0.0
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+flutter:
+  uses-material-design: true

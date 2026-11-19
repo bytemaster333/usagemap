@@ -1,0 +1,13 @@
+{
+  "name": "example-edge-bun",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.ts"
+  },
+  "dependencies": {
+    "@usagemap/edge-otel": "link:../../packages/edge-otel"
+  }
+}

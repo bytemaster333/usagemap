@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "usagemap": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/path/to/usagemap/tools/mcp/server.ts"],
+      "env": {
+        "USAGEMAP_API_URL": "https://app.usagemap.dev",
+        "USAGEMAP_SHARE_KEY_FILE": "/path/to/usagemap-share.key"
+      }
+    }
+  }
+}

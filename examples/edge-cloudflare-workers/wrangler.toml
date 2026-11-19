@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+name = "usagemap-worker-example"
+main = "src/worker.ts"
+compatibility_date = "2026-11-01"
+
+[vars]
+OTEL_SERVICE_NAME = "my-worker"                       # the API service registered in the portal
+OTEL_EXPORTER_OTLP_ENDPOINT = "https://e1.usagemap.dev" # your ingest endpoint
+# The ingest token is a secret: `pnpm exec wrangler secret put OTEL_EXPORTER_OTLP_HEADERS` with the value
+# Authorization=Bearer%20scfa_ing_…   (locally: put the same line in .dev.vars)

@@ -1,0 +1,17 @@
+{
+  "config": {
+    "networks": ["testnet", "mainnet"],
+    "out": ".usagemap/contracts.json",
+    "register": false
+  },
+  "project_root": "__PROJECT_ROOT__",
+  "env": "testnet",
+  "network": {
+    "rpc_url": "https://soroban-testnet.stellar.org",
+    "network_passphrase": "Test SDF Network ; September 2015",
+    "network_name": "testnet"
+  },
+  "contract_name": "guess_the_number",
+  "wasm_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "contract_id": "CAAXJETKPYAATU4HVVQUTE2FFBULNFGZNEOC3MS635U5K3GZLAY2HI4M"
+}
