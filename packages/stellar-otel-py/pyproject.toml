@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scf-analytics-stellar-otel"
+version = "0.1.0"
+description = "OpenTelemetry metrics for py-stellar-base (stellar-sdk) RPC and Horizon calls (server side): latency per method or route, submit/poll/simulate outcome classes, never addresses, hashes or XDR."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = [
+  "opentelemetry-api>=1.27,<2",
+  "stellar-sdk>=13,<18",
+]
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: System :: Monitoring",
+  "Typing :: Typed",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scf_stellar_otel"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-p no:cacheprovider"

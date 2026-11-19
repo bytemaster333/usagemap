@@ -1,0 +1,136 @@
+{
+  "recordedAt": "2026-11-19T10:26:24.277Z",
+  "rpcHost": "soroban-testnet.stellar.org",
+  "getNetwork": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "friendbotUrl": "https://friendbot.stellar.org/",
+      "passphrase": "Test SDF Network ; September 2015",
+      "protocolVersion": 30
+    }
+  },
+  "getHealth": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "status": "healthy",
+      "latestLedger": 5812068,
+      "latestLedgerCloseTime": "1795083980",
+      "oldestLedger": 5691109,
+      "oldestLedgerCloseTime": "1794479188",
+      "ledgerRetentionWindow": 120960
+    }
+  },
+  "getFeeStats": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "sorobanInclusionFee": {
+        "max": "200",
+        "min": "100",
+        "mode": "100",
+        "p10": "100",
+        "p20": "100",
+        "p30": "100",
+        "p40": "100",
+        "p50": "100",
+        "p60": "100",
+        "p70": "100",
+        "p80": "100",
+        "p90": "100",
+        "p95": "100",
+        "p99": "200",
+        "transactionCount": "427",
+        "ledgerCount": 50
+      },
+      "inclusionFee": {
+        "max": "200",
+        "min": "100",
+        "mode": "100",
+        "p10": "100",
+        "p20": "100",
+        "p30": "100",
+        "p40": "100",
+        "p50": "100",
+        "p60": "100",
+        "p70": "100",
+        "p80": "100",
+        "p90": "100",
+        "p95": "100",
+        "p99": "200",
+        "transactionCount": "184",
+        "ledgerCount": 10
+      },
+      "latestLedger": 5812068
+    }
+  },
+  "getVersionInfo": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "version": "30.0.1-6b6ec60c8bde5a93984b6290065d3882d384b25d",
+      "commitHash": "6b6ec60c8bde5a93984b6290065d3882d384b25d",
+      "buildTimestamp": "2026-11-11T20:15:56",
+      "captiveCoreVersion": "stellar-core 30.0.0 (0e49751aa9ddf892302cca02cea7f3f5d97df9f1)",
+      "protocolVersion": 30
+    }
+  },
+  "getTransactionNotFound": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "latestLedger": 5812068,
+      "latestLedgerCloseTime": "1795083980",
+      "oldestLedger": 5691109,
+      "oldestLedgerCloseTime": "1794479188",
+      "status": "NOT_FOUND",
+      "txHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "applicationOrder": 0,
+      "feeBump": false,
+      "events": {},
+      "ledger": 0,
+      "createdAt": "0"
+    }
+  },
+  "simulateSuccess": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "transactionData": "AAAAAAAAAAEAAAAGAAAAAdeSi3LCcDzP6vfrn/TvTVBKVai5efybRQ6iyEK00c5hAAAAFAAAAAEAAAAAAAGqRQAAAAAAAAAAAAAAAAAAF+4=",
+      "events": [
+        "AAAAAQAAAAAAAAAAAAAAAgAAAAAAAAADAAAADwAAAAdmbl9jYWxsAAAAAA0AAAAg15KLcsJwPM/q9+uf9O9NUEpVqLl5/JtFDqLIQrTRzmEAAAAPAAAACGRlY2ltYWxzAAAAAQ==",
+        "AAAAAQAAAAAAAAAB15KLcsJwPM/q9+uf9O9NUEpVqLl5/JtFDqLIQrTRzmEAAAACAAAAAAAAAAIAAAAPAAAACWZuX3JldHVybgAAAAAAAA8AAAAIZGVjaW1hbHMAAAADAAAABw=="
+      ],
+      "minResourceFee": "6126",
+      "results": [
+        {
+          "auth": [],
+          "xdr": "AAAAAwAAAAc="
+        }
+      ],
+      "latestLedger": 5812068
+    }
+  },
+  "simulateError": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "error": "HostError: Error(Context, UnexpectedSize)",
+      "events": [
+        "AAAAAAAAAAAAAAAAAAAAAgAAAAAAAAADAAAADwAAAAdmbl9jYWxsAAAAAA0AAAAg15KLcsJwPM/q9+uf9O9NUEpVqLl5/JtFDqLIQrTRzmEAAAAPAAAAB2JhbGFuY2UAAAAAAQ==",
+        "AAAAAAAAAAAAAAAB15KLcsJwPM/q9+uf9O9NUEpVqLl5/JtFDqLIQrTRzmEAAAACAAAAAAAAAAIAAAAPAAAABWVycm9yAAAAAAAAAgAAAAIAAAAJAAAAEAAAAAEAAAACAAAADgAAABx3cm9uZyBudW1iZXIgb2YgYXJncyB0byBmdW5jAAAADwAAAAdiYWxhbmNlAA=="
+      ],
+      "latestLedger": 5812069
+    }
+  },
+  "unknownMethod": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32601,
+      "message": "method not found",
+      "data": "getSomethingElse"
+    }
+  }
+}
