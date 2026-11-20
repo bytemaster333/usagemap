@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+name: Feature request
+description: Suggest a change. Resolution means a decision (planned with a target release, or declined with reasons).
+title: "feature: "
+labels: ["type:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Within **10 business days** you get a decision, not necessarily the feature (docs/sla.md §9.2).
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: No personal or secret data
+      options:
+        - label: I have not included personal data, API keys, ingest tokens or secret seeds (`S…`).
+          required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you need, and why?
+    validations:
+      required: true

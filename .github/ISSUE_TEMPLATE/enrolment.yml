@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0
+name: Enrolment problem
+description: Signing up a project, verifying a domain, linking a registry entry or declaring contracts does not work.
+title: "enrolment: "
+labels: ["tenant", "type:enrolment"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We answer within **5 business days** and aim to resolve within **10** (docs/sla.md §9).
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: No personal or secret data
+      options:
+        - label: I have not included personal data, API keys, ingest tokens, secret seeds (`S…`) or signed challenges.
+          required: true
+  - type: dropdown
+    id: step
+    attributes:
+      label: Step
+      options:
+        [
+          Sign-in (GitHub,
+          Stellar wallet,
+          passkey),
+          Domain verification,
+          Registry linkage,
+          Contract or footprint verification,
+          Invitation or membership,
+          Other,
+        ]
+    validations:
+      required: true
+  - type: input
+    id: project
+    attributes:
+      label: Project slug
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: The error shown, without any key, token or signature.
+    validations:
+      required: true

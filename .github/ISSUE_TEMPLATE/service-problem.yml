@@ -1,0 +1,103 @@
+# SPDX-License-Identifier: Apache-2.0
+# Linked from the "Report a problem" button on status.usagemap.dev. For the hosted service only:
+# outages, errors, slowness, events not counted. Security problems never go through a public issue (SECURITY.md).
+name: Service problem
+description: The hosted UsageMap service is down, slow, returning errors or not counting your events.
+title: "service: "
+labels: ["type:service", "type:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for telling us. Check [status.usagemap.dev](https://status.usagemap.dev) first: if a check there is red, we already know and the incident is posted there.
+        We answer within **5 business days** and aim to resolve within **10** (docs/sla.md §9); outages are worked on as soon as we see them.
+        **Security problems:** do not use this form. Report them privately (SECURITY.md).
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: No personal or secret data
+      options:
+        - label: I have not included personal data, visitor IP addresses, User-Agent strings, wallet addresses of end users, API keys, ingest tokens, secret seeds (`S…`) or full URLs with query strings.
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: What is affected?
+      options:
+        [
+          "Web tracking: page views or wallet events are not counted",
+          "Tracker script does not load or fails its integrity check",
+          "API telemetry (OpenTelemetry) is rejected or missing",
+          "Dashboard or app does not load, or shows old data",
+          "Public project page or snapshot verification",
+          "Status page itself looks wrong",
+          "Other",
+        ]
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: How bad is it?
+      options:
+        [
+          "Completely down for me",
+          "Partly working: errors or missing data",
+          "Slow",
+          "Something looks wrong but works",
+        ]
+    validations:
+      required: true
+  - type: input
+    id: started
+    attributes:
+      label: When did it start? (UTC)
+      description: Approximate is fine, e.g. 2026-11-19 14:05 UTC.
+      placeholder: 2026-11-19 14:05 UTC
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Which address were you using?
+      description: Pick all you know of.
+      multiple: true
+      options:
+        [
+          "app.usagemap.dev",
+          "e1.usagemap.dev",
+          "e2.usagemap.dev",
+          "usagemap.dev",
+          "status.usagemap.dev",
+          "Not sure",
+        ]
+  - type: dropdown
+    id: status-page
+    attributes:
+      label: What did the status page show at the time?
+      options:
+        [
+          "All checks passing",
+          "A check was degraded or down",
+          "The status page did not load",
+          "I did not check",
+        ]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include error messages and HTTP status codes. Remove keys, tokens and query strings first.
+    validations:
+      required: true
+  - type: input
+    id: project
+    attributes:
+      label: Project slug (optional)
+      description: The public project slug from the app, never a key.
+  - type: input
+    id: tracker
+    attributes:
+      label: Tracker or SDK version (optional)
+      description: For example tracker 1.1.0, or your OpenTelemetry SDK and version.

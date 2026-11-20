@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# Issue forms of the public tracker (docs/sla.md §9.1; labels: tools/support/labels.json).
+# Every ticket gets the support clock of docs/sla.md §9.2 (first response within 5 business days, resolution within 10;
+# tools/support/run sla). Security reports never go through a public issue.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/bytemaster333/usagemap/security/advisories/new
+    about: GitHub private vulnerability reporting. Never open a public issue for a security problem (SECURITY.md).
+  - name: Data-subject or controller request (privacy mailbox)
+    url: https://github.com/bytemaster333/usagemap/blob/main/docs/privacy/tenant-privacy-notice.md
+    about: Requests that must not be public go to the privacy mailbox named in the privacy notice (docs/sla.md §9.1), never to an issue. Tenants erase their own data in the portal.
+  - name: Questions and announcements (Discussions)
+    url: https://github.com/bytemaster333/usagemap/discussions
+    about: Q&A, tracker release notes and planned work. Discussions have no support clock.

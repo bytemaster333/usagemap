@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+# Dead-man's switch (C-30, monitoring plan §4.9; runbook ops/runbooks/dead-mans-switch.md): every 5 minutes, from
+# GitHub-hosted runners (infrastructure we do not operate), read the Watchdog heartbeat that Alertmanager posts to the
+# status host and fail when it is older than 15 minutes or unreadable. A failed scheduled run notifies the maintainers
+# (GitHub notification; route it to the alert channel). The status host comes from the repository variable
+# SCF_STATUS_URL (e.g. https://status.<domain>); while the variable is unset the job is
+# skipped, never reported green. No secrets, read-only token; ops/e2e/run.sh exercises the same script.
+name: deadman
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: deadman
+  cancel-in-progress: false
+
+jobs:
+  heartbeat:
+    name: Watchdog heartbeat on the status host is fresh
+    if: vars.SCF_STATUS_URL != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: ops/deadman
+      - name: ops/deadman/check.sh (MAX_AGE 900 s)
+        env:
+          STATUS_URL: ${{ vars.SCF_STATUS_URL }}
+        run: ops/deadman/check.sh
