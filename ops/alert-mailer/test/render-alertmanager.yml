@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# Renders the compose_stack role's Alertmanager template (infra/ansible/roles/compose_stack/templates/
+# alertmanager.yml.j2) with the release's route tree, exactly as the role does, for test/alertmanager-e2e.test.ts.
+# Run in the pinned Ansible tool image: ansible-playbook -i localhost, -c local render-alertmanager.yml -e @vars.json
+- name: Render the Alertmanager configuration of the role
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Alertmanager configuration (the release's routes, this deployment's receivers)
+      ansible.builtin.template:
+        src: /repo/infra/ansible/roles/compose_stack/templates/alertmanager.yml.j2
+        dest: "{{ out }}"
+        mode: "0644"
+      vars:
+        scf_am_routes: "{{ lookup('ansible.builtin.file', '/repo/ops/alertmanager/alertmanager.yml') | from_yaml }}"

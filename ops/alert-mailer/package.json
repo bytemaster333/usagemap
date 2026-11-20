@@ -1,0 +1,19 @@
+{
+  "name": "@usagemap/alert-mailer",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Cloudflare Worker that turns Alertmanager webhook notifications into one e-mail each through a send_email binding (runbook ops/runbooks/alert-email.md). No runtime dependencies; workerd runs the tests offline.",
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "test:e2e": "SCF_ALERT_MAILER_E2E=1 node --test test/alertmanager-e2e.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "biome check ."
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2",
+    "workerd": "1.20261112.1"
+  }
+}

@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
+// Alert mailer Worker (runbook ops/runbooks/alert-email.md). ops/scripts/cloudflare-email-setup.sh deploys the same
+// two modules with the same bindings through the Cloudflare API, adding what must never be in this repository: the
+// destination address (send_email.destination_address and the MAIL_TO secret) and the ALERT_TOKEN secret.
+// With wrangler instead: `wrangler deploy` here, then `wrangler secret put MAIL_TO` and `wrangler secret put
+// ALERT_TOKEN`; the binding below is then unrestricted, which Cloudflare limits to verified destination addresses.
+{
+  "$schema": "https://unpkg.com/wrangler@4/config-schema.json",
+  "name": "usagemap-alert-mailer",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "send_email": [{ "name": "MAIL" }],
+  "vars": { "MAIL_FROM": "alerts@usagemap.dev" },
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}
