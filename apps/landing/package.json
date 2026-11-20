@@ -1,0 +1,25 @@
+{
+  "name": "@usagemap/landing",
+  "version": "0.1.0",
+  "description": "Landing page of UsageMap (usagemap.dev): static HTML and CSS, no external fonts, scripts or CDNs. The documentation is apps/docs (docs.usagemap.dev).",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.19.0"
+  },
+  "scripts": {
+    "build": "node build.ts",
+    "build:release": "node build.ts --release",
+    "check-live": "node check-live.ts",
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "biome check .",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  }
+}

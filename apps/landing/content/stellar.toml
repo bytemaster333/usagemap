@@ -1,0 +1,30 @@
+# stellar.toml (SEP-1) — generated from the live configuration by UsageMap's control plane
+# (https://app.usagemap.dev/public/v1/stellar.toml, 2026-11-19T10:41:09Z).
+# It lists the keys a reader needs to verify published numbers. Tamper-evidence only: it does not show that
+# the numbers are genuine and implies no endorsement by SCF, SDF or anyone else.
+
+VERSION = "2.7.0"
+NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+# The daily-seal account(s) on Stellar testnet: one MEMO_HASH transaction per UTC day.
+ACCOUNTS = ["GA5KH6OZTG6LVLVYWOE4XYTZKEDYSYBATLGLFLERCGWFNP7WS3I3K7JY"]
+
+[DOCUMENTATION]
+ORG_DBA = "UsageMap"
+ORG_URL = "https://usagemap.dev"
+ORG_DESCRIPTION = "Privacy-first web and API analytics for Stellar ecosystem projects, with published numbers signed and sealed on Stellar."
+
+# Extension (not part of SEP-1; SEP-1 clients ignore it): how to verify a UsageMap number.
+[USAGEMAP_VERIFY]
+VERIFIER_KEYS = "https://app.usagemap.dev/public/v1/verifier-keys"
+VERIFY_PAGE = "https://app.usagemap.dev/verify"
+SNAPSHOT_KEYS_JWKS = "https://app.usagemap.dev/.well-known/scf-snapshot-keys.json"
+SNAPSHOT_SIGNING_ALG = "Ed25519"
+# Ed25519 public keys of the traction-snapshot signer, as Stellar strkeys (same 32 bytes as the JWK "x").
+SNAPSHOT_SIGNING_KEYS = ["GDVZSTABWAODNROTLGOUQYQZQEWTIB6VBKL64VKQFDKEZYER7XNGWGFK"]
+SNAPSHOT_SIGNING_KIDS = ["snap-1"]
+SEAL_NETWORK = "testnet"
+SEAL_DURABLE = false
+SEAL_DAYS = "https://app.usagemap.dev/public/v1/seals"
+AUDIT_ANCHORS = "https://app.usagemap.dev/public/v1/audit-anchors/{day}"
+SEAL_HORIZON = "https://horizon-testnet.stellar.org"
+SEAL_NOTICE = "Stellar testnet is reset several times a year; this seal is a demonstration, not durable evidence."
